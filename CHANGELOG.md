@@ -6,6 +6,35 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-27
+
+### Added
+
+- A specimen page per component, `demo/status-badge.html`, `demo/entry.html`, and
+  `demo/pagination.html`: every state of the component, labelled, again in a section 20rem wide,
+  and one instance reached by the keyboard to show its focus ring. They link the foundation's
+  `page-full.css` and import its `register-full.js`, so a profile applies by attribute on the root,
+  and lay out through their own `demo` layer, `demo/demo.css`, on the foundation's tokens.
+- `mise run screenshots [--keep]`: each specimen page in each of the four colors and in compact
+  and sans, light and dark, in the pinned chrome-headless-shell, the focus reached by a real Tab
+  press, shown inline in kitty and removed on exit unless `--keep` is given. The check never runs
+  it.
+- A browser case on every built-in profile: page-full.css with register-full.js, each component
+  rendered with no error in the four colors, compact, and sans, light and dark.
+
+### Changed
+
+- The foundation moves to v0.2.0: the devDependency installs its `v0.2.0` tag, and the peer range
+  is `^0.2.0`.
+- The entry formats a file's size and its updated time with the foundation's `formatBytes` and
+  `formatDateTime`, from `./format.js`, in place of its own Intl formatters; the output is
+  unchanged.
+- The release test's fault cases name the foundation's `v0.2.0` tag.
+
+### Removed
+
+- The typescript-eslint entries excluded from pnpm's minimum release age: 8.72.1 has aged past it.
+
 ## [0.1.0] - 2026-10-27
 
 ### Added
@@ -19,5 +48,6 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 - The release by tag: `v<version>`, whose tree is the pack, with the tarball on its GitHub
   release.
 
-[Unreleased]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/JaimeStill/spike-html-apps-components/releases/tag/v0.1.0

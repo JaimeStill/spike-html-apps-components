@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>entry specimen</title>
+    <!-- The entry's specimen page, from dist/, on documents.js's fixture: nothing while item is
+         null, a directory, a file, a pending file, and a long name. Every state is
+         labelled, then shown again in a section 20rem wide, and the focus section holds one
+         instance the screenshot script reaches with a Tab press. The page links the installed
+         foundation's full entry, page-full.css, and imports register-full.js, so a profile
+         applies by attribute on the root; its import map is components.html's, so it runs served
+         only: mise run demo, or mise run screenshots. -->
+    <link rel="stylesheet" href="/deps/@jaimestill/spike-html-apps-foundation/dist/page-full.css" />
+    <link rel="stylesheet" href="demo.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "lit": "/deps/lit/index.js",
+          "lit/": "/deps/lit/",
+          "lit-html": "/deps/lit-html/lit-html.js",
+          "lit-html/": "/deps/lit-html/",
+          "lit-element/": "/deps/lit-element/",
+          "@lit/reactive-element": "/deps/@lit/reactive-element/reactive-element.js",
+          "@lit/reactive-element/": "/deps/@lit/reactive-element/",
+          "@jaimestill/spike-html-apps-foundation/": "/deps/@jaimestill/spike-html-apps-foundation/dist/"
+        }
+      }
+    </script>
+    <script type="module">
+      import "@jaimestill/spike-html-apps-foundation/register-full.js";
+      import "../dist/entry-lit-shadow.js";
+      import { directories, files } from "./documents.js";
+      import { make, specimens } from "./specimen.js";
+
+      const [directory] = directories.items;
+      const [file, , pending] = files.items;
+      const entry = (item) => () => make("sl-entry-lit-shadow", { item });
+      specimens(
+        [
+          { label: "No item (null): nothing renders, the frame shows the empty slot", build: entry(null) },
+          { label: "A directory", build: entry(directory) },
+          { label: "A file", build: entry(file) },
+          { label: "A pending file: size null, so no size", build: entry(pending) },
+          {
+            label: "A long name",
+            build: entry({
+              ...file,
+              name: "quarterly-board-presentation_financial-statements_FINAL_revised-v3_approved-for-distribution.pdf",
+            }),
+          },
+        ],
+        { label: "Focused by Tab", build: entry(file) },
+      );
+    </script>
+  </head>
+  <body>
+    <main>
+      <h1>Entry</h1>
+      <p><code>sl-entry-lit-shadow</code>, one directory or file as a button, in each of its states.</p>
+
+      <section id="states">
+        <h2>States</h2>
+        <div class="states"></div>
+      </section>
+
+      <section id="narrow" class="narrow">
+        <h2>States at 20rem</h2>
+        <div class="states"></div>
+      </section>
+
+      <section id="focus">
+        <h2>Focus visible</h2>
+        <p>The entry's button, reached by the keyboard.</p>
+        <span tabindex="-1" data-focus-start="1"></span>
+        <div class="states"></div>
+      </section>
+    </main>
+  </body>
+</html>
