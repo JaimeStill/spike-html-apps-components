@@ -1,8 +1,9 @@
 // The components from this repository's dist/: conventions' 27 probe cases, its restyle case, and
 // the sheets each shadow root adopts, the installed foundation's then its own, on
-// test/fixtures/components.html; and each component rendered under the foundation's profiles, on
-// test/fixtures/profiles.html.
-// Adapted from spike-html-packages-components (4c0a5d8): test/browser/components.test.js, renamed.
+// test/fixtures/components.html, and the entry's formatted size and time there; and each component
+// rendered under the foundation's profiles, on test/fixtures/profiles.html.
+// Adapted from spike-html-packages-components (4c0a5d8): test/browser/components.test.js, renamed,
+// and the entry's size and time case added.
 
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
@@ -81,6 +82,35 @@ describe("components", { timeout: 60_000 }, () => {
         assert.deepEqual(adopted[tag], ["reset", "elements", "own"], tag);
       }
       assert.equal(label, "Draft");
+    } finally {
+      await page.close();
+    }
+  });
+
+  test("the entry shows a file's size and modified time in the page's locale and time zone", async () => {
+    // The browser runs in en-US at UTC, as support/browser-pipe.js launches it.
+    const page = await browser.open(`${server.origin}/test/fixtures/components.html`);
+    try {
+      const shown = await page.evaluate(`(async () => {
+        await import("/dist/entry-lit-shadow.js");
+        const entry = document.createElement("sl-entry-lit-shadow");
+        entry.item = {
+          id: "f-1536",
+          name: "sketch.txt",
+          status: "available",
+          size: 1536,
+          content_type: "text/plain",
+          updated_at: "2026-10-12T16:41:07Z",
+        };
+        document.querySelector("main").append(entry);
+        await entry.updateComplete;
+        const root = entry.shadowRoot;
+        return {
+          size: root.querySelector(".size").textContent,
+          time: root.querySelector("time").textContent,
+        };
+      })()`);
+      assert.deepEqual(shown, { size: "1.5 kB", time: "Oct 12, 2026, 4:41 PM" });
     } finally {
       await page.close();
     }
