@@ -4,13 +4,37 @@
      the run ends, a module that failed to load included. Lit's and the foundation's bare
      specifiers map onto /deps/, where the server answers with the installed packages; the
      foundation's map onto its dist/, as its exports do.
+     The page links the foundation's lean entry, page.css, and sets no profile. With entry=full in
+     the query it links the full entry, page-full.css, imports register-full.js before the module,
+     and sets the root's data-palette, data-space, data-type, and data-scheme from the query's
+     palette, space, type, and scheme, as profiles.html's case does. window.styled settles once
+     the entry's sheet loads, and the module runs after it.
      Adapted from spike-html-packages-components (4c0a5d8): test/fixtures/components.html,
      renamed. -->
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <title>components cases</title>
-    <link rel="stylesheet" href="/deps/@jaimestill/spike-html-apps-foundation/dist/page.css" />
+    <script>
+      {
+        const query = new URLSearchParams(location.search);
+        const full = query.get("entry") === "full";
+        const link = document.head.appendChild(document.createElement("link"));
+        link.rel = "stylesheet";
+        window.styled = new Promise((resolve, reject) => {
+          link.onload = resolve;
+          link.onerror = () => reject(new Error(`no sheet ${link.href}`));
+        });
+        link.href = `/deps/@jaimestill/spike-html-apps-foundation/dist/${full ? "page-full" : "page"}.css`;
+        if (full) {
+          const attributes = { palette: "data-palette", space: "data-space", type: "data-type", scheme: "data-scheme" };
+          for (const [key, attribute] of Object.entries(attributes)) {
+            const value = query.get(key);
+            if (value !== null) document.documentElement.setAttribute(attribute, value);
+          }
+        }
+      }
+    </script>
     <script type="importmap">
       {
         "imports": {
@@ -35,8 +59,13 @@
       window.verdict = new Promise((resolve) => (settle = resolve));
     </script>
     <script type="module">
-      const module = new URLSearchParams(location.search).get("module");
+      const query = new URLSearchParams(location.search);
+      const module = query.get("module");
       try {
+        await window.styled;
+        if (query.get("entry") === "full") {
+          await import("@jaimestill/spike-html-apps-foundation/register-full.js");
+        }
         if (module !== null) {
           if (!["probe", "restyle"].includes(module)) throw new Error(`no module ${module}`);
           const { run } = await import(`../browser/support/${module}.js`);

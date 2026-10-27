@@ -89,9 +89,20 @@ description = "Install the pins and node_modules, the foundation at its tag; rea
 run = ["mise install", "pnpm install --frozen-lockfile"]
 
 [tasks.demo]
-description = "Serve the components demo page, on dist/, on the loopback address"
+description = "Serve the components demo page and the specimen pages, on dist/, on the loopback address"
 depends = ["build"]
 run = "node scripts/demo.js"
+
+# Never a dependency of check: a reviewer's look at the specimen pages, not a test.
+# Adapted from spike-html-apps-foundation (679e550): mise.toml, its screenshots task, on the
+# specimen pages.
+[tasks.screenshots]
+description = "Capture each specimen page light and dark, in tiles, inline in kitty: at the defaults, or --palette/--space/--type <name>, or --all for the full matrix; --keep leaves the captures"
+depends = ["preflight browser", "build"]
+# Its arguments reach the script, with or without a leading --.
+# raw: with dependencies, mise prefixes a task's output through a pipe; icat needs the terminal.
+raw = true
+run = "scripts/screenshots.sh"
 
 [tasks.currency]
 description = "Report every mise tool, package.json pin, action pin, and the foundation's tag behind its latest, exiting nonzero if any"

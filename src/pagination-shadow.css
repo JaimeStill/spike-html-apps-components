@@ -1,4 +1,5 @@
-/* From spike-html-packages-components (4c0a5d8): src/pagination-shadow.css */
+/* Adapted from spike-html-packages-components (4c0a5d8): src/pagination-shadow.css, its groups
+   wrapped, its label and page count unbroken, and its steps unstretched. */
 
 /*
  * The pagination's layout in a shadow root: pagination-lit-shadow.ts adopts this sheet into its
@@ -20,6 +21,7 @@
 .pagination {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: var(--space-xs);
   margin-block-start: var(--space-xs);
@@ -33,10 +35,13 @@
   align-items: center;
   gap: var(--space-2xs);
 }
+/* The label and the page count never break: a narrow pagination wraps its groups instead, by the
+   gap's row step. */
 .page-size-label,
 .page-indicator {
   font-size: var(--text-s);
   color: var(--fg-2);
+  white-space: nowrap;
 }
 .page-input {
   inline-size: 4ch;
@@ -48,7 +53,4 @@
     appearance: none;
     margin: 0;
   }
-}
-.page-step {
-  align-self: stretch;
 }

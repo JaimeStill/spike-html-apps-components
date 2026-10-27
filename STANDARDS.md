@@ -20,6 +20,10 @@ The architecture pages that apply, in the architecture repository:
   content, narrow width) and in every profile, light and dark, regular and compact.
 - Focus is always visible, motion is brief and honours reduced motion, and nothing shifts layout
   as data arrives.
+- A component sizes to its content in any parent, a shrink-to-fit one too: no container query or
+  containment takes its width from the host.
+- A value, such as a size or a clock, never breaks inside itself; a narrow line breaks between
+  values.
 - Density, alignment, and spacing come from the foundation's tokens, never a literal.
 - A visual change's session brief carries its screenshots per state and profile; the architect's
   acceptance is the design review, and a passing check alone doesn't ship one.
