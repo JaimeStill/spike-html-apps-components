@@ -1,6 +1,7 @@
 // The specimen pages' renderer: each page lists its component's states once, and this module
 // puts every state, labelled, into each of the page's state lists, the full-width one and the
-// narrow one, and the focus state into the focus section.
+// narrow one, and the focus state into the focus section. A page's other sections take figures
+// of their own.
 
 /**
  * A state: its label, and a function that builds the component in it, fresh for each list.
@@ -8,8 +9,12 @@
  * @typedef {{ label: string; build: () => HTMLElement }} State
  */
 
-/** A state's figure: its label as the caption, then the component in its frame. */
-function figure({ label, build }) {
+/**
+ * A state's figure: its label as the caption, then the component in its frame.
+ *
+ * @param {State} state
+ */
+export function figure({ label, build }) {
   const frame = document.createElement("div");
   frame.className = "state-frame";
   frame.append(build());

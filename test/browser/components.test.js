@@ -1,7 +1,8 @@
 // The components from this repository's dist/: conventions' 27 probe cases, the restyle case, the
 // adopted sheets, and the entry's formatting, on test/fixtures/components.html; each component in
 // every profile, on test/fixtures/profiles.html; and the entry's and the pagination's geometry on
-// their specimen pages under demo/, in every profile.
+// their specimen pages under demo/, in every profile, the entry's in parents that size it to its
+// content too.
 // Adapted from spike-html-packages-components (4c0a5d8): test/browser/components.test.js, renamed,
 // with the formatting, profile, and specimen geometry cases added.
 
@@ -296,31 +297,47 @@ describe("components", { timeout: 60_000 }, () => {
     }
   });
 
-  test("at 20rem, the entry's wrapped meta lines step by the name-to-meta gap, in every profile", async () => {
+  test("at 20rem, the entry's wrapped lines, its status's and its meta's, step by its row gap, in every profile", async () => {
+    // The lines of an entry's stack, top to bottom: the name's; the status's, when it wraps below
+    // the name; then each line of the meta's parts. Each steps from the one above by the entry's
+    // row gap, the name-to-meta step, within a pixel.
     const measure = `() => ({ wrapped: (${ENTRIES})(".narrow").flatMap((entry) => {
       const root = entry.shadowRoot;
+      const rowGap = parseFloat(getComputedStyle(root.querySelector(".entry")).rowGap);
       const name = root.querySelector(".name").getBoundingClientRect();
+      const status = root.querySelector(".status").getBoundingClientRect();
       const meta = root.querySelector(".meta");
+      const metaTop = meta.getBoundingClientRect().top;
       const parts = [...meta.children].map((part) => part.getBoundingClientRect());
       const tops = [...new Set(parts.map((part) => Math.round(part.top)))];
       if (tops.length < 2) return [];
       const line = (top) => parts.filter((part) => Math.round(part.top) === top);
+      // The lines above the meta: the status is one of them when it wraps between the name and
+      // the meta, and on the name's line it ends that line with the name.
+      const onName = status.top < name.bottom - 0.5;
+      const head = !onName && status.bottom <= metaTop + 0.5
+        ? [name, status]
+        : [{ top: name.top, bottom: onName ? Math.max(name.bottom, status.bottom) : name.bottom }];
       return [{
         name: entry.item.name,
-        nameToMeta: meta.getBoundingClientRect().top - name.bottom,
-        steps: tops.slice(1).map((top, i) =>
-          Math.min(...line(top).map((part) => part.top)) -
-          Math.max(...line(tops[i]).map((part) => part.bottom))),
+        rowGap,
+        steps: [
+          ...head.slice(1).map((next, i) => next.top - head[i].bottom),
+          metaTop - head.at(-1).bottom,
+          ...tops.slice(1).map((top, i) =>
+            Math.min(...line(top).map((part) => part.top)) -
+            Math.max(...line(tops[i]).map((part) => part.bottom))),
+        ],
       }];
     }) })`;
     for (const specimen of ["entry", "pagination"]) {
       for (const { profile, wrapped } of await measureSpecimen(specimen, measure)) {
         assert.ok(wrapped.length > 0, `${specimen} under ${profile}: a meta row wraps at 20rem`);
-        for (const { name, nameToMeta, steps } of wrapped) {
+        for (const { name, rowGap, steps } of wrapped) {
           for (const step of steps) {
             assert.ok(
-              Math.abs(step - nameToMeta) <= 1,
-              `${specimen} under ${profile}, ${name}: meta lines ${step} apart, the name ${nameToMeta} above the meta`,
+              Math.abs(step - rowGap) <= 1,
+              `${specimen} under ${profile}, ${name}: lines ${steps.join(", ")} apart, the row gap ${rowGap}`,
             );
           }
         }
@@ -374,14 +391,25 @@ describe("components", { timeout: 60_000 }, () => {
   test("at 20rem, every state keeps within the column, a long name wrapping inside its entry, in every profile", async () => {
     // A component wider than the column widens its frame, the grid's item, past the list, so the
     // list's scroll width shows it; a name too long for its entry spills past the entry's button.
+    // The status stays shown inside the entry, beside the name or on a line below it.
     const measure = `() => {
       const list = document.querySelector(".narrow .states");
       return {
         overflow: list.scrollWidth - list.clientWidth,
         spills: (${ENTRIES})(".narrow").map((entry) => {
           const root = entry.shadowRoot;
+          const box = root.querySelector(".entry").getBoundingClientRect();
           const name = root.querySelector(".name").getBoundingClientRect();
-          return { name: entry.item.name, by: name.right - root.querySelector(".entry").getBoundingClientRect().right };
+          const status = root.querySelector(".status").getBoundingClientRect();
+          return {
+            name: entry.item.name,
+            by: name.right - box.right,
+            status: {
+              shown: status.width > 0 && status.height > 0,
+              inside: status.left >= box.left - 0.5 && status.right <= box.right + 0.5,
+              clear: status.top >= name.bottom - 0.5 || status.left >= name.right - 0.5,
+            },
+          };
         }),
       };
     }`;
@@ -392,12 +420,71 @@ describe("components", { timeout: 60_000 }, () => {
           `${specimen} under ${profile}: the states overflow the column by ${overflow}`,
         );
         assert.ok(spills.length > 0, `${specimen} under ${profile}: an entry at 20rem`);
-        for (const { name, by } of spills) {
+        for (const { name, by, status } of spills) {
           assert.ok(
             by <= 0.5,
             `${specimen} under ${profile}: ${name} spills past its entry by ${by}`,
           );
+          assert.deepEqual(
+            status,
+            { shown: true, inside: true, clear: true },
+            `${specimen} under ${profile}: ${name}'s status`,
+          );
         }
+      }
+    }
+  });
+
+  test("in a parent that sizes it to its content, the entry takes its content's width, in every profile", async () => {
+    // The fit section's entries: brand-guide.pdf in an inline-block, as a content-sized flex
+    // item, and in a grid's auto track. Each entry is at least as wide as its first line laid out
+    // whole, the kind, the name on one line, and the status, with the column gaps between, and
+    // every part keeps inside its button.
+    const results = await measureSpecimen(
+      "entry",
+      `() => ({ fits: (${ENTRIES})("#fit").map((entry) => {
+        const root = entry.shadowRoot;
+        const button = root.querySelector(".entry");
+        const box = button.getBoundingClientRect();
+        const gap = parseFloat(getComputedStyle(button).columnGap);
+        const part = (selector) => root.querySelector(selector).getBoundingClientRect();
+        const [kind, name, status, meta] = [".kind", ".name", ".status", ".meta"].map(part);
+        // The name's text laid out on one line, however its box wraps it.
+        const range = document.createRange();
+        range.selectNodeContents(root.querySelector(".name"));
+        const text = [...range.getClientRects()].reduce((sum, rect) => sum + rect.width, 0);
+        const inside = (rect) =>
+          rect.left >= box.left - 0.5 && rect.right <= box.right + 0.5 &&
+          rect.top >= box.top - 0.5 && rect.bottom <= box.bottom + 0.5;
+        return {
+          parent: entry.parentElement.className,
+          name: entry.item.name,
+          width: box.width,
+          natural: kind.width + gap + text + gap + status.width,
+          lines: (${LINES})(root.querySelector(".name")),
+          status: status.width > 0 && status.height > 0,
+          overflow: button.scrollWidth - button.clientWidth,
+          outside: [["kind", kind], ["name", name], ["status", status], ["meta", meta]]
+            .filter(([, rect]) => !inside(rect)).map(([which]) => which),
+        };
+      }) })`,
+    );
+    for (const { profile, fits } of results) {
+      assert.deepEqual(
+        fits.map(({ parent, name }) => [parent, name]),
+        ["fit-inline-block", "fit-flex", "fit-grid"].map((parent) => [parent, "brand-guide.pdf"]),
+        `${profile}: the fit section's entries`,
+      );
+      for (const { parent, width, natural, lines, status, overflow, outside } of fits) {
+        const where = `${parent} under ${profile}`;
+        assert.ok(
+          width >= natural - 0.5,
+          `${where}: the entry ${width} wide, its content ${natural}`,
+        );
+        assert.equal(lines, 1, `${where}: brand-guide.pdf on ${lines} lines`);
+        assert.ok(status, `${where}: the status shown`);
+        assert.ok(overflow <= 0, `${where}: the entry's content overflows it by ${overflow}`);
+        assert.deepEqual(outside, [], `${where}: parts outside the entry`);
       }
     }
   });

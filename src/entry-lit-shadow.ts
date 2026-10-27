@@ -1,6 +1,7 @@
 // Entry, Lit with a shadow root: one directory or file of a document hierarchy, as a button.
-// Adapted from spike-html-packages-components (4c0a5d8): src/entry-lit-shadow.ts, renamed, and its
-// size and time formatted by the foundation's formatBytes and formatDateTime.
+// Adapted from spike-html-packages-components (4c0a5d8): src/entry-lit-shadow.ts, renamed, its
+// size and time formatted by the foundation's formatBytes and formatDateTime, and its name and
+// status in a head, the row entry-shadow.css wraps.
 
 import { html, LitElement, nothing, type PropertyDeclarations } from "lit";
 
@@ -76,8 +77,10 @@ export class EntryLitShadow extends LitElement {
     return html`
       <button type="button" class="entry" @click=${this.#open}>
         <span class="kind">${kindOf(item)}</span>
-        <span class="name">${item.name}</span>
-        <span class="status">${item.status}</span>
+        <span class="head">
+          <span class="name">${item.name}</span>
+          <span class="status">${item.status}</span>
+        </span>
         <span class="meta">
           ${
             file && file.size !== null

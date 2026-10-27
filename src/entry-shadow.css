@@ -1,5 +1,6 @@
 /* Adapted from spike-html-packages-components (4c0a5d8): src/entry-shadow.css, its kind column 9ch,
-   its meta lines stepped by the row gap, a long name wrapped, and its narrow layout added. */
+   its meta lines stepped by the row gap, a long name wrapped, and its name and status in a row
+   that wraps. */
 
 /*
  * The entry's layout in a shadow root: entry-lit-shadow.ts adopts this sheet into its root after
@@ -7,21 +8,24 @@
  * the bare button its look. It holds the button's layout and its parts' type, and no look of its
  * own for the button. It reads only the foundation's baseline tokens, which a shadow root takes by
  * inheritance from the page's entry. Unlayered, it sits above the adopted layers in the root.
+ *
+ * The layout is intrinsic, with no container query, so the entry sizes to its content in any
+ * parent, a shrink-to-fit one too: an inline-block, a content-sized flex item, or a grid's auto
+ * track takes the width of its widest line, the head's or the meta's, each laid out whole.
  */
 
 :host {
   display: block;
 }
-/* The kind column is as wide as the longest kind the entry shows, "directory", at 9ch, so a kind
-   never runs into the name, and every entry of a list, a directory's or a file's, puts its name at
-   the same inline start. The column gap keeps the space between them. The button is the query
-   container of its parts' narrow layout below. */
+/* Two columns: the kind, then the head over the meta. The kind column is as wide as the longest
+   kind the entry shows, "directory", at 9ch, so a kind never runs into the name, and every entry
+   of a list, a directory's or a file's, each its own grid in its own shadow root, puts its name at
+   the same inline start. The row gap is the name-to-meta step, and the column gap keeps the parts
+   apart. */
 .entry {
-  container-type: inline-size;
   display: grid;
-  grid-template-columns: 9ch 1fr auto;
+  grid-template-columns: 9ch minmax(0, 1fr);
   align-items: baseline;
-  justify-items: start;
   gap: var(--space-3xs) var(--space-xs);
   inline-size: 100%;
   margin-block: var(--space-3xs);
@@ -31,38 +35,43 @@
 .meta {
   color: var(--fg-2);
 }
-/* The name breaks at its hyphens and spaces first, and within a run too long for its column only
-   then, so a long name wraps inside the entry's box rather than past it. */
+/* The head: the name, then the status at the line's end, in a row that wraps, so the status leaves
+   the name's line for one of its own below it only when the two don't fit side by side. Its gaps
+   are the entry's, so a wrapped status steps from the name as the meta does. */
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-3xs) var(--space-xs);
+  min-inline-size: 0;
+}
+/* The name grows into the line's free space up to its own width, and the status wraps before the
+   name narrows past 16ch, a little more than "brand-guide.pdf", or past its own width when that is
+   less, so a short name never wraps the status in a parent sized to the entry's content. It may
+   shrink below its content, and it breaks at its hyphens and spaces first, and within a run too
+   long for its line only then, so a long name wraps inside the entry's box rather than past it. */
 .name {
+  flex: 1 1 16ch;
+  max-inline-size: max-content;
   min-inline-size: 0;
   font-size: var(--text-s);
   font-weight: 600;
   overflow-wrap: anywhere;
 }
-/* The meta row may shrink below its content, and a long content type, which has no space to break
-   at, wraps anywhere, so the entry never grows past its box. Its wrapped lines step by the grid's
-   row gap, the name-to-meta step, and its parts stand apart by the column gap. */
+/* The status's auto margin takes the line's space the name leaves, so the status sits at the line's
+   end, on the name's line or on its own. */
+.status {
+  margin-inline-start: auto;
+}
+/* The meta row sits under the head. It may shrink below its content, and a long content type, which
+   has no space to break at, wraps anywhere, so the entry never grows past its box. Its wrapped
+   lines step by the entry's row gap, the name-to-meta step, and its parts stand apart by the
+   column gap. */
 .meta {
-  grid-column: 2 / -1;
+  grid-column: 2;
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-3xs) var(--space-xs);
   min-inline-size: 0;
   overflow-wrap: anywhere;
-}
-/* In a narrow entry the status leaves the name's row for the kind column's second row, under the
-   kind, where every status fits, so the name takes the rest of the row and the meta sits beside
-   the status. */
-@container (inline-size < 30rem) {
-  .name {
-    grid-row: 1;
-    grid-column: 2 / -1;
-  }
-  .status {
-    grid-row: 2;
-    grid-column: 1;
-  }
-  .meta {
-    grid-row: 2;
-  }
 }

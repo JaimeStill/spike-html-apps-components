@@ -25,8 +25,9 @@
     max-inline-size: 20rem;
   }
 
-  /* The states, one figure each, stacked. */
-  .states {
+  /* The states, one figure each, stacked; the fit section's figures stack the same way. */
+  .states,
+  .fits {
     display: grid;
     gap: var(--space-m);
     margin-block-start: var(--space-s);
@@ -47,5 +48,28 @@
     padding: var(--space-2xs);
     border: var(--line-s) dashed var(--border);
     border-radius: var(--radius-sm);
+  }
+
+  /* The parents that size a component to its content: an inline-block; a flex container whose
+     item is sized by its content alone, neither growing nor shrinking; and a grid whose auto
+     track takes its content's width beside a 1fr track, which takes the rest. Each is outlined, so
+     the capture shows the width the component took. */
+  .fit-inline-block,
+  .fit-flex > *,
+  .fit-grid > * {
+    outline: var(--line-s) dotted var(--border-2);
+  }
+  .fit-inline-block {
+    display: inline-block;
+  }
+  .fit-flex {
+    display: flex;
+  }
+  .fit-flex > * {
+    flex: none;
+  }
+  .fit-grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
   }
 }
