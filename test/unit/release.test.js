@@ -135,24 +135,24 @@ describe("release pack", () => {
       "package.json declares lit latest, not an exact pin",
     ],
     "the foundation in dependencies": [
-      (_, copy) => (copy.dependencies[foundation] = `${github}#v0.1.0`),
+      (_, copy) => (copy.dependencies[foundation] = `${github}#v0.2.0`),
       `package.json declares ${foundation} in dependencies, not as a peer`,
     ],
     "a peer by a git spec": [
-      (_, copy) => (copy.peerDependencies[foundation] = `${github}#v0.1.0`),
-      `package.json declares peer ${foundation} ${github}#v0.1.0, not a caret range`,
+      (_, copy) => (copy.peerDependencies[foundation] = `${github}#v0.2.0`),
+      `package.json declares peer ${foundation} ${github}#v0.2.0, not a caret range`,
     ],
     "a peer by a #semver: spec": [
-      (_, copy) => (copy.peerDependencies[foundation] = `${github}#semver:^0.1.0`),
-      `package.json declares peer ${foundation} ${github}#semver:^0.1.0, not a caret range`,
+      (_, copy) => (copy.peerDependencies[foundation] = `${github}#semver:^0.2.0`),
+      `package.json declares peer ${foundation} ${github}#semver:^0.2.0, not a caret range`,
     ],
     "a peer by an exact version": [
-      (_, copy) => (copy.peerDependencies[foundation] = "0.1.0"),
-      `package.json declares peer ${foundation} 0.1.0, not a caret range`,
+      (_, copy) => (copy.peerDependencies[foundation] = "0.2.0"),
+      `package.json declares peer ${foundation} 0.2.0, not a caret range`,
     ],
     "a peer by a tilde range": [
-      (_, copy) => (copy.peerDependencies[foundation] = "~0.1.0"),
-      `package.json declares peer ${foundation} ~0.1.0, not a caret range`,
+      (_, copy) => (copy.peerDependencies[foundation] = "~0.2.0"),
+      `package.json declares peer ${foundation} ~0.2.0, not a caret range`,
     ],
     "a peer by any version": [
       (_, copy) => (copy.peerDependencies[foundation] = "*"),
@@ -167,8 +167,8 @@ describe("release pack", () => {
       "package.json declares peer lit-html, which no release needs",
     ],
     "the devDependency by a #semver: range": [
-      (_, copy) => (copy.devDependencies[foundation] = `${github}#semver:^0.1.0`),
-      `package.json declares devDependency ${foundation} ${github}#semver:^0.1.0, not an exact release tag`,
+      (_, copy) => (copy.devDependencies[foundation] = `${github}#semver:^0.2.0`),
+      `package.json declares devDependency ${foundation} ${github}#semver:^0.2.0, not an exact release tag`,
     ],
     "the devDependency by a branch": [
       (_, copy) => (copy.devDependencies[foundation] = `${github}#main`),
@@ -183,8 +183,8 @@ describe("release pack", () => {
       `package.json declares devDependency ${foundation} ${github}, not an exact release tag`,
     ],
     "the devDependency from the registry": [
-      (_, copy) => (copy.devDependencies[foundation] = "0.1.0"),
-      `package.json declares devDependency ${foundation} 0.1.0, not an exact release tag`,
+      (_, copy) => (copy.devDependencies[foundation] = "0.2.0"),
+      `package.json declares devDependency ${foundation} 0.2.0, not an exact release tag`,
     ],
     "the devDependency by a local path": [
       (_, copy) => (copy.devDependencies[foundation] = "link:../spike-html-apps-foundation"),
@@ -192,13 +192,13 @@ describe("release pack", () => {
     ],
     "the devDependency from another repository": [
       (_, copy) =>
-        (copy.devDependencies[foundation] = "github:JaimeStill/spike-html-design#v0.1.0"),
-      `package.json declares devDependency ${foundation} github:JaimeStill/spike-html-design#v0.1.0, not an exact release tag`,
+        (copy.devDependencies[foundation] = "github:JaimeStill/spike-html-design#v0.2.0"),
+      `package.json declares devDependency ${foundation} github:JaimeStill/spike-html-design#v0.2.0, not an exact release tag`,
     ],
     "the devDependency from another owner's fork": [
       (_, copy) =>
-        (copy.devDependencies[foundation] = "github:fork/spike-html-apps-foundation#v0.1.0"),
-      `package.json declares devDependency ${foundation} github:fork/spike-html-apps-foundation#v0.1.0, not an exact release tag`,
+        (copy.devDependencies[foundation] = "github:fork/spike-html-apps-foundation#v0.2.0"),
+      `package.json declares devDependency ${foundation} github:fork/spike-html-apps-foundation#v0.2.0, not an exact release tag`,
     ],
     "no devDependency": [
       (_, copy) => delete copy.devDependencies[foundation],

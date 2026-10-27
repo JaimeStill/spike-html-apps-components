@@ -1,0 +1,40 @@
+<!doctype html>
+<!-- The profiles case's page: the installed foundation's full entry, page-full.css, with its
+     registration module, register-full.js, so every built-in profile is linked and registered,
+     and the root's data-palette, data-space, data-type, and data-scheme select one. It renders
+     nothing itself: the case adds the components from dist/. window.errors collects every error
+     and unhandled rejection the page raises. Its import map is components.html's. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>profiles case</title>
+    <script>
+      window.errors = [];
+      window.addEventListener("error", (event) => window.errors.push(String(event.message)));
+      window.addEventListener("unhandledrejection", (event) =>
+        window.errors.push(String(event.reason)),
+      );
+    </script>
+    <link rel="stylesheet" href="/deps/@jaimestill/spike-html-apps-foundation/dist/page-full.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "lit": "/deps/lit/index.js",
+          "lit/": "/deps/lit/",
+          "lit-html": "/deps/lit-html/lit-html.js",
+          "lit-html/": "/deps/lit-html/",
+          "lit-element/": "/deps/lit-element/",
+          "@lit/reactive-element": "/deps/@lit/reactive-element/reactive-element.js",
+          "@lit/reactive-element/": "/deps/@lit/reactive-element/",
+          "@jaimestill/spike-html-apps-foundation/": "/deps/@jaimestill/spike-html-apps-foundation/dist/"
+        }
+      }
+    </script>
+    <script type="module">
+      import "@jaimestill/spike-html-apps-foundation/register-full.js";
+    </script>
+  </head>
+  <body>
+    <main></main>
+  </body>
+</html>
