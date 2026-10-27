@@ -1,11 +1,9 @@
-// The components from this repository's dist/: conventions' 27 probe cases, its restyle case, and
-// the sheets each shadow root adopts, the installed foundation's then its own, on
-// test/fixtures/components.html, and the entry's formatted size and time there; and each component
-// rendered under the foundation's profiles, on test/fixtures/profiles.html; and the entry's and the
-// pagination's geometry on their specimen pages under demo/, full width and at 20rem, in each
-// profile.
+// The components from this repository's dist/: conventions' 27 probe cases, the restyle case, the
+// adopted sheets, and the entry's formatting, on test/fixtures/components.html; each component in
+// every profile, on test/fixtures/profiles.html; and the entry's and the pagination's geometry on
+// their specimen pages under demo/, in every profile.
 // Adapted from spike-html-packages-components (4c0a5d8): test/browser/components.test.js, renamed,
-// and the entry's size and time case added.
+// with the formatting, profile, and specimen geometry cases added.
 
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
@@ -162,7 +160,14 @@ describe("components", { timeout: 60_000 }, () => {
             const element = document.querySelector("main").appendChild(make());
             await element.updateComplete;
             const { width, height } = element.getBoundingClientRect();
-            rendered.push({ profile: JSON.stringify(choice), tag, width, height });
+            // The look the profile gives the component's first button, inside its shadow root.
+            const style = getComputedStyle(element.shadowRoot.querySelector("button"));
+            const look = {
+              color: style.color + " on " + style.backgroundColor,
+              font: style.fontFamily,
+              padding: parseFloat(style.paddingInlineStart),
+            };
+            rendered.push({ ...choice, profile: JSON.stringify(choice), tag, width, height, look });
             element.remove();
           }
         }
@@ -181,6 +186,38 @@ describe("components", { timeout: 60_000 }, () => {
         assert.ok(width > 0 && height > 0, `${tag} under ${profile}: a ${width} × ${height} box`);
       }
       assert.deepEqual(errors, []);
+      // Each facet reaches every shadow root: the four colors light and dark are eight looks, sans
+      // sets another font than mono, and compact pads tighter than regular.
+      const looks = (tag, where) =>
+        rendered.filter((shown) => shown.tag === tag && where(shown)).map((shown) => shown.look);
+      for (const tag of ["sl-pagination-lit-shadow", "sl-entry-lit-shadow", "sl-status-badge"]) {
+        const colors = looks(tag, ({ space, type }) => space === "regular" && type === "mono");
+        assert.equal(
+          new Set(colors.map((look) => look.color)).size,
+          8,
+          `${tag}: ${colors.map((look) => look.color)}`,
+        );
+        for (const scheme of schemes) {
+          const [mono] = looks(
+            tag,
+            (shown) =>
+              shown.scheme === scheme &&
+              shown.color === "flexoki" &&
+              shown.type === "mono" &&
+              shown.space === "regular",
+          );
+          const [sans] = looks(tag, (shown) => shown.scheme === scheme && shown.type === "sans");
+          const [compact] = looks(
+            tag,
+            (shown) => shown.scheme === scheme && shown.space === "compact",
+          );
+          assert.notEqual(sans.font, mono.font, `${tag}, ${scheme}: sans sets the font`);
+          assert.ok(
+            compact.padding < mono.padding,
+            `${tag}, ${scheme}: compact pads ${compact.padding}, regular ${mono.padding}`,
+          );
+        }
+      }
     } finally {
       await page.close();
     }
@@ -313,26 +350,54 @@ describe("components", { timeout: 60_000 }, () => {
         const lines = ${LINES};
         const count = root.querySelector(".page-indicator > span");
         const height = (selector) => root.querySelector(selector).getBoundingClientRect().height;
-        const bar = root.querySelector(".pagination");
         return {
           label: lines(root.querySelector(".page-size-label")),
           count: count === null ? null : lines(count),
           steps: [...root.querySelectorAll(".page-step")].map((step) => step.getBoundingClientRect().height),
           control: Math.max(height("select"), height(".page-input")),
-          overflow: bar.scrollWidth - bar.clientWidth,
         };
       }) })`,
     );
     for (const { profile, shown } of results) {
       assert.ok(shown.length > 0, `${profile}: a pagination at 20rem`);
-      for (const { label, count, steps, control, overflow } of shown) {
+      for (const { label, count, steps, control } of shown) {
         assert.equal(label, 1, `${profile}: "Page Size" on ${label} lines`);
         if (count !== null) assert.equal(count, 1, `${profile}: the page count on ${count} lines`);
         // A pixel's allowance: in sans, the elements sheet's button is a pixel taller than its select.
         for (const step of steps) {
           assert.ok(step <= control + 1, `${profile}: a step ${step} tall, a control ${control}`);
         }
-        assert.ok(overflow <= 0, `${profile}: the controls overflow by ${overflow}`);
+      }
+    }
+  });
+
+  test("at 20rem, every state keeps within the column, a long name wrapping inside its entry, in every profile", async () => {
+    // A component wider than the column widens its frame, the grid's item, past the list, so the
+    // list's scroll width shows it; a name too long for its entry spills past the entry's button.
+    const measure = `() => {
+      const list = document.querySelector(".narrow .states");
+      return {
+        overflow: list.scrollWidth - list.clientWidth,
+        spills: (${ENTRIES})(".narrow").map((entry) => {
+          const root = entry.shadowRoot;
+          const name = root.querySelector(".name").getBoundingClientRect();
+          return { name: entry.item.name, by: name.right - root.querySelector(".entry").getBoundingClientRect().right };
+        }),
+      };
+    }`;
+    for (const specimen of ["entry", "pagination"]) {
+      for (const { profile, overflow, spills } of await measureSpecimen(specimen, measure)) {
+        assert.ok(
+          overflow <= 0,
+          `${specimen} under ${profile}: the states overflow the column by ${overflow}`,
+        );
+        assert.ok(spills.length > 0, `${specimen} under ${profile}: an entry at 20rem`);
+        for (const { name, by } of spills) {
+          assert.ok(
+            by <= 0.5,
+            `${specimen} under ${profile}: ${name} spills past its entry by ${by}`,
+          );
+        }
       }
     }
   });

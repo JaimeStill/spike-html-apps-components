@@ -20,7 +20,8 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
   press, shown inline in kitty and removed on exit unless `--keep` is given. The check never runs
   it.
 - A browser case on every built-in profile: page-full.css with register-full.js, each component
-  rendered with no error in the four colors, compact, and sans, light and dark.
+  rendered with no error in the four colors, compact, and sans, light and dark, each facet's
+  color, font, and padding reaching its shadow root.
 
 ### Changed
 
