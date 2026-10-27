@@ -11,17 +11,18 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 ### Added
 
 - A specimen page per component, `demo/status-badge.html`, `demo/entry.html`, and
-  `demo/pagination.html`: every state of the component, labelled, again in a section 20rem wide,
-  and one instance reached by the keyboard to show its focus ring. They link the foundation's
-  `page-full.css` and import its `register-full.js`, so a profile applies by attribute on the root,
-  and lay out through their own `demo` layer, `demo/demo.css`, on the foundation's tokens.
-- `mise run screenshots [--keep]`: each specimen page in each of the four colors and in compact
-  and sans, light and dark, in the pinned chrome-headless-shell, the focus reached by a real Tab
-  press, shown inline in kitty and removed on exit unless `--keep` is given. The check never runs
-  it.
-- A browser case on every built-in profile: page-full.css with register-full.js, each component
-  rendered with no error in the four colors, compact, and sans, light and dark, each facet's
-  color, font, and padding reaching its shadow root.
+  `demo/pagination.html`, shows every state of the component, labelled, then again in a section
+  20rem wide, and one instance reached by the keyboard to show its focus ring. The pages link the
+  foundation's `page-full.css` and import its `register-full.js`, so a profile applies by attribute
+  on the root, and lay out through their own `demo` layer, `demo/demo.css`, on the foundation's
+  tokens.
+- `mise run screenshots [--keep]` captures each specimen page in the pinned chrome-headless-shell,
+  in each of the four colors and in compact and sans, light and dark, reaching the focus state by
+  a real Tab press. It shows each capture inline in kitty and removes the captures on exit unless
+  `--keep` is given. The check never runs it.
+- A browser case renders each component on page-full.css with register-full.js, with no error, in
+  the four colors, compact, and sans, light and dark, and checks that each facet's color, font,
+  and padding reaches its shadow root.
 
 ### Changed
 
@@ -58,7 +59,7 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 - The entry's size and its time's clock each stay whole, never breaking inside "1.5 kB" or
   "4:41 PM", and its time's date breaks only at its own spaces, so the entry keeps inside its box
   down to 14rem, its supported minimum width.
-- Browser cases on the specimen pages, in every profile, for each of these.
+- Browser cases on the specimen pages check each of these fixes in every profile.
 
 ## [0.1.0] - 2026-10-27
 

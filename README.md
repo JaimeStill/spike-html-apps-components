@@ -56,15 +56,20 @@ foundation's `page.css`:
 
 - `./status-badge.js`: `sl-status-badge`, a label; a click dispatches `badge-select`.
 - `./entry-lit-shadow.js`: `sl-entry-lit-shadow`, one directory or file of a document hierarchy,
-  as a button; it dispatches `open`.
+  as a button; it dispatches `open`. It formats a file's size and its updated time with the
+  foundation's `formatBytes` and `formatDateTime`. It sizes to its content in any parent, a
+  shrink-to-fit one too, and stays inside its box down to 14rem, its supported minimum width.
 - `./pagination-lit-shadow.js`: `sl-pagination-lit-shadow`, a page of entries between its summary
   and its controls; it dispatches `page-change` and `page-size-change`.
 - `./*.css`: each component's sheet, which its module imports itself.
 
 `demo/components.html` is a page on all three, with its import map. Each component also has a
-specimen page, `demo/status-badge.html`, `demo/entry.html`, and `demo/pagination.html`: every
-state, labelled, again 20rem wide, and its focus ring, on the foundation's `page-full.css`, so a
-profile applies by its attribute on the root.
+specimen page, `demo/status-badge.html`, `demo/entry.html`, and `demo/pagination.html`, that shows
+every state of the component, labelled, then again in a section 20rem wide, and one instance
+reached by the keyboard to show its focus ring. The specimen pages link the foundation's
+`page-full.css` and import its `register-full.js`, so a profile applies by its attribute on the
+root. `mise run screenshots` captures each specimen page in each of the four colors, and in
+compact and in sans, each light and dark.
 
 ## Development
 
@@ -84,9 +89,10 @@ committed and tagged, and a GitHub release from `CHANGELOG.md`.
 
 ## Provenance
 
-The layer is copied from spike-html-packages-components at 4c0a5d8, its v0.2.0. Each copied file
-that takes comments names its source in a provenance line; the JSON files, which take none, carry
-no line.
+The layer is copied from spike-html-packages-components at 4c0a5d8, its v0.2.0, and the
+specimen pages' layout sheet and the screenshots task from spike-html-apps-foundation at 679e550.
+Each copied file that takes comments names its source in a provenance line; the JSON files, which
+take none, carry no line.
 
 ## License
 
