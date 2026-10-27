@@ -1,6 +1,6 @@
 /* Adapted from spike-html-packages-components (4c0a5d8): src/entry-shadow.css, its kind column 9ch,
-   its meta lines stepped by the row gap, a long name wrapped, and its name and status in a row
-   that wraps. */
+   its meta lines stepped by the row gap, a long name wrapped, its name and status in a row that
+   wraps, and its size and the time's date and clock each kept whole. */
 
 /*
  * The entry's layout in a shadow root: entry-lit-shadow.ts adopts this sheet into its root after
@@ -74,4 +74,12 @@
   gap: var(--space-3xs) var(--space-xs);
   min-inline-size: 0;
   overflow-wrap: anywhere;
+}
+/* A meta value keeps whole: the size, and the time's date and its clock, each break only between
+   one another, never inside "1.5 kB" or "4:41 PM", so a narrow line wraps the time after its date.
+   The content type wraps anywhere, as the meta lets it, since it has no space to break at. */
+.size,
+time > .date,
+time > .clock {
+  white-space: nowrap;
 }

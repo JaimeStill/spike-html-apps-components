@@ -1,8 +1,8 @@
 // The components from this repository's dist/: conventions' 27 probe cases, the restyle case, the
-// adopted sheets, and the entry's formatting, on test/fixtures/components.html; each component in
-// every profile, on test/fixtures/profiles.html; and the entry's and the pagination's geometry on
-// their specimen pages under demo/, in every profile, the entry's in parents that size it to its
-// content too.
+// adopted sheets, and the entry's formatting, on test/fixtures/components.html, on the lean entry
+// and in every profile on the full entry; each component in every profile, on
+// test/fixtures/profiles.html; and the entry's and the pagination's geometry on their specimen
+// pages under demo/, in every profile, the entry's in parents that size it to its content too.
 // Adapted from spike-html-packages-components (4c0a5d8): test/browser/components.test.js, renamed,
 // with the formatting, profile, and specimen geometry cases added.
 
@@ -24,11 +24,54 @@ describe("components", { timeout: 60_000 }, () => {
     await server?.stop();
   });
 
+  // The profiles the foundation's full entry carries: each color at the other facets' defaults,
+  // then compact and sans each at the rest's, and each of those light and dark.
+  const schemes = ["light", "dark"];
+  const profiles = [
+    ...["flexoki", "primer", "catppuccin", "everforest"].map((color) => ({ color })),
+    { space: "compact" },
+    { type: "sans" },
+  ].flatMap((profile) => schemes.map((scheme) => ({ ...profile, scheme })));
+
+  // Each case on the components page runs once on the lean entry, page.css, with no profile set,
+  // and once in each profile combination on the full entry, page-full.css with register-full.js.
+  const defaults = { color: "flexoki", space: "regular", type: "mono" };
+  const runs = [
+    { name: "on the lean page.css", query: "", dataset: {} },
+    ...profiles.map((profile) => {
+      const { color, space, type, scheme } = { ...defaults, ...profile };
+      const query = new URLSearchParams({ entry: "full", palette: color, space, type, scheme });
+      const dataset = { palette: color, space, type, scheme };
+      return { name: `in ${color} ${space} ${type} ${scheme}`, query: String(query), dataset };
+    }),
+  ];
+
+  /**
+   * Opens the components page in a run's entry and profile, with the query's module when one is
+   * given, resolving to the page once its run settles, its entry's sheet linked and its profile
+   * set on the root.
+   */
+  async function open(run, module) {
+    const query = new URLSearchParams(run.query);
+    if (module !== undefined) query.set("module", module);
+    const page = await browser.open(`${server.origin}/test/fixtures/components.html?${query}`);
+    try {
+      const { sheets, dataset } = await page.evaluate(`window.verdict.then(() => ({
+        sheets: [...document.styleSheets].map((sheet) => sheet.href?.split("/").at(-1)),
+        dataset: { ...document.documentElement.dataset },
+      }))`);
+      const entry = run.query === "" ? "page.css" : "page-full.css";
+      assert.deepEqual({ sheets, dataset }, { sheets: [entry], dataset: run.dataset }, run.name);
+    } catch (error) {
+      await page.close();
+      throw error;
+    }
+    return page;
+  }
+
   /** Runs one case module on the components page, resolving to its verdict and report. */
-  async function run(module) {
-    const page = await browser.open(
-      `${server.origin}/test/fixtures/components.html?module=${module}`,
-    );
+  async function verdictOf(run, module) {
+    const page = await open(run, module);
     try {
       return await page.evaluate(`window.verdict.then(() => ({
         verdict: document.getElementById("verdict").textContent,
@@ -39,20 +82,21 @@ describe("components", { timeout: 60_000 }, () => {
     }
   }
 
-  test("all 27 of conventions' probe cases hold", async () => {
-    const { verdict, report } = await run("probe");
-    assert.equal(verdict, "ok: all 27 cases hold", report);
-  });
+  for (const run of runs) {
+    test(`all 27 of conventions' probe cases hold, ${run.name}`, async () => {
+      const { verdict, report } = await verdictOf(run, "probe");
+      assert.equal(verdict, "ok: all 27 cases hold", report);
+    });
 
-  test("one edit to the elements sheet repaints the buttons in both shadow roots", async () => {
-    const { verdict } = await run("restyle");
-    assert.match(verdict, /^ok: /);
-  });
+    test(`one edit to the elements sheet repaints the buttons in both shadow roots, ${run.name}`, async () => {
+      const { verdict } = await verdictOf(run, "restyle");
+      assert.match(verdict, /^ok: /, verdict);
+    });
 
-  test("each component adopts the foundation's reset and elements sheets, then its own", async () => {
-    const page = await browser.open(`${server.origin}/test/fixtures/components.html`);
-    try {
-      const { adopted, label } = await page.evaluate(`(async () => {
+    test(`each component adopts the foundation's reset and elements sheets, then its own, ${run.name}`, async () => {
+      const page = await open(run);
+      try {
+        const { adopted, label } = await page.evaluate(`(async () => {
         // A CSS module script is one sheet per URL: the foundation's by the page's import map, the
         // URL its bare specifier in dist/ resolves to, and each component's own beside its module.
         const sheet = async (specifier) =>
@@ -79,20 +123,20 @@ describe("components", { timeout: 60_000 }, () => {
         await badge.updateComplete;
         return { adopted, label: badge.shadowRoot.querySelector("button").textContent };
       })()`);
-      for (const tag of ["sl-pagination-lit-shadow", "sl-entry-lit-shadow", "sl-status-badge"]) {
-        assert.deepEqual(adopted[tag], ["reset", "elements", "own"], tag);
+        for (const tag of ["sl-pagination-lit-shadow", "sl-entry-lit-shadow", "sl-status-badge"]) {
+          assert.deepEqual(adopted[tag], ["reset", "elements", "own"], tag);
+        }
+        assert.equal(label, "Draft");
+      } finally {
+        await page.close();
       }
-      assert.equal(label, "Draft");
-    } finally {
-      await page.close();
-    }
-  });
+    });
 
-  test("the entry shows a file's size and modified time in the page's locale and time zone", async () => {
-    // The browser runs in en-US at UTC, as support/browser-pipe.js launches it.
-    const page = await browser.open(`${server.origin}/test/fixtures/components.html`);
-    try {
-      const shown = await page.evaluate(`(async () => {
+    test(`the entry shows a file's size and modified time in the page's locale and time zone, ${run.name}`, async () => {
+      // The browser runs in en-US at UTC, as support/browser-pipe.js launches it.
+      const page = await open(run);
+      try {
+        const shown = await page.evaluate(`(async () => {
         await import("/dist/entry-lit-shadow.js");
         const entry = document.createElement("sl-entry-lit-shadow");
         entry.item = {
@@ -111,20 +155,12 @@ describe("components", { timeout: 60_000 }, () => {
           time: root.querySelector("time").textContent,
         };
       })()`);
-      assert.deepEqual(shown, { size: "1.5 kB", time: "Oct 12, 2026, 4:41 PM" });
-    } finally {
-      await page.close();
-    }
-  });
-
-  // The profiles the foundation's full entry carries: each color at the other facets' defaults,
-  // then compact and sans each at the rest's, and each of those light and dark.
-  const schemes = ["light", "dark"];
-  const profiles = [
-    ...["flexoki", "primer", "catppuccin", "everforest"].map((color) => ({ color })),
-    { space: "compact" },
-    { type: "sans" },
-  ].flatMap((profile) => schemes.map((scheme) => ({ ...profile, scheme })));
+        assert.deepEqual(shown, { size: "1.5 kB", time: "Oct 12, 2026, 4:41 PM" });
+      } finally {
+        await page.close();
+      }
+    });
+  }
 
   test(`each component renders under each of the ${profiles.length} profile combinations`, async () => {
     const page = await browser.open(`${server.origin}/test/fixtures/profiles.html`);
@@ -354,6 +390,35 @@ describe("components", { timeout: 60_000 }, () => {
         assert.ok(lines.length > 0, `${specimen} under ${profile}: brand-guide.pdf at 20rem`);
         for (const count of lines) {
           assert.equal(count, 1, `${specimen} under ${profile}: brand-guide.pdf on ${count} lines`);
+        }
+      }
+    }
+  });
+
+  test("at 20rem, each meta value, the size and the time's date and clock, renders on one line, in every profile", async () => {
+    // A break may fall between the meta's parts, or between the time's date and its clock, never
+    // inside "1.5 kB" or "4:41 PM". The content type, which has no space to break at, wraps
+    // anywhere to keep inside the entry, so it isn't one of these.
+    const measure = `() => ({ shown: (${ENTRIES})(".narrow").map((entry) => {
+      const root = entry.shadowRoot;
+      const time = root.querySelector("time");
+      const values = [".size", "time > .date", "time > .clock"]
+        .flatMap((selector) => [...root.querySelectorAll(selector)]);
+      return {
+        name: entry.item.name,
+        parts: [...time.children].map((part) => part.className),
+        lines: values.map((value) => [value.textContent, (${LINES})(value)]),
+      };
+    }) })`;
+    for (const specimen of ["entry", "pagination"]) {
+      for (const { profile, shown } of await measureSpecimen(specimen, measure)) {
+        assert.ok(shown.length > 0, `${specimen} under ${profile}: an entry at 20rem`);
+        for (const { name, parts, lines } of shown) {
+          const where = `${specimen} under ${profile}, ${name}`;
+          assert.deepEqual(parts, ["date", "clock"], `${where}: the time's parts`);
+          for (const [text, count] of lines) {
+            assert.equal(count, 1, `${where}: "${text}" on ${count} lines`);
+          }
         }
       }
     }

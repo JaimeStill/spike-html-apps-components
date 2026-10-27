@@ -28,9 +28,15 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 - The foundation moves to v0.2.0: the devDependency installs its `v0.2.0` tag, and the peer range
   is `^0.2.0`.
 - The entry formats a file's size and its updated time with the foundation's `formatBytes` and
-  `formatDateTime`, from `./format.js`, in place of its own Intl formatters; the output is
-  unchanged.
+  `formatDateTime`, from `./format.js`, in place of its own Intl formatters. The output is
+  unchanged up to 999 GB; from 1 TB a size scales to TB and PB, "1.5 TB" where the entry's own
+  formatter printed "1,500 GB".
+- The entry renders its time's date and clock in spans of their own, `.date` and `.clock`, the
+  text unchanged.
 - The release test's fault cases name the foundation's `v0.2.0` tag.
+- The probe, restyle, adopted-sheets, and formatting cases run on the lean `page.css` and again in
+  every profile on `page-full.css` with `register-full.js`, by the query of
+  `test/fixtures/components.html`.
 
 ### Removed
 
@@ -49,6 +55,8 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
   wraps within the entry.
 - The pagination wraps its groups when narrow, and its "Page Size" label and page count no longer
   break; its step buttons keep their own height in place of stretching to the row's.
+- The entry's size, and its time's date and clock, each stay on one line: a narrow entry breaks
+  between them, never inside "1.5 kB" or "4:41 PM".
 - Browser cases on the specimen pages, in every profile, for each of these.
 
 ## [0.1.0] - 2026-10-27

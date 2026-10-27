@@ -1,14 +1,18 @@
 // Entry, Lit with a shadow root: one directory or file of a document hierarchy, as a button.
 // Adapted from spike-html-packages-components (4c0a5d8): src/entry-lit-shadow.ts, renamed, its
 // size and time formatted by the foundation's formatBytes and formatDateTime, and its name and
-// status in a head, the row entry-shadow.css wraps.
+// status in a head, the row entry-shadow.css wraps, and its time's date and clock in spans.
 
 import { html, LitElement, nothing, type PropertyDeclarations } from "lit";
 
 import elements from "@jaimestill/spike-html-apps-foundation/baseline/elements.css" with { type: "css" };
 import reset from "@jaimestill/spike-html-apps-foundation/baseline/reset.css" with { type: "css" };
 import { define, emit } from "@jaimestill/spike-html-apps-foundation/dom.js";
-import { formatBytes, formatDateTime } from "@jaimestill/spike-html-apps-foundation/format.js";
+import {
+  formatBytes,
+  formatDate,
+  formatDateTime,
+} from "@jaimestill/spike-html-apps-foundation/format.js";
 import styles from "./entry-shadow.css" with { type: "css" };
 
 /** The tag this version defines. */
@@ -43,6 +47,29 @@ export interface OpenDetail {
 /** Whether the item is a directory or a file: only a file has a content type. */
 function kindOf(item: EntryItem): OpenDetail["kind"] {
   return "content_type" in item ? "file" : "directory";
+}
+
+/**
+ * The entry's time, formatDateTime's text, as its date and its clock with the locale's text
+ * between, each in a span entry-shadow.css keeps whole, so a narrow line breaks between them and
+ * never inside "4:41 PM". A locale that doesn't write the date first and the clock last gets the
+ * whole text, unsplit.
+ */
+function renderTime(updatedAt: string) {
+  const date = new Date(updatedAt);
+  const whole = formatDateTime(date);
+  const day = formatDate(date);
+  const clock = formatDateTime(date, undefined, { dateStyle: undefined });
+  const split =
+    whole.length > day.length + clock.length && whole.startsWith(day) && whole.endsWith(clock);
+  const between = whole.slice(day.length, -clock.length);
+  return html`<time datetime=${updatedAt}
+    >${
+      split
+        ? html`<span class="date">${day}</span>${between}<span class="clock">${clock}</span>`
+        : whole
+    }</time
+  >`;
 }
 
 /**
@@ -88,7 +115,7 @@ export class EntryLitShadow extends LitElement {
               : nothing
           }
           ${file ? html`<span class="type">${file.content_type}</span>` : nothing}
-          <time datetime=${item.updated_at}>${formatDateTime(new Date(item.updated_at))}</time>
+          ${renderTime(item.updated_at)}
         </span>
       </button>
     `;
