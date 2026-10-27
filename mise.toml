@@ -94,7 +94,8 @@ depends = ["build"]
 run = "node scripts/demo.js"
 
 # Never a dependency of check: a reviewer's look at the specimen pages, not a test.
-# From spike-html-apps-foundation (679e550): mise.toml, its screenshots task.
+# Adapted from spike-html-apps-foundation (679e550): mise.toml, its screenshots task, on the
+# specimen pages.
 [tasks.screenshots]
 description = "Capture each component's specimen page in every profile and scheme, shown inline in kitty; --keep leaves the captures"
 depends = ["preflight browser", "build"]

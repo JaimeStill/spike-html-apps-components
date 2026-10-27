@@ -2,7 +2,8 @@
 # mise run screenshots: captures the specimen pages on dist/ in every profile and scheme, through
 # screenshots.js, into a mktemp -d directory removed on exit unless --keep. Prints each capture's
 # caption and path, and shows it inline with kitty's icat when the terminal displays images.
-# From spike-html-apps-foundation (679e550): scripts/screenshots.sh.
+# Adapted from spike-html-apps-foundation (679e550): scripts/screenshots.sh, naming the specimen
+# pages.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 

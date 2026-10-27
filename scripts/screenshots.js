@@ -1,8 +1,7 @@
-// screenshots.sh's capture half: each component's specimen page in every profile and scheme,
-// through the browser tier's driver, one full-page PNG per capture into the directory its
-// argument names, printing `<path>\t<caption>` for each. The specimen pages link page-full.css and
-// import register-full.js, so a capture sets the profile's attributes on the root alone, then
-// reaches the page's focus state with a real Tab press, so :focus-visible matches.
+// screenshots.sh's capture half: each specimen page in every profile and scheme, through the
+// browser tier's driver, one full-page PNG per capture into the directory its argument names,
+// printing `<path>\t<caption>` for each. A capture sets the profile's attributes on the root, then
+// reaches the focus state with real Tab presses, so :focus-visible matches.
 // Adapted from spike-html-apps-foundation (679e550): scripts/screenshots.js, its states the
 // specimen pages, each captured whole, and the focus reached by Tab.
 

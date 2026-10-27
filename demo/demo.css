@@ -3,7 +3,7 @@
  * nor the components' set it, and every specimen page links this sheet after page-full.css. Its
  * own layer, after the foundation's, holds the main column, its sections, and each specimen's
  * frame, and reads only the foundation's tokens, so it follows every profile.
- * After spike-html-apps-foundation (679e550): demo/demo.css, its main column and sections.
+ * Adapted from spike-html-apps-foundation (679e550): demo/demo.css, with the specimen rules.
  */
 
 @layer demo {
