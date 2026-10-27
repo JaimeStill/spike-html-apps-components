@@ -1,12 +1,19 @@
-// screenshots.sh's capture half: each specimen page in every profile and scheme, through the
-// browser tier's driver, each page captured whole as vertical tiles, one PNG per tile into the
-// directory its argument names, printing `<path>\t<caption>` for each. A tile is at most TILE
-// tall, so no capture runs many screens tall where icat scales it to the terminal's width; a page
-// that fits in one tile keeps its name and caption without the `--<k>of<m>` and `(k of m)` suffix.
-// A capture sets the profile's attributes on the root, then reaches the focus state with real Tab
-// presses, so :focus-visible matches.
+// screenshots.sh's capture half: each specimen page in each of the run's profiles, light and
+// dark, through the browser tier's driver, each page captured whole as vertical tiles, one PNG per
+// tile into the directory its first argument names, printing `<path>\t<caption>` for each. The
+// arguments after the directory choose the profiles: none, the defaults alone; `--palette`,
+// `--space`, and `--type`, each with a name, that facet's profile over the defaults, combined;
+// `--all`, every color at the defaults, then compact and sans at the default color. Each named
+// profile is checked against the registry of every specimen page, after it loads, before any
+// capture: an unknown name prints the facet's registered names and exits 2. Each file name and
+// caption names the whole profile, color, space, and type, so every run's names are unambiguous.
+// A tile is at most TILE tall, so no capture runs many screens tall where icat scales it to the
+// terminal's width; a page that fits in one tile keeps its name and caption without the
+// `--<k>of<m>` and `(k of m)` suffix. A capture sets the profile's attributes on the root, then
+// reaches the focus state with real Tab presses, so :focus-visible matches.
 // Adapted from spike-html-apps-foundation (679e550): scripts/screenshots.js, its states the
-// specimen pages, each captured whole in tiles, and the focus reached by Tab.
+// specimen pages, each captured whole in tiles, the focus reached by Tab, and its profiles chosen
+// by argument.
 
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -14,19 +21,51 @@ import { join } from "node:path";
 import { launch } from "../test/browser/support/browser-pipe.js";
 import { serve } from "../test/browser/support/server.js";
 
-const [dir] = process.argv.slice(2);
-if (!dir) throw new Error("usage: node scripts/screenshots.js <directory>");
+const USAGE =
+  "usage: node scripts/screenshots.js <directory> [--all | [--palette <name>] [--space <name>] [--type <name>]]";
 
-/** The default profile of each facet, by its attribute. */
-const DEFAULTS = { "data-palette": "flexoki", "data-space": "regular", "data-type": "mono" };
-
-/** The profiles, each a name and the attribute it sets over the defaults: every color, then the
- * other space and the other type at the default color. */
-const PROFILES = [
-  ...["flexoki", "primer", "catppuccin", "everforest"].map((name) => [name, "data-palette"]),
-  ["compact", "data-space"],
-  ["sans", "data-type"],
+/** Each facet's flag, the registry's facet it names, the root attribute it sets, and its
+ * default profile. */
+const FACETS = [
+  { flag: "--palette", facet: "color", attribute: "data-palette", fallback: "flexoki" },
+  { flag: "--space", facet: "space", attribute: "data-space", fallback: "regular" },
+  { flag: "--type", facet: "type", attribute: "data-type", fallback: "mono" },
 ];
+
+/** The default profile: each facet's default, by its attribute. */
+const DEFAULTS = Object.fromEntries(FACETS.map(({ attribute, fallback }) => [attribute, fallback]));
+
+/** --all's profiles: every color, then the other space and the other type at the default color,
+ * each by the attribute it sets over the defaults. */
+const ALL = [
+  ...["flexoki", "primer", "catppuccin", "everforest"].map((name) => ({ "data-palette": name })),
+  { "data-space": "compact" },
+  { "data-type": "sans" },
+].map((over) => ({ ...DEFAULTS, ...over }));
+
+const [dir, ...args] = process.argv.slice(2);
+if (!dir) throw new Error(USAGE);
+
+/** The run's choice: `all`, or each named facet's name by its flag. */
+const named = new Map();
+let all = false;
+for (let index = 0; index < args.length; index++) {
+  const arg = args[index];
+  if (arg === "--all") all = true;
+  else if (FACETS.some(({ flag }) => flag === arg) && index + 1 < args.length) {
+    named.set(arg, args[++index]);
+  } else throw new Error(USAGE);
+}
+if (all && named.size) throw new Error(USAGE);
+
+/** The run's profiles, each the root attributes it sets. */
+const PROFILES = all
+  ? ALL
+  : [
+      Object.fromEntries(
+        FACETS.map(({ flag, attribute, fallback }) => [attribute, named.get(flag) ?? fallback]),
+      ),
+    ];
 
 const SCHEMES = ["light", "dark"];
 
@@ -111,15 +150,52 @@ function tiles(height, { sections, states }) {
   return result;
 }
 
+/** The page's registry, read from the foundation's store at its well-known global key: each
+ * facet's registered names, so a profile an extension page registers counts too. */
+const REGISTRY = `(() => {
+  const store = globalThis[Symbol.for("spike-html-apps-foundation.registry")] ?? {};
+  return { color: store.color ?? [], space: store.space ?? [], type: store.type ?? [] };
+})()`;
+
 /** Resolves once the fonts are ready and two frames have painted. */
 const SETTLED = `document.fonts.ready.then(() => new Promise((resolve) =>
   requestAnimationFrame(() => requestAnimationFrame(resolve))))`;
 
+/**
+ * The first named profile some specimen page hasn't registered, as the message naming the
+ * facet's valid names on that page, or undefined when every page registers every named profile.
+ * Each page is read once it loads, so its modules have registered their profiles.
+ */
+async function unknownProfile(browser, origin) {
+  for (const [, , file] of PAGES) {
+    const page = await browser.open(`${origin}/demo/${file}.html`);
+    try {
+      const registry = await page.evaluate(REGISTRY);
+      for (const { flag, facet } of FACETS) {
+        const value = named.get(flag);
+        if (value !== undefined && !registry[facet].includes(value)) {
+          const facetName = flag.slice(2);
+          return `screenshots: unknown ${facetName} ${value}; the ${facetName}s ${file}.html registers: ${registry[facet].join(", ")}`;
+        }
+      }
+    } finally {
+      await page.close();
+    }
+  }
+  return undefined;
+}
+
 const server = await serve();
 const browser = await launch();
 try {
-  for (const [name, caption, file] of PAGES) {
-    for (const [profile, attribute] of PROFILES) {
+  const unknown = named.size ? await unknownProfile(browser, server.origin) : undefined;
+  if (unknown) {
+    console.error(unknown);
+    process.exitCode = 2;
+  }
+  for (const [name, caption, file] of unknown ? [] : PAGES) {
+    for (const profile of PROFILES) {
+      const label = FACETS.map(({ attribute }) => profile[attribute]);
       for (const scheme of SCHEMES) {
         const page = await browser.open(`${server.origin}/demo/${file}.html`);
         try {
@@ -133,7 +209,7 @@ try {
           await page.cdp("Emulation.setEmulatedMedia", {
             features: [{ name: "prefers-color-scheme", value: scheme }],
           });
-          const attributes = { ...DEFAULTS, [attribute]: profile, "data-scheme": scheme };
+          const attributes = { ...profile, "data-scheme": scheme };
           await page.evaluate(`(() => {
             const root = document.documentElement;
             for (const [name, value] of Object.entries(${JSON.stringify(attributes)})) {
@@ -157,9 +233,9 @@ try {
               cuts.length > 1
                 ? [`--${index + 1}of${cuts.length}`, ` (${index + 1} of ${cuts.length})`]
                 : ["", ""];
-            const path = join(dir, `${name}--${profile}-${scheme}${suffix}.png`);
+            const path = join(dir, `${name}--${label.join("-")}-${scheme}${suffix}.png`);
             writeFileSync(path, Buffer.from(data, "base64"));
-            console.log(`${path}\t${caption}: ${profile}, ${scheme}${count}`);
+            console.log(`${path}\t${caption}: ${label.join(", ")}, ${scheme}${count}`);
           }
         } finally {
           await page.close();

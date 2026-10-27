@@ -16,10 +16,12 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
   foundation's `page-full.css` and import its `register-full.js`, so a profile applies by attribute
   on the root, and lay out through their own `demo` layer, `demo/demo.css`, on the foundation's
   tokens.
-- `mise run screenshots [--keep]` captures each specimen page in the pinned chrome-headless-shell,
-  in each of the four colors and in compact and sans, light and dark, reaching the focus state by
-  a real Tab press. It shows each capture inline in kitty and removes the captures on exit unless
-  `--keep` is given. The check never runs it.
+- `mise run screenshots [--palette <name>] [--space <name>] [--type <name>] [--all] [--keep]`
+  captures each specimen page in the pinned chrome-headless-shell, light and dark, in tiles at
+  most 1200px tall, reaching the focus state by a real Tab press: by default at flexoki, regular,
+  and mono; with the facet flags, combined, in the profiles named, each checked against the pages'
+  registry; with `--all`, in each of the four colors and in compact and sans. It shows each
+  capture inline in kitty and removes the captures on exit unless `--keep` is given. The check never runs it.
 - A browser case renders each component on page-full.css with register-full.js, with no error, in
   the four colors, compact, and sans, light and dark, and checks that each facet's color, font,
   and padding reaches its shadow root.

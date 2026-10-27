@@ -1,24 +1,47 @@
 #!/usr/bin/env bash
-# mise run screenshots: captures the specimen pages on dist/ in every profile and scheme, through
+# mise run screenshots: captures the specimen pages on dist/, light and dark, through
 # screenshots.js, each page in vertical tiles at most 1200px tall, into a mktemp -d directory
-# removed on exit unless --keep. Prints each tile's caption and path, and shows it inline with
-# kitty's icat when the terminal displays images, scaled to fit the screen's width and height, so
-# no image runs past the screen and the terminal comes back to the cursor.
+# removed on exit unless --keep. The profiles: by default the defaults alone, flexoki, regular,
+# and mono; --palette, --space, and --type, each with a name, that facet's profile over the
+# defaults, combined; --all the full matrix, every color at the defaults, then compact and sans at
+# flexoki, which no facet flag joins. screenshots.js checks each name against the pages' registry
+# before any capture, exiting 2 with the facet's names on an unknown one; any other argument exits
+# 2 with the usage. Prints each tile's caption and path, and shows it inline with kitty's icat when
+# the terminal displays images, scaled to fit the screen's width and height, so no image runs past
+# the screen and the terminal comes back to the cursor.
 # Adapted from spike-html-apps-foundation (679e550): scripts/screenshots.sh, naming the specimen
-# pages.
+# pages, and choosing the profiles by argument.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+usage() {
+  echo "usage: mise run screenshots [--all | [--palette <name>] [--space <name>] [--type <name>]] [--keep]" >&2
+  exit 2
+}
+
 keep=false
-for arg in "$@"; do
-  case $arg in
+all=false
+facets=()
+while (($#)); do
+  case $1 in
     --keep) keep=true ;;
-    *)
-      echo "usage: mise run screenshots [--keep]" >&2
-      exit 2
+    --all) all=true ;;
+    --palette | --space | --type)
+      (($# > 1)) || usage
+      facets+=("$1" "$2")
+      shift
       ;;
+    *) usage ;;
   esac
+  shift
 done
+if $all && ((${#facets[@]})); then
+  usage
+fi
+profiles=("${facets[@]}")
+if $all; then
+  profiles=(--all)
+fi
 
 dir=$(mktemp -d "${TMPDIR:-/tmp}/screenshots.XXXXXX")
 if $keep; then
@@ -44,7 +67,7 @@ if [[ -t 1 ]] && { exec 3<>/dev/tty; } 2>/dev/null; then
   fi
 fi
 
-BROWSER_EXECUTABLE=$(mise which chrome-headless-shell) node scripts/screenshots.js "$dir" |
+BROWSER_EXECUTABLE=$(mise which chrome-headless-shell) node scripts/screenshots.js "$dir" "${profiles[@]}" |
   while IFS=$'\t' read -r path caption; do
     printf '%s\n  %s\n' "$caption" "$path"
     if ((${#icat[@]})); then
