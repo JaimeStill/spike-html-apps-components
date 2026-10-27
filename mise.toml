@@ -97,7 +97,7 @@ run = "node scripts/demo.js"
 # Adapted from spike-html-apps-foundation (679e550): mise.toml, its screenshots task, on the
 # specimen pages.
 [tasks.screenshots]
-description = "Capture each component's specimen page in every profile and scheme, shown inline in kitty; --keep leaves the captures"
+description = "Capture each component's specimen page in every profile and scheme, in tiles, shown inline in kitty; --keep leaves the captures"
 depends = ["preflight browser", "build"]
 # raw: with dependencies, mise prefixes a task's output through a pipe; icat needs the terminal.
 raw = true

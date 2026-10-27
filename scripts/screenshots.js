@@ -1,9 +1,12 @@
 // screenshots.sh's capture half: each specimen page in every profile and scheme, through the
-// browser tier's driver, one full-page PNG per capture into the directory its argument names,
-// printing `<path>\t<caption>` for each. A capture sets the profile's attributes on the root, then
-// reaches the focus state with real Tab presses, so :focus-visible matches.
+// browser tier's driver, each page captured whole as vertical tiles, one PNG per tile into the
+// directory its argument names, printing `<path>\t<caption>` for each. A tile is at most TILE
+// tall, so no capture runs many screens tall where icat scales it to the terminal's width; a page
+// that fits in one tile keeps its name and caption without the `--<k>of<m>` and `(k of m)` suffix.
+// A capture sets the profile's attributes on the root, then reaches the focus state with real Tab
+// presses, so :focus-visible matches.
 // Adapted from spike-html-apps-foundation (679e550): scripts/screenshots.js, its states the
-// specimen pages, each captured whole, and the focus reached by Tab.
+// specimen pages, each captured whole in tiles, and the focus reached by Tab.
 
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -27,8 +30,19 @@ const PROFILES = [
 
 const SCHEMES = ["light", "dark"];
 
-/** The viewport: each capture takes the page's full height at this width. */
+/** The viewport: each page is captured over its full height at this width. */
 const SIZE = { width: 1280, height: 800 };
+
+/** A tile's greatest height, in CSS px at SIZE's width. */
+const TILE = 1200;
+
+/** How far up from a tile's foot a cut may move to a section's top: the tile's last quarter. */
+const SECTION_SLACK = TILE / 4;
+
+/** How far up a cut may move to a state's top, when no section's top is near: the tile's last
+ * half, since a state can be taller than a quarter tile (a pagination state is about 340px), and
+ * a narrower window would leave some tiles no state boundary to cut at. */
+const STATE_SLACK = TILE / 2;
 
 /** The specimen pages, in the order they're named: each component's page under demo/. */
 const PAGES = [
@@ -61,6 +75,41 @@ const FOCUS_START = `(() => {
   mark.focus();
   return Number(mark.dataset.focusStart) || 1;
 })()`;
+
+/** The page's preferred cuts, as offsets from its top: each top-level section's top, then each
+ * state's figure's top, so a tile seldom splits a state mid-way. */
+const BOUNDARIES = `(() => {
+  const top = (el) => Math.floor(el.getBoundingClientRect().top + window.scrollY);
+  return {
+    sections: [...document.querySelectorAll("main > section")].map(top),
+    states: [...document.querySelectorAll("main > section figure.state")].map(top),
+  };
+})()`;
+
+/**
+ * The page's tiles, top to bottom, each `[top, height]`, meeting edge to edge. Each tile ends at
+ * the lowest section boundary within its last SECTION_SLACK px, else the lowest state boundary
+ * within its last STATE_SLACK px, else TILE px down; the last ends at the page's foot.
+ *
+ * @param {number} height the page's height
+ * @param {{ sections: number[]; states: number[] }} boundaries
+ */
+function tiles(height, { sections, states }) {
+  const result = [];
+  for (let top = 0; top < height;) {
+    let end = Math.min(top + TILE, height);
+    if (end < height) {
+      const within = (slack) => (offset) => offset > end - slack && offset <= end;
+      end =
+        Math.max(...sections.filter(within(SECTION_SLACK)), 0) ||
+        Math.max(...states.filter(within(STATE_SLACK)), 0) ||
+        end;
+    }
+    result.push([top, end - top]);
+    top = end;
+  }
+  return result;
+}
 
 /** Resolves once the fonts are ready and two frames have painted. */
 const SETTLED = `document.fonts.ready.then(() => new Promise((resolve) =>
@@ -96,15 +145,22 @@ try {
           for (let press = 0; press < presses; press++) await pressTab(page);
           await page.evaluate(SETTLED);
           const { cssContentSize } = await page.cdp("Page.getLayoutMetrics");
-          const clip = { x: 0, y: 0, width: SIZE.width, height: cssContentSize.height, scale: 1 };
-          const { data } = await page.cdp("Page.captureScreenshot", {
-            format: "png",
-            clip,
-            captureBeyondViewport: true,
-          });
-          const path = join(dir, `${name}--${profile}-${scheme}.png`);
-          writeFileSync(path, Buffer.from(data, "base64"));
-          console.log(`${path}\t${caption}: ${profile}, ${scheme}`);
+          const cuts = tiles(Math.ceil(cssContentSize.height), await page.evaluate(BOUNDARIES));
+          for (const [index, [y, height]] of cuts.entries()) {
+            // Beyond the viewport, so a tile below the first screen renders without a scroll.
+            const { data } = await page.cdp("Page.captureScreenshot", {
+              format: "png",
+              clip: { x: 0, y, width: SIZE.width, height, scale: 1 },
+              captureBeyondViewport: true,
+            });
+            const [suffix, count] =
+              cuts.length > 1
+                ? [`--${index + 1}of${cuts.length}`, ` (${index + 1} of ${cuts.length})`]
+                : ["", ""];
+            const path = join(dir, `${name}--${profile}-${scheme}${suffix}.png`);
+            writeFileSync(path, Buffer.from(data, "base64"));
+            console.log(`${path}\t${caption}: ${profile}, ${scheme}${count}`);
+          }
         } finally {
           await page.close();
         }
