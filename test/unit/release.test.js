@@ -1,7 +1,8 @@
 // The release's integrity: a pnpm pack of the build, extracted, against package.json's files and
 // exports, its license, and its dependencies, by release.js's releaseProblems, as it stands and in
 // scratch copies with one fault each. It packs the dist/ that mise run build writes.
-// Adapted from spike-html-packages-components (4c0a5d8): test/unit/release.test.js, renamed.
+// Adapted from spike-html-packages-components (4c0a5d8): test/unit/release.test.js, renamed, with
+// the devDependency's faults from another repository.
 
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
@@ -188,6 +189,16 @@ describe("release pack", () => {
     "the devDependency by a local path": [
       (_, copy) => (copy.devDependencies[foundation] = "link:../spike-html-apps-foundation"),
       `package.json declares devDependency ${foundation} link:../spike-html-apps-foundation, not an exact release tag`,
+    ],
+    "the devDependency from another repository": [
+      (_, copy) =>
+        (copy.devDependencies[foundation] = "github:JaimeStill/spike-html-design#v0.1.0"),
+      `package.json declares devDependency ${foundation} github:JaimeStill/spike-html-design#v0.1.0, not an exact release tag`,
+    ],
+    "the devDependency from another owner's fork": [
+      (_, copy) =>
+        (copy.devDependencies[foundation] = "github:fork/spike-html-apps-foundation#v0.1.0"),
+      `package.json declares devDependency ${foundation} github:fork/spike-html-apps-foundation#v0.1.0, not an exact release tag`,
     ],
     "no devDependency": [
       (_, copy) => delete copy.devDependencies[foundation],
