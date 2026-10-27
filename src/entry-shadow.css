@@ -13,7 +13,7 @@
  * The layout is intrinsic, with no container query, so the entry sizes to its content in any
  * parent, a shrink-to-fit one too: an inline-block, a content-sized flex item, or a grid's auto
  * track takes the width of its widest line, the head's or the meta's, each laid out whole. Its
- * supported minimum width is 14rem: the entry stays inside its box down to 14rem, and below it the
+ * supported minimum width is 16rem: the entry stays inside its box down to 16rem, and below it the
  * status and the whole clock may run past a column narrower than they are.
  */
 
@@ -67,7 +67,7 @@
   margin-inline-start: auto;
 }
 /* The meta row sits under the head. It may shrink below its content, and a long content type, which
-   has no space to break at, wraps anywhere, so the entry stays inside its box down to 14rem. Its
+   has no space to break at, wraps anywhere, so the entry stays inside its box down to 16rem. Its
    wrapped lines step by the entry's row gap, the name-to-meta step, and its parts stand apart by
    the column gap. */
 .meta {

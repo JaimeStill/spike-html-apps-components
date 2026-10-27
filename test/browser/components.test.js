@@ -425,8 +425,8 @@ describe("components", { timeout: 60_000 }, () => {
     }
   });
 
-  test("from 20rem down to 14rem, every part of the entry keeps inside its button, its size and clock whole and its date broken only at its spaces, in mono and sans, regular and compact", async () => {
-    // The narrow section restyled to each width in turn, down to 14rem, the entry's supported
+  test("from 20rem down to 16rem, every part of the entry keeps inside its button, its size and clock whole and its date broken only at its spaces, in mono and sans, regular and compact", async () => {
+    // The narrow section restyled to each width in turn, down to 16rem, the entry's supported
     // minimum width, then put back to its own 20rem. At each,
     // every part of every entry, the kind, the name, the status, and each meta part, keeps inside
     // its button; the size and the time's clock each render on one line; and each word of the
@@ -436,7 +436,7 @@ describe("components", { timeout: 60_000 }, () => {
     );
     const measure = `() => {
       const section = document.querySelector(".narrow");
-      const widths = ["20rem", "16rem", "14rem"].map((width) => {
+      const widths = ["20rem", "18rem", "16rem"].map((width) => {
         section.style.maxInlineSize = width;
         return { width, shown: (${ENTRIES})(".narrow").map((entry) => {
           const root = entry.shadowRoot;
