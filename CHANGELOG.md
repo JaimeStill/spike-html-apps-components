@@ -35,6 +35,18 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 
 - The typescript-eslint entries excluded from pnpm's minimum release age: 8.72.1 has aged past it.
 
+### Fixed
+
+- The entry's kind column is 9ch, the width of its longest kind, "directory", in place of the 8ch
+  it was copied with, so the kind no longer runs into the name.
+- The entry's wrapped meta lines step by the grid's row gap, the name-to-meta step, in place of
+  the column gap.
+- An entry under 30rem moves its status under the kind, so the name takes the rest of the row,
+  and a name too long for its column wraps within the entry.
+- The pagination wraps its groups when narrow, and its "Page Size" label and page count no longer
+  break; its step buttons keep their own height in place of stretching to the row's.
+- Browser cases on the specimen pages, in every profile, for each of these.
+
 ## [0.1.0] - 2026-10-27
 
 ### Added

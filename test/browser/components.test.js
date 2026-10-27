@@ -1,7 +1,9 @@
 // The components from this repository's dist/: conventions' 27 probe cases, its restyle case, and
 // the sheets each shadow root adopts, the installed foundation's then its own, on
 // test/fixtures/components.html, and the entry's formatted size and time there; and each component
-// rendered under the foundation's profiles, on test/fixtures/profiles.html.
+// rendered under the foundation's profiles, on test/fixtures/profiles.html; and the entry's and the
+// pagination's geometry on their specimen pages under demo/, full width and at 20rem, in each
+// profile.
 // Adapted from spike-html-packages-components (4c0a5d8): test/browser/components.test.js, renamed,
 // and the entry's size and time case added.
 
@@ -181,6 +183,157 @@ describe("components", { timeout: 60_000 }, () => {
       assert.deepEqual(errors, []);
     } finally {
       await page.close();
+    }
+  });
+
+  /**
+   * Runs the measure, the source of an in-page function of the profile, on the specimen page under
+   * demo/ in each profile combination, resolving to its results in profile order. The page's
+   * components render once; each profile applies by attribute on the root, as on the profiles
+   * case's page, and the measure runs once the profile's fonts are ready and a frame has passed.
+   */
+  async function measureSpecimen(specimen, measure) {
+    const page = await browser.open(`${server.origin}/demo/${specimen}.html`);
+    try {
+      return await page.evaluate(`(async () => {
+        const tags = ["sl-entry-lit-shadow", "sl-pagination-lit-shadow"]
+          .filter((tag) => document.querySelector(tag));
+        await Promise.all(tags.map((tag) => customElements.whenDefined(tag)));
+        await Promise.all([...document.querySelectorAll(tags.join(","))].map((el) => el.updateComplete));
+        const defaults = { color: "flexoki", space: "regular", type: "mono" };
+        const attributes = { color: "data-palette", space: "data-space", type: "data-type", scheme: "data-scheme" };
+        const root = document.documentElement;
+        const measure = ${measure};
+        const results = [];
+        for (const profile of ${JSON.stringify(profiles)}) {
+          const choice = { ...defaults, ...profile };
+          for (const [facet, name] of Object.entries(choice)) root.setAttribute(attributes[facet], name);
+          await document.fonts.ready;
+          await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+          results.push({ profile: JSON.stringify(choice), ...measure(choice) });
+        }
+        return results;
+      })()`);
+    } finally {
+      await page.close();
+    }
+  }
+
+  // In-page helpers the measures below share, as source: the number of lines an element's text
+  // renders on, and each entry with an item in a section of the specimen page.
+  const LINES = `(element) => {
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    const rects = [...range.getClientRects()].filter((rect) => rect.width > 0);
+    return new Set(rects.map((rect) => Math.round(rect.top))).size;
+  }`;
+  const ENTRIES = `(section) => [...document.querySelectorAll(section + " sl-entry-lit-shadow")]
+    .filter((entry) => entry.item !== null)`;
+
+  test('the entry\'s kind, "directory" the longest, ends a column gap before the name, in every profile', async () => {
+    const results = await measureSpecimen(
+      "entry",
+      `() => {
+        const entries = (${ENTRIES})("main");
+        const directories = entries.filter((entry) => !("content_type" in entry.item));
+        return { shown: directories.map((entry) => {
+          const root = entry.shadowRoot;
+          const gap = parseFloat(getComputedStyle(root.querySelector(".entry")).columnGap);
+          return {
+            kind: root.querySelector(".kind").textContent,
+            kindEnd: root.querySelector(".kind").getBoundingClientRect().right + gap,
+            nameStart: root.querySelector(".name").getBoundingClientRect().left,
+          };
+        }) };
+      }`,
+    );
+    for (const { profile, shown } of results) {
+      assert.ok(shown.length >= 2, `${profile}: a directory at full width and at 20rem`);
+      for (const { kind, kindEnd, nameStart } of shown) {
+        assert.equal(kind, "directory");
+        assert.ok(
+          kindEnd <= nameStart + 0.5,
+          `${profile}: the kind and its gap end at ${kindEnd}, the name starts at ${nameStart}`,
+        );
+      }
+    }
+  });
+
+  test("at 20rem, the entry's wrapped meta lines step by the name-to-meta gap, in every profile", async () => {
+    const measure = `() => ({ wrapped: (${ENTRIES})(".narrow").flatMap((entry) => {
+      const root = entry.shadowRoot;
+      const name = root.querySelector(".name").getBoundingClientRect();
+      const meta = root.querySelector(".meta");
+      const parts = [...meta.children].map((part) => part.getBoundingClientRect());
+      const tops = [...new Set(parts.map((part) => Math.round(part.top)))];
+      if (tops.length < 2) return [];
+      const line = (top) => parts.filter((part) => Math.round(part.top) === top);
+      return [{
+        name: entry.item.name,
+        nameToMeta: meta.getBoundingClientRect().top - name.bottom,
+        steps: tops.slice(1).map((top, i) =>
+          Math.min(...line(top).map((part) => part.top)) -
+          Math.max(...line(tops[i]).map((part) => part.bottom))),
+      }];
+    }) })`;
+    for (const specimen of ["entry", "pagination"]) {
+      for (const { profile, wrapped } of await measureSpecimen(specimen, measure)) {
+        assert.ok(wrapped.length > 0, `${specimen} under ${profile}: a meta row wraps at 20rem`);
+        for (const { name, nameToMeta, steps } of wrapped) {
+          for (const step of steps) {
+            assert.ok(
+              Math.abs(step - nameToMeta) <= 1,
+              `${specimen} under ${profile}, ${name}: meta lines ${step} apart, the name ${nameToMeta} above the meta`,
+            );
+          }
+        }
+      }
+    }
+  });
+
+  test('at 20rem, "brand-guide.pdf" renders on one line, in every profile', async () => {
+    const measure = `() => ({ lines: (${ENTRIES})(".narrow")
+      .filter((entry) => entry.item.name === "brand-guide.pdf")
+      .map((entry) => (${LINES})(entry.shadowRoot.querySelector(".name"))) })`;
+    for (const specimen of ["entry", "pagination"]) {
+      for (const { profile, lines } of await measureSpecimen(specimen, measure)) {
+        assert.ok(lines.length > 0, `${specimen} under ${profile}: brand-guide.pdf at 20rem`);
+        for (const count of lines) {
+          assert.equal(count, 1, `${specimen} under ${profile}: brand-guide.pdf on ${count} lines`);
+        }
+      }
+    }
+  });
+
+  test("at 20rem, the pagination's label and page count keep to one line, and its steps to one control's height, in every profile", async () => {
+    const results = await measureSpecimen(
+      "pagination",
+      `() => ({ shown: [...document.querySelectorAll(".narrow sl-pagination-lit-shadow")].map((pagination) => {
+        const root = pagination.shadowRoot;
+        const lines = ${LINES};
+        const count = root.querySelector(".page-indicator > span");
+        const height = (selector) => root.querySelector(selector).getBoundingClientRect().height;
+        const bar = root.querySelector(".pagination");
+        return {
+          label: lines(root.querySelector(".page-size-label")),
+          count: count === null ? null : lines(count),
+          steps: [...root.querySelectorAll(".page-step")].map((step) => step.getBoundingClientRect().height),
+          control: Math.max(height("select"), height(".page-input")),
+          overflow: bar.scrollWidth - bar.clientWidth,
+        };
+      }) })`,
+    );
+    for (const { profile, shown } of results) {
+      assert.ok(shown.length > 0, `${profile}: a pagination at 20rem`);
+      for (const { label, count, steps, control, overflow } of shown) {
+        assert.equal(label, 1, `${profile}: "Page Size" on ${label} lines`);
+        if (count !== null) assert.equal(count, 1, `${profile}: the page count on ${count} lines`);
+        // A pixel's allowance: in sans, the elements sheet's button is a pixel taller than its select.
+        for (const step of steps) {
+          assert.ok(step <= control + 1, `${profile}: a step ${step} tall, a control ${control}`);
+        }
+        assert.ok(overflow <= 0, `${profile}: the controls overflow by ${overflow}`);
+      }
     }
   });
 });
