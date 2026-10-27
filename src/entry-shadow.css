@@ -1,0 +1,41 @@
+/* From spike-html-packages-components (4c0a5d8): src/entry-shadow.css */
+
+/*
+ * The entry's layout in a shadow root: entry-lit-shadow.ts adopts this sheet into its root after
+ * the foundation's reset and elements sheets (baseline/reset.css and elements.css), which give
+ * the bare button its look. It holds the button's layout and its parts' type, and no look of its
+ * own for the button. It reads only the foundation's baseline tokens, which a shadow root takes by
+ * inheritance from the page's entry. Unlayered, it sits above the adopted layers in the root.
+ */
+
+:host {
+  display: block;
+}
+.entry {
+  display: grid;
+  grid-template-columns: 8ch 1fr auto;
+  align-items: baseline;
+  justify-items: start;
+  gap: var(--space-3xs) var(--space-xs);
+  inline-size: 100%;
+  margin-block: var(--space-3xs);
+  text-align: start;
+}
+.kind,
+.meta {
+  color: var(--fg-2);
+}
+.name {
+  font-size: var(--text-s);
+  font-weight: 600;
+}
+/* The meta row may shrink below its content, and a long content type, which has no space to break
+   at, wraps anywhere, so the entry never grows past its box. */
+.meta {
+  grid-column: 2 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
