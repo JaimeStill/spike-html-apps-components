@@ -265,8 +265,9 @@ describe("components", { timeout: 60_000 }, () => {
    * demo/ in each profile combination, resolving to its results in profile order. The page's
    * components render once; each profile applies by attribute on the root, as on the profiles
    * case's page, and the measure runs once the profile's fonts are ready and a frame has passed.
+   * The profiles are the full entry's unless others are given.
    */
-  async function measureSpecimen(specimen, measure) {
+  async function measureSpecimen(specimen, measure, over = profiles) {
     const page = await browser.open(`${server.origin}/demo/${specimen}.html`);
     try {
       return await page.evaluate(`(async () => {
@@ -279,7 +280,7 @@ describe("components", { timeout: 60_000 }, () => {
         const root = document.documentElement;
         const measure = ${measure};
         const results = [];
-        for (const profile of ${JSON.stringify(profiles)}) {
+        for (const profile of ${JSON.stringify(over)}) {
           const choice = { ...defaults, ...profile };
           for (const [facet, name] of Object.entries(choice)) root.setAttribute(attributes[facet], name);
           await document.fonts.ready;
@@ -417,6 +418,71 @@ describe("components", { timeout: 60_000 }, () => {
           const where = `${specimen} under ${profile}, ${name}`;
           assert.deepEqual(parts, ["date", "clock"], `${where}: the time's parts`);
           for (const [text, count] of lines) {
+            assert.equal(count, 1, `${where}: "${text}" on ${count} lines`);
+          }
+        }
+      }
+    }
+  });
+
+  test("from 20rem down to 14rem, every part of the entry keeps inside its button, its size and clock whole and its date broken only at its spaces, in mono and sans, regular and compact", async () => {
+    // The narrow section restyled to each width in turn, down to 14rem, the entry's supported
+    // minimum width, then put back to its own 20rem. At each,
+    // every part of every entry, the kind, the name, the status, and each meta part, keeps inside
+    // its button; the size and the time's clock each render on one line; and each word of the
+    // date, its text between spaces, renders on one line, so the date breaks only at its spaces.
+    const over = ["mono", "sans"].flatMap((type) =>
+      ["regular", "compact"].flatMap((space) => schemes.map((scheme) => ({ type, space, scheme }))),
+    );
+    const measure = `() => {
+      const section = document.querySelector(".narrow");
+      const widths = ["20rem", "16rem", "14rem"].map((width) => {
+        section.style.maxInlineSize = width;
+        return { width, shown: (${ENTRIES})(".narrow").map((entry) => {
+          const root = entry.shadowRoot;
+          const button = root.querySelector(".entry");
+          const box = button.getBoundingClientRect();
+          const parts = [".kind", ".name", ".status", ".meta > *", "time > .date", "time > .clock"]
+            .flatMap((selector) => [...root.querySelectorAll(selector)]);
+          const date = root.querySelector("time > .date");
+          // Lit's markers stand beside the date's text: its one text node holds the date.
+          const text = [...date.childNodes].find((node) => node.nodeType === Node.TEXT_NODE);
+          const words = [...text.data.matchAll(/\\S+/g)].map((match) => {
+            const range = document.createRange();
+            range.setStart(text, match.index);
+            range.setEnd(text, match.index + match[0].length);
+            const rects = [...range.getClientRects()].filter((rect) => rect.width > 0);
+            return [match[0], new Set(rects.map((rect) => Math.round(rect.top))).size];
+          });
+          return {
+            name: entry.item.name,
+            overflow: button.scrollWidth - button.clientWidth,
+            outside: parts
+              .filter((part) => {
+                const rect = part.getBoundingClientRect();
+                return rect.left < box.left - 0.5 || rect.right > box.right + 0.5;
+              })
+              .map((part) => [part.className || part.localName, part.textContent,
+                Math.round(part.getBoundingClientRect().right - box.right)]),
+            whole: [".size", "time > .clock"]
+              .flatMap((selector) => [...root.querySelectorAll(selector)])
+              .map((value) => [value.textContent, (${LINES})(value)]),
+            words,
+          };
+        }) };
+      });
+      section.style.maxInlineSize = "";
+      return { widths };
+    }`;
+    for (const { profile, widths } of await measureSpecimen("entry", measure, over)) {
+      for (const { width, shown } of widths) {
+        assert.ok(shown.length > 0, `${profile} at ${width}: an entry`);
+        for (const { name, overflow, outside, whole, words } of shown) {
+          const where = `${profile} at ${width}, ${name}`;
+          assert.ok(overflow <= 0, `${where}: the button's content overflows it by ${overflow}`);
+          assert.deepEqual(outside, [], `${where}: parts past the button, by px`);
+          assert.ok(words.length > 0, `${where}: the date's words`);
+          for (const [text, count] of [...whole, ...words]) {
             assert.equal(count, 1, `${where}: "${text}" on ${count} lines`);
           }
         }

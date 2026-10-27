@@ -1,6 +1,7 @@
 /* Adapted from spike-html-packages-components (4c0a5d8): src/entry-shadow.css, its kind column 9ch,
    its meta lines stepped by the row gap, a long name wrapped, its name and status in a row that
-   wraps, and its size and the time's date and clock each kept whole. */
+   wraps, its size and the time's clock each kept whole, and the time's date broken at its
+   spaces. */
 
 /*
  * The entry's layout in a shadow root: entry-lit-shadow.ts adopts this sheet into its root after
@@ -11,7 +12,9 @@
  *
  * The layout is intrinsic, with no container query, so the entry sizes to its content in any
  * parent, a shrink-to-fit one too: an inline-block, a content-sized flex item, or a grid's auto
- * track takes the width of its widest line, the head's or the meta's, each laid out whole.
+ * track takes the width of its widest line, the head's or the meta's, each laid out whole. Its
+ * supported minimum width is 14rem: the entry stays inside its box down to 14rem, and below it the
+ * status and the whole clock may run past a column narrower than they are.
  */
 
 :host {
@@ -64,9 +67,9 @@
   margin-inline-start: auto;
 }
 /* The meta row sits under the head. It may shrink below its content, and a long content type, which
-   has no space to break at, wraps anywhere, so the entry never grows past its box. Its wrapped
-   lines step by the entry's row gap, the name-to-meta step, and its parts stand apart by the
-   column gap. */
+   has no space to break at, wraps anywhere, so the entry stays inside its box down to 14rem. Its
+   wrapped lines step by the entry's row gap, the name-to-meta step, and its parts stand apart by
+   the column gap. */
 .meta {
   grid-column: 2;
   display: flex;
@@ -75,11 +78,13 @@
   min-inline-size: 0;
   overflow-wrap: anywhere;
 }
-/* A meta value keeps whole: the size, and the time's date and its clock, each break only between
-   one another, never inside "1.5 kB" or "4:41 PM", so a narrow line wraps the time after its date.
-   The content type wraps anywhere, as the meta lets it, since it has no space to break at. */
+/* The size and the time's clock each keep whole, never breaking inside "1.5 kB" or "4:41 PM", so a
+   narrow line wraps the time after its date. The date breaks at its own spaces, "Oct 12," over
+   "2026,", so a narrow entry keeps it inside its box: it takes normal white-space and sets no
+   overflow-wrap, so the meta's anywhere breaks inside a word of it only when that word alone is
+   wider than the line. The content type wraps anywhere, as the meta lets it, since it has no space
+   to break at. */
 .size,
-time > .date,
 time > .clock {
   white-space: nowrap;
 }

@@ -55,8 +55,9 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
   wraps within the entry.
 - The pagination wraps its groups when narrow, and its "Page Size" label and page count no longer
   break; its step buttons keep their own height in place of stretching to the row's.
-- The entry's size, and its time's date and clock, each stay on one line: a narrow entry breaks
-  between them, never inside "1.5 kB" or "4:41 PM".
+- The entry's size and its time's clock each stay whole, never breaking inside "1.5 kB" or
+  "4:41 PM", and its time's date breaks only at its own spaces, so the entry keeps inside its box
+  down to 14rem, its supported minimum width.
 - Browser cases on the specimen pages, in every profile, for each of these.
 
 ## [0.1.0] - 2026-10-27

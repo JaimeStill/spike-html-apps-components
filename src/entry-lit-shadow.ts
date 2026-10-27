@@ -51,8 +51,8 @@ function kindOf(item: EntryItem): OpenDetail["kind"] {
 
 /**
  * The entry's time, formatDateTime's text, as its date and its clock with the locale's text
- * between, each in a span entry-shadow.css keeps whole, so a narrow line breaks between them and
- * never inside "4:41 PM". A locale that doesn't write the date first and the clock last gets the
+ * between, each in a span: entry-shadow.css keeps the clock whole and breaks the date only at its
+ * spaces, so a narrow line breaks between them and never inside "4:41 PM". A locale that doesn't write the date first and the clock last gets the
  * whole text, unsplit.
  */
 function renderTime(updatedAt: string) {
