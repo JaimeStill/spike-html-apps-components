@@ -34,11 +34,13 @@ const cssImports = [
   })),
 ];
 
-// The layer table cut to the components: their sources, which may import themselves and two
-// packages by name, lit and the foundation, which the manifest declares, the foundation as a peer;
-// the foundation is reached only through its install, as a consumer reaches it.
+// The layer table cut to the components: their sources, which may import themselves and three
+// packages by name, lit, marked, and the foundation, which the manifest declares, the foundation as
+// a peer; the foundation is reached only through its install, as a consumer reaches it.
 const foundation = "@jaimestill/spike-html-apps-foundation";
-export const layers = [{ name: "components", path: "src", may: ["components", "lit", foundation] }];
+export const layers = [
+  { name: "components", path: "src", may: ["components", "lit", "marked", foundation] },
+];
 
 // The layer is an element by its directory, matched from the root (partialMatch false), with a
 // second pattern for a file in a directory whose name starts with a dot, which micromatch's **

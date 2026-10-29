@@ -4,24 +4,30 @@
 # removed on exit unless --keep. The profiles: by default the defaults alone, flexoki, regular,
 # and mono; --palette, --space, and --type, each with a name, that facet's profile over the
 # defaults, combined; --all the full matrix, every color at the defaults, then compact and sans at
-# flexoki, which no facet flag joins. screenshots.js checks each name against the pages' registry
-# before any capture, exiting 2 with the facet's names on an unknown one; any other argument exits
-# 2 with the usage. Prints each tile's caption and path, and shows it inline with kitty's icat when
-# the terminal displays images, scaled to fit the screen's width and height, so no image runs past
-# the screen and the terminal comes back to the cursor.
+# flexoki, which no facet flag joins. --page, with a specimen page's name, repeatable, captures
+# only the pages named; --scheme light or dark captures that scheme alone; both join the profile
+# flags and --all alike, since they choose pages and schemes, not profiles. screenshots.js checks
+# each page name against its pages, and each profile name against the pages' registry, before any
+# capture, exiting 2 with the registered names on an unknown one; any other argument, a scheme
+# but light or dark or a second --scheme among them, exits 2 with the usage. Prints each tile's
+# caption and path, and shows it inline with kitty's icat when the terminal displays images,
+# scaled to fit the screen's width and height, so no image runs past the screen and the terminal
+# comes back to the cursor.
 # Adapted from spike-html-apps-foundation (679e550): scripts/screenshots.sh, naming the specimen
 # pages, and choosing the profiles by argument.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 usage() {
-  echo "usage: mise run screenshots [--all | [--palette <name>] [--space <name>] [--type <name>]] [--keep]" >&2
+  echo "usage: mise run screenshots [--all | [--palette <name>] [--space <name>] [--type <name>]] [--page <name>]... [--scheme light|dark] [--keep]" >&2
   exit 2
 }
 
 keep=false
 all=false
 facets=()
+choices=()
+scheme=
 while (($#)); do
   case $1 in
     --keep) keep=true ;;
@@ -29,6 +35,18 @@ while (($#)); do
     --palette | --space | --type)
       (($# > 1)) || usage
       facets+=("$1" "$2")
+      shift
+      ;;
+    --page)
+      (($# > 1)) || usage
+      choices+=("$1" "$2")
+      shift
+      ;;
+    --scheme)
+      (($# > 1)) || usage
+      [[ $2 == light || $2 == dark ]] && [[ -z $scheme ]] || usage
+      scheme=$2
+      choices+=("$1" "$2")
       shift
       ;;
     *) usage ;;
@@ -67,7 +85,7 @@ if [[ -t 1 ]] && { exec 3<>/dev/tty; } 2>/dev/null; then
   fi
 fi
 
-BROWSER_EXECUTABLE=$(mise which chrome-headless-shell) node scripts/screenshots.js "$dir" "${profiles[@]}" |
+BROWSER_EXECUTABLE=$(mise which chrome-headless-shell) node scripts/screenshots.js "$dir" "${profiles[@]}" "${choices[@]}" |
   while IFS=$'\t' read -r path caption; do
     printf '%s\n  %s\n' "$caption" "$path"
     if ((${#icat[@]})); then

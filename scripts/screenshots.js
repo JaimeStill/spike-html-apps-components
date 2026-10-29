@@ -5,12 +5,15 @@
 // `--space`, and `--type`, each with a name, that facet's profile over the defaults, combined;
 // `--all`, every color at the defaults, then compact and sans at the default color. Each named
 // profile is checked against the registry of every specimen page, after it loads, before any
-// capture: an unknown name prints the facet's registered names and exits 2. Each file name and
+// capture: an unknown name prints the facet's registered names and exits 2. `--page`, with a
+// specimen page's name, repeatable, captures only the pages named, an unknown name printing the
+// pages' names and exiting 2 before the browser launches; `--scheme`, light or dark, captures that
+// scheme alone. Both join the profile arguments and `--all` alike. Each file name and
 // caption names the whole profile, color, space, and type, so every run's names are unambiguous.
 // A tile is at most TILE tall, so no capture runs many screens tall where icat scales it to the
 // terminal's width; a page that fits in one tile keeps its name and caption without the
 // `--<k>of<m>` and `(k of m)` suffix. A capture sets the profile's attributes on the root, then
-// reaches the focus state with real Tab presses, so :focus-visible matches.
+// reaches the focus state, on a page with one, by real Tab presses, so :focus-visible matches.
 // Adapted from spike-html-apps-foundation (679e550): scripts/screenshots.js, its states the
 // specimen pages, each captured whole in tiles, the focus reached by Tab, and its profiles chosen
 // by argument.
@@ -22,7 +25,7 @@ import { launch } from "../test/browser/support/browser-pipe.js";
 import { serve } from "../test/browser/support/server.js";
 
 const USAGE =
-  "usage: node scripts/screenshots.js <directory> [--all | [--palette <name>] [--space <name>] [--type <name>]]";
+  "usage: node scripts/screenshots.js <directory> [--all | [--palette <name>] [--space <name>] [--type <name>]] [--page <name>]... [--scheme light|dark]";
 
 /** Each facet's flag, the registry's facet it names, the root attribute it sets, and its
  * default profile. */
@@ -46,14 +49,26 @@ const ALL = [
 const [dir, ...args] = process.argv.slice(2);
 if (!dir) throw new Error(USAGE);
 
-/** The run's choice: `all`, or each named facet's name by its flag. */
+const SCHEMES = ["light", "dark"];
+
+/** The run's choice: `all`, or each named facet's name by its flag; the pages named, in the order
+ * named; and the scheme named, if any. */
 const named = new Map();
 let all = false;
+const pageNames = [];
+let schemeName;
 for (let index = 0; index < args.length; index++) {
   const arg = args[index];
   if (arg === "--all") all = true;
   else if (FACETS.some(({ flag }) => flag === arg) && index + 1 < args.length) {
     named.set(arg, args[++index]);
+  } else if (arg === "--page" && index + 1 < args.length) pageNames.push(args[++index]);
+  else if (
+    arg === "--scheme" &&
+    schemeName === undefined &&
+    SCHEMES.includes(args[index + 1] ?? "")
+  ) {
+    schemeName = args[++index];
   } else throw new Error(USAGE);
 }
 if (all && named.size) throw new Error(USAGE);
@@ -66,8 +81,6 @@ const PROFILES = all
         FACETS.map(({ flag, attribute, fallback }) => [attribute, named.get(flag) ?? fallback]),
       ),
     ];
-
-const SCHEMES = ["light", "dark"];
 
 /** The viewport: each page is captured over its full height at this width. */
 const SIZE = { width: 1280, height: 800 };
@@ -88,7 +101,30 @@ const PAGES = [
   ["1-status-badge", "the status badge", "status-badge"],
   ["2-entry", "the entry", "entry"],
   ["3-pagination", "the pagination", "pagination"],
+  ["4-artifact-viewer", "the artifact viewer", "artifact-viewer"],
+  ["5-chat-thread", "the chat thread", "chat-thread"],
+  ["6-composer", "the composer", "composer"],
+  ["7-upload-dropzone", "the upload dropzone", "upload-dropzone"],
+  ["8-stage-timeline", "the stage timeline", "stage-timeline"],
+  ["9-event-log", "the event log", "event-log"],
+  ["10-search-results", "the search results", "search-results"],
+  ["11-document-list", "the document list", "document-list"],
 ];
+
+/** The run's pages: those `--page` names, each once, in PAGES' order, or every page when none is
+ * named. An unknown name prints every page's name and exits 2, before the server or the browser
+ * starts. */
+const unknownPage = pageNames.find((name) => !PAGES.some(([, , file]) => file === name));
+if (unknownPage !== undefined) {
+  console.error(
+    `screenshots: unknown page ${unknownPage}; the specimen pages: ${PAGES.map(([, , file]) => file).join(", ")}`,
+  );
+  process.exit(2);
+}
+const RUN_PAGES = pageNames.length ? PAGES.filter(([, , file]) => pageNames.includes(file)) : PAGES;
+
+/** The run's schemes: the one `--scheme` names, or both. */
+const RUN_SCHEMES = schemeName ? [schemeName] : SCHEMES;
 
 /** Sends Tab, as a keyboard presses it, so the browser moves focus and marks it focus-visible. */
 async function pressTab(page) {
@@ -108,9 +144,11 @@ const RENDERED = `(async () => {
 })()`;
 
 /** Focuses the focus section's mark, which takes focus only by script, and returns how many Tab
- * presses reach the component's focus state. */
+ * presses reach the component's focus state: none on a page with no focus section, whose component
+ * holds nothing focusable. */
 const FOCUS_START = `(() => {
   const mark = document.querySelector("[data-focus-start]");
+  if (!mark) return 0;
   mark.focus();
   return Number(mark.dataset.focusStart) || 1;
 })()`;
@@ -167,7 +205,7 @@ const SETTLED = `document.fonts.ready.then(() => new Promise((resolve) =>
  * Each page is read once it loads, so its modules have registered their profiles.
  */
 async function unknownProfile(browser, origin) {
-  for (const [, , file] of PAGES) {
+  for (const [, , file] of RUN_PAGES) {
     const page = await browser.open(`${origin}/demo/${file}.html`);
     try {
       const registry = await page.evaluate(REGISTRY);
@@ -193,10 +231,10 @@ try {
     console.error(unknown);
     process.exitCode = 2;
   }
-  for (const [name, caption, file] of unknown ? [] : PAGES) {
+  for (const [name, caption, file] of unknown ? [] : RUN_PAGES) {
     for (const profile of PROFILES) {
       const label = FACETS.map(({ attribute }) => profile[attribute]);
-      for (const scheme of SCHEMES) {
+      for (const scheme of RUN_SCHEMES) {
         const page = await browser.open(`${server.origin}/demo/${file}.html`);
         try {
           await page.cdp("Emulation.setDeviceMetricsOverride", {
@@ -221,13 +259,22 @@ try {
           for (let press = 0; press < presses; press++) await pressTab(page);
           await page.evaluate(SETTLED);
           const { cssContentSize } = await page.cdp("Page.getLayoutMetrics");
-          const cuts = tiles(Math.ceil(cssContentSize.height), await page.evaluate(BOUNDARIES));
+          const full = Math.ceil(cssContentSize.height);
+          const cuts = tiles(full, await page.evaluate(BOUNDARIES));
+          // The viewport as tall as the page, so every tile lies inside it: Chromium paints a
+          // scrolling region's scrollbars only inside the viewport, and a capture beyond it would
+          // drop them below the first screen. The width stays, so the layout doesn't change.
+          await page.cdp("Emulation.setDeviceMetricsOverride", {
+            ...SIZE,
+            height: Math.max(SIZE.height, full),
+            deviceScaleFactor: 1,
+            mobile: false,
+          });
+          await page.evaluate(SETTLED);
           for (const [index, [y, height]] of cuts.entries()) {
-            // Beyond the viewport, so a tile below the first screen renders without a scroll.
             const { data } = await page.cdp("Page.captureScreenshot", {
               format: "png",
               clip: { x: 0, y, width: SIZE.width, height, scale: 1 },
-              captureBeyondViewport: true,
             });
             const [suffix, count] =
               cuts.length > 1

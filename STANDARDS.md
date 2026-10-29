@@ -32,7 +32,8 @@ The architecture pages that apply, in the architecture repository:
 
 - The package is `@jaimestill/spike-html-apps-components`, one row of spike-html-apps' layer
   table: the components, built on the foundation.
-- lit is its one dependency, and the foundation its one peer.
+- lit and marked are its two dependencies, each pinned exactly, and the foundation its one peer.
+  Only a module that renders Markdown imports marked, so a page that imports none loads none of it.
 - `dist/` lives only in a release tag's tree, the pack, never on a branch.
 - Releases are `v<version>` annotated tags cut by `release.yml` from `package.json`'s version,
   each with its `CHANGELOG.md` section, and never changed or re-cut.

@@ -131,6 +131,9 @@ export async function launch() {
     await cdp("Emulation.setEmulatedMedia", {
       features: [{ name: "prefers-color-scheme", value: "light" }],
     });
+    // Headless hides scrollbars; a page shows them as a user's browser does, so a scrolling
+    // region's measures and captures match what a user sees.
+    await cdp("Emulation.setScrollbarsHidden", { hidden: false });
 
     /** Loads the URL, resolving once its load event fires. */
     const goto = async (url) => {

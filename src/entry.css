@@ -1,0 +1,116 @@
+/* Adapted from spike-html-packages-components (4c0a5d8): src/entry-shadow.css, its kind moved from
+   a column of its own to the start of the meta line, its name the primary text and its status and
+   kind quiet labels, its meta lines stepped by the row gap, a long name wrapped, its name and
+   status in a row that wraps, its size and the time's clock each kept whole, the time's date
+   broken at its spaces, its content type broken at its punctuation, and its frame drawn in the
+   interaction color when selected. */
+
+/*
+ * The entry's layout in a shadow root: entry.ts adopts this sheet into its root after the
+ * foundation's reset and elements sheets (baseline/reset.css and elements.css), which give the
+ * bare button its look. It holds the button's layout, its parts' type, and the selected frame, and
+ * no other look of its own for the button. It reads only the foundation's baseline tokens, which a
+ * shadow root takes by inheritance from the page's entry. Unlayered, it sits above the adopted
+ * layers in the root.
+ *
+ * The layout is intrinsic, with no container query, so the entry sizes to its content in any
+ * parent, a shrink-to-fit one too: an inline-block, a content-sized flex item, or a grid's auto
+ * track takes the width of its widest line, the head's or the meta's, each laid out whole. Its
+ * supported minimum width is 16rem: the entry stays inside its box down to 16rem, and below it the
+ * status and the whole clock may run past a column narrower than they are.
+ */
+
+:host {
+  display: block;
+}
+/* One column: the head over the meta, the row gap the name-to-meta step. Every entry of a list,
+   a directory's or a file's, each its own grid in its own shadow root, puts its name at the
+   button's inline start. The button's font is the interface font, the elements sheet's. */
+.entry {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: baseline;
+  gap: var(--space-3xs) var(--space-xs);
+  inline-size: 100%;
+  margin-block: var(--space-3xs);
+  text-align: start;
+}
+/* Selected, the frame is drawn in the interaction color: the border takes the color, and an inset
+   shadow a line wide inside it doubles its weight, so the mark is a heavier frame, not a hue alone,
+   and moves nothing, since every entry's border is already there and a shadow takes no space.
+   While the button's focus is visible, the focus ring, the elements sheet's outline, is the one
+   mark: the frame gives way to the normal border, its width unchanged, so nothing moves, and
+   returns when focus leaves or comes by a pointer without a visible ring. */
+:host([selected]) .entry:not(:focus-visible) {
+  border-color: var(--interaction-color, var(--blue));
+  box-shadow: inset 0 0 0 var(--line-s) var(--interaction-color, var(--blue));
+}
+/* The head: the name, then the status at the line's end, in a row that wraps, so the status leaves
+   the name's line for one of its own below it only when the two don't fit side by side. Its gaps
+   are the entry's, so a wrapped status steps from the name as the meta does. */
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-3xs) var(--space-xs);
+  min-inline-size: 0;
+}
+/* The name is the entry's primary text, the larger size and semibold. It grows into the line's
+   free space up to its own width, and the status wraps before the name narrows past 16ch, a little
+   more than "brand-guide.pdf", or past its own width when that is less, so a short name never wraps
+   the status in a parent sized to the entry's content. It may shrink below its content, and it
+   breaks at its hyphens and spaces first, and within a run too long for its line only then, so a
+   long name wraps inside the entry's box rather than past it. */
+.name {
+  flex: 1 1 16ch;
+  max-inline-size: max-content;
+  min-inline-size: 0;
+  font-size: var(--text-m);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+/* The status is a quiet label, the smallest size, muted. Its auto margin takes the line's space the
+   name leaves, so it sits at the line's end, on the name's line or on its own; it never breaks. */
+.status {
+  margin-inline-start: auto;
+  font-size: var(--text-xs);
+  color: var(--fg-2);
+  white-space: nowrap;
+}
+/* The meta row sits under the head, smaller and muted: the kind, at the status's smallest size,
+   then the size, the content type, and the time. Its parts wrap between one another, each laid out
+   whole when it fits a line, and its wrapped lines step by the entry's row gap, the name-to-meta
+   step. It may shrink below its content. */
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-3xs) var(--space-xs);
+  min-inline-size: 0;
+  font-size: var(--text-s);
+  color: var(--fg-2);
+}
+.kind {
+  font-size: var(--text-xs);
+}
+/* The content type breaks at the wbr entry.ts puts after each slash, dot, hyphen, and plus, and
+   inside a part only when that part alone is wider than the line: break-word, not anywhere, so its
+   min-content width is its longest part, and a shrinking meta wraps it at its punctuation rather
+   than letter by letter. It may shrink below that, so a part wider than a 16rem entry still breaks
+   inside the box. */
+.type {
+  min-inline-size: 0;
+  overflow-wrap: break-word;
+}
+/* The size and the time's clock each keep whole, never breaking inside "1.5 kB" or "4:41 PM", so a
+   narrow line wraps the time after its date. The date breaks at its own spaces, "Oct 12," over
+   "2026,", so a narrow entry keeps it inside its box; a word of it breaks only when that word alone
+   is wider than the line. */
+.size,
+time > .clock {
+  white-space: nowrap;
+}
+time {
+  min-inline-size: 0;
+  overflow-wrap: break-word;
+}

@@ -22,13 +22,14 @@
           "lit-element/": "/deps/lit-element/",
           "@lit/reactive-element": "/deps/@lit/reactive-element/reactive-element.js",
           "@lit/reactive-element/": "/deps/@lit/reactive-element/",
+          "marked": "/deps/marked/lib/marked.esm.js",
           "@jaimestill/spike-html-apps-foundation/": "/deps/@jaimestill/spike-html-apps-foundation/dist/"
         }
       }
     </script>
     <script type="module">
-      import "../dist/pagination-lit-shadow.js";
-      import "../dist/entry-lit-shadow.js";
+      import "../dist/pagination.js";
+      import "../dist/entry.js";
       import "../dist/status-badge.js";
       import { continued, directories, files, pageSizes } from "./documents.js";
 
@@ -54,7 +55,7 @@
         pagination.replaceChildren(
           ...[...pagination.querySelectorAll('[slot="label"]')],
           ...page.items.map((item) =>
-            Object.assign(document.createElement("sl-entry-lit-shadow"), { item }),
+            Object.assign(document.createElement("sl-entry"), { item }),
           ),
         );
       };
@@ -88,19 +89,19 @@
 
       <section>
         <h2>Directories, page 2 of 3</h2>
-        <sl-pagination-lit-shadow id="directories"></sl-pagination-lit-shadow>
+        <sl-pagination id="directories"></sl-pagination>
       </section>
 
       <section>
         <h2>Files, one pending, a slotted label</h2>
-        <sl-pagination-lit-shadow id="files">
+        <sl-pagination id="files">
           <span slot="label">Files per page</span>
-        </sl-pagination-lit-shadow>
+        </sl-pagination>
       </section>
 
       <section>
         <h2>Files continued by cursor</h2>
-        <sl-pagination-lit-shadow id="continued" style="max-inline-size: 22rem"></sl-pagination-lit-shadow>
+        <sl-pagination id="continued" style="max-inline-size: 22rem"></sl-pagination>
       </section>
 
       <section>

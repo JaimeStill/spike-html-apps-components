@@ -6,7 +6,7 @@ import elements from "@jaimestill/spike-html-apps-foundation/baseline/elements.c
 import { directories } from "../../../demo/documents.js";
 import { settle, version } from "./probe.js";
 
-/** @import { EntryItem } from "../../../dist/entry-lit-shadow.js" */
+/** @import { EntryItem } from "../../../dist/entry.js" */
 
 /** The background the edit gives every button: a color no source sets. */
 const edited = "rgb(1, 2, 3)";

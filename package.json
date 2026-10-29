@@ -1,6 +1,6 @@
 {
   "name": "@jaimestill/spike-html-apps-components",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "license": "Apache-2.0",
   "type": "module",
   "files": [
@@ -14,7 +14,8 @@
     "./*.css": "./dist/*.css"
   },
   "dependencies": {
-    "lit": "3.3.3"
+    "lit": "3.3.3",
+    "marked": "18.1.2"
   },
   "peerDependencies": {
     "@jaimestill/spike-html-apps-foundation": "^0.2.0"
@@ -24,7 +25,7 @@
     "@jaimestill/spike-html-apps-foundation": "github:JaimeStill/spike-html-apps-foundation#v0.2.0",
     "eslint": "10.13.0",
     "eslint-import-resolver-typescript": "4.4.5",
-    "eslint-plugin-boundaries": "7.3.0",
+    "eslint-plugin-boundaries": "7.4.0",
     "eslint-plugin-import-x": "4.17.1",
     "globals": "17.13.0",
     "prettier": "3.9.10",

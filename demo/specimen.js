@@ -27,19 +27,20 @@ export function figure({ label, build }) {
 }
 
 /**
- * Renders the states into every `.states` list on the page, and the focus state into
- * `#focus .states` after its `[data-focus-start]` mark. The screenshot script focuses the mark,
- * which takes focus only by script (tabindex -1), then presses Tab as many times as the mark's
- * value says, so the keyboard reaches the component and :focus-visible matches.
+ * Renders the states into every `.states` list on the page, and the focus state, when the page
+ * gives one, into `#focus .states` after its `[data-focus-start]` mark. The screenshot script
+ * focuses the mark, which takes focus only by script (tabindex -1), then presses Tab as many times
+ * as the mark's value says, so the keyboard reaches the component and :focus-visible matches. A
+ * component with nothing focusable has no focus state and its page no focus section.
  *
  * @param {State[]} states
- * @param {State} focus
+ * @param {State} [focus]
  */
 export function specimens(states, focus) {
   for (const list of document.querySelectorAll("main > section:not(#focus) .states")) {
     list.append(...states.map(figure));
   }
-  document.querySelector("#focus .states")?.append(figure(focus));
+  if (focus) document.querySelector("#focus .states")?.append(figure(focus));
 }
 
 /** An element of the tag, its properties assigned. */

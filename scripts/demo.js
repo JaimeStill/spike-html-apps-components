@@ -7,7 +7,20 @@
 import { serve } from "../test/browser/support/server.js";
 
 const server = await serve();
-for (const page of ["components", "status-badge", "entry", "pagination"]) {
+for (const page of [
+  "components",
+  "status-badge",
+  "entry",
+  "pagination",
+  "artifact-viewer",
+  "chat-thread",
+  "composer",
+  "upload-dropzone",
+  "stage-timeline",
+  "event-log",
+  "search-results",
+  "document-list",
+]) {
   console.log(`${server.origin}/demo/${page}.html`);
 }
 process.once("SIGINT", async () => {

@@ -1,7 +1,7 @@
 // A release's shape: a pack of the build checked against the sources, package.json's files and
 // exports, which Node itself resolves, the Apache 2.0 LICENSE its manifest declares, and its
-// dependencies, lit pinned exactly and the foundation a peer. test/unit/release.test.js runs it on
-// a pnpm pack.
+// dependencies, lit and marked pinned exactly and the foundation a peer. test/unit/release.test.js
+// runs it on a pnpm pack.
 // Adapted from spike-html-packages-components (4c0a5d8): test/unit/release.js, renamed.
 
 import { execFileSync } from "node:child_process";
@@ -82,16 +82,16 @@ export function licenseProblems(root) {
 
 const foundation = "@jaimestill/spike-html-apps-foundation";
 
-/** The dependencies every release declares, and nothing else. lit is its one dependency, at one
- * version, never a range. The foundation is a peer, by a caret range on its versions, never a
- * git spec: a consumer declares the foundation beside the components, from whichever
- * source, and one copy serves both, so a restyle of its sheets by package name reaches the
- * components' shadow roots. The repository's own install of it is a devDependency at one release
+/** The dependencies every release declares, and nothing else. lit and marked are its two
+ * dependencies, each at one version, never a range. The foundation is a peer, by a caret range on
+ * its versions, never a git spec: a consumer declares the foundation beside the components, from
+ * whichever source, and one copy serves both, so a restyle of its sheets by package name reaches
+ * the components' shadow roots. The repository's own install of it is a devDependency at one release
  * tag on GitHub, never a range, a branch, a commit, or a #semver: spec, which bun fails, and a tag
  * the peer range admits. Which version, range, and tag is package.json's, and mise run currency
  * reports each behind its latest. */
 const exactVersion = /^\d+\.\d+\.\d+$/;
-const dependencies = { lit: exactVersion };
+const dependencies = { lit: exactVersion, marked: exactVersion };
 const caretRange = /^\^\d+\.\d+\.\d+$/;
 const foundationTag = /^github:JaimeStill\/spike-html-apps-foundation#(v\d+\.\d+\.\d+)$/;
 

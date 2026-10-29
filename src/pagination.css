@@ -2,9 +2,9 @@
    wrapped, its label and page count unbroken, and its steps unstretched. */
 
 /*
- * The pagination's layout in a shadow root: pagination-lit-shadow.ts adopts this sheet into its
- * root after the foundation's reset and elements sheets (baseline/reset.css and elements.css),
- * which give the bare controls their look. It gives no control a look of its own: no background,
+ * The pagination's layout in a shadow root: pagination.ts adopts this sheet into its root
+ * after the foundation's reset and elements sheets (baseline/reset.css and elements.css), which
+ * give the bare controls their look. It gives no control a look of its own: no background,
  * border, color, padding, or font on a control. It reads only the foundation's baseline tokens,
  * which a shadow root takes by inheritance from the page's entry. Unlayered, it sits above the
  * adopted layers in the root.

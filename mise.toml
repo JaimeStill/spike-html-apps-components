@@ -7,20 +7,20 @@ task.run_auto_install = false
 # The foundation's toolchain at its pins.
 [tools]
 actionlint = "1.7.12"
-node = "26.12.1"
-pnpm = "12.15.0"
+node = "26.13.0"
+pnpm = "12.16.1"
 shellcheck = "0.11.0"
 "github:microsoft/typescript-go" = { version = "7.0.2", version_prefix = "typescript/v", bin_path = "package/lib" }
 
 # The browser tier's browser, at the foundation's pin. Chrome for Testing publishes no checksums:
 # take the sha256 and size from the download by hand at each bump.
 [tools."http:chrome-headless-shell"]
-version = "156.0.8078.47"
+version = "156.0.8078.73"
 version_list_url = "https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions.json"
 version_json_path = ".channels.Stable.version"
 
 [tools."http:chrome-headless-shell".platforms]
-linux-x64 = { url = "https://storage.googleapis.com/chrome-for-testing-public/{{ version }}/linux64/chrome-headless-shell-linux64.zip", checksum = "sha256:0d5acc62c3e213f8c87d3c298d66ffcf9a236d12ea4b9f85318bf85dbc279daa", size = "125799226" }
+linux-x64 = { url = "https://storage.googleapis.com/chrome-for-testing-public/{{ version }}/linux64/chrome-headless-shell-linux64.zip", checksum = "sha256:77eb8d52798efc7a857ab61abcc62a456d8ea9635b02341d06dffee2761768c8", size = "126938225" }
 
 [tasks.preflight]
 description = "Fail naming mise run install when a tool the tasks need is missing"
@@ -97,7 +97,7 @@ run = "node scripts/demo.js"
 # Adapted from spike-html-apps-foundation (679e550): mise.toml, its screenshots task, on the
 # specimen pages.
 [tasks.screenshots]
-description = "Capture each specimen page light and dark, in tiles, inline in kitty: at the defaults, or --palette/--space/--type <name>, or --all for the full matrix; --keep leaves the captures"
+description = "Capture each specimen page light and dark, in tiles, inline in kitty: at the defaults, or --palette/--space/--type <name>, or --all for the full matrix; --page <name> (repeatable) and --scheme light|dark narrow it; --keep leaves the captures"
 depends = ["preflight browser", "build"]
 # Its arguments reach the script, with or without a leading --.
 # raw: with dependencies, mise prefixes a task's output through a pipe; icat needs the terminal.

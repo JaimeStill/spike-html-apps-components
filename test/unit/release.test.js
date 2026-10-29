@@ -1,6 +1,7 @@
 // The release's integrity: a pnpm pack of the build, extracted, against package.json's files and
 // exports, its license, and its dependencies, by release.js's releaseProblems, as it stands and in
 // scratch copies with one fault each. It packs the dist/ that mise run build writes.
+// The pack's runtime files are held to the layer's brotli budget by budget.js's budgetProblems.
 // Adapted from spike-html-packages-components (4c0a5d8): test/unit/release.test.js, renamed, with
 // the devDependency's faults from another repository.
 
@@ -10,11 +11,18 @@ import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:f
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, before, describe, test } from "node:test";
+import { brotliBytes, budgetProblems, runtimeFiles } from "./budget.js";
 import { listFiles, releaseProblems } from "./release.js";
 
 const root = join(import.meta.dirname, "../..");
 const src = join(root, "src");
 const scratches = [];
+
+// The layer's budget in brotli bytes, a KB being 1,000 bytes: its baseline on 2026-10-29, 36,070 B
+// over 23 runtime files, plus 10%, rounded up to a whole KB. A layer over it fails the check;
+// a change that needs more raises it here, in the change's own commit.
+const layer = "components";
+const budget = 40_000;
 
 /** A new temporary directory, removed after the run. */
 function scratchDir() {
@@ -81,12 +89,12 @@ describe("release pack", () => {
       "src/status-badge.css has no built dist/status-badge.css",
     ],
     "a .ts module with no emitted .js": [
-      remove("dist/entry-lit-shadow.js"),
-      "src/entry-lit-shadow.ts has no built dist/entry-lit-shadow.js",
+      remove("dist/entry.js"),
+      "src/entry.ts has no built dist/entry.js",
     ],
     "a .ts module with no emitted .d.ts": [
-      remove("dist/pagination-lit-shadow.d.ts"),
-      "src/pagination-lit-shadow.ts has no built dist/pagination-lit-shadow.d.ts",
+      remove("dist/pagination.d.ts"),
+      "src/pagination.ts has no built dist/pagination.d.ts",
     ],
     "a stray built file": [
       (dir) => writeFileSync(join(dir, "dist/old.js"), ""),
@@ -124,7 +132,7 @@ describe("release pack", () => {
     ],
     "a build outside files": [
       (_, copy) => (copy.files = ["dist/status-badge.js"]),
-      "dist/entry-lit-shadow.js isn't under package.json's files",
+      "dist/entry.js isn't under package.json's files",
     ],
     "lit by a range": [
       (_, copy) => (copy.dependencies.lit = "^3.3.3"),
@@ -204,11 +212,34 @@ describe("release pack", () => {
       (_, copy) => delete copy.devDependencies[foundation],
       `package.json doesn't declare devDependency ${foundation}`,
     ],
+    "marked by a range": [
+      (_, copy) => (copy.dependencies.marked = "^18.1.2"),
+      "package.json declares marked ^18.1.2, not an exact pin",
+    ],
+    "marked by a tag": [
+      (_, copy) => (copy.dependencies.marked = "latest"),
+      "package.json declares marked latest, not an exact pin",
+    ],
+    "marked in peerDependencies": [
+      (_, copy) => (copy.peerDependencies.marked = "18.1.2"),
+      "package.json declares peer marked, which no release needs",
+    ],
     "a missing dependency": [
       (_, copy) => delete copy.dependencies.lit,
       "package.json doesn't declare lit",
     ],
-    "no dependencies": [(_, copy) => delete copy.dependencies, "package.json doesn't declare lit"],
+    "a missing marked": [
+      (_, copy) => delete copy.dependencies.marked,
+      "package.json doesn't declare marked",
+    ],
+    "no dependencies, lit": [
+      (_, copy) => delete copy.dependencies,
+      "package.json doesn't declare lit",
+    ],
+    "no dependencies, marked": [
+      (_, copy) => delete copy.dependencies,
+      "package.json doesn't declare marked",
+    ],
     "an undeclared extra dependency": [
       (_, copy) => (copy.dependencies["lit-html"] = "3.3.3"),
       "package.json declares lit-html, which no release needs",
@@ -255,4 +286,32 @@ describe("release pack", () => {
       assert.ok(problems.includes(problem), `expected: ${problem}\ngot: ${problems.join("\n")}`);
     });
   }
+});
+
+describe("brotli budget", () => {
+  test("the pack's runtime files are within the layer's budget", () => {
+    assert.ok(runtimeFiles(pack).length > 0, "the pack has no .js or .css");
+    assert.deepEqual(budgetProblems(pack, layer, budget), []);
+  });
+
+  test("counts a runtime .js, and never a .d.ts", () => {
+    const copy = join(scratchDir(), "package");
+    cpSync(pack, copy, { recursive: true });
+    const measured = brotliBytes(copy);
+    const text = "export const added = 1;\n".repeat(64);
+    writeFileSync(join(copy, "dist/added.d.ts"), text);
+    assert.equal(brotliBytes(copy), measured, "a .d.ts was counted");
+    writeFileSync(join(copy, "dist/added.js"), text);
+    assert.ok(brotliBytes(copy) > measured, "a .js wasn't counted");
+  });
+
+  test("fails a pack one byte over its budget, naming the size and the budget", () => {
+    const measured = brotliBytes(pack);
+    assert.deepEqual(budgetProblems(pack, layer, measured), []);
+    const [problem] = budgetProblems(pack, layer, measured - 1);
+    assert.equal(
+      problem,
+      `${layer}: ${measured.toLocaleString("en-US")} B brotli over its budget of ${(measured - 1).toLocaleString("en-US")} B`,
+    );
+  });
 });

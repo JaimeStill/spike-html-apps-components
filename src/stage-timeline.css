@@ -1,0 +1,169 @@
+/*
+ * The stage timeline's layout in a shadow root: stage-timeline.ts adopts this sheet into its root
+ * after the foundation's reset and elements sheets (baseline/reset.css and elements.css). It holds
+ * the list's layout, each step's marker, its connector to the next step, and its lines, and the
+ * states' looks. It reads only the foundation's baseline tokens, which a shadow root takes by
+ * inheritance from the page's entry. Unlayered, it sits above the adopted layers in the root.
+ *
+ * The timeline draws no frame: it is a list of steps, as tall as its stages, with no cap. Each step
+ * is a grid of two columns, the marker's and the step's text. The marker sits on the name's line;
+ * under the name, the detail line holds the state's label and the completion time, of the small
+ * step; under that, a gap, which the connector spans with the detail line, from under this
+ * step's marker to above the next one's. The last step has no connector and no gap. The label's and
+ * the time's slots each hold the width of the widest they show, so a stage's lines keep their
+ * places and widths as its state changes, and a narrow column wraps every step's detail line
+ * between its label and its time alike. In a shrink-to-fit parent the timeline is as wide as its
+ * widest line, a name or a detail line laid out whole, up to the parent's width.
+ */
+
+:host {
+  display: block;
+}
+.stages {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.stage {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto var(--space-s);
+  column-gap: var(--space-xs);
+  margin: 0;
+}
+.stage:last-child {
+  grid-template-rows: auto auto;
+}
+/* The connector: a line in the marker's column, under this step's marker and down to the next
+   step's, short of each by a small step. */
+.stage:not(:last-child)::after {
+  content: "";
+  grid-column: 1;
+  grid-row: 2 / 4;
+  justify-self: center;
+  inline-size: var(--line-m);
+  margin-block: var(--space-3xs);
+  border-radius: var(--radius-full);
+  background-color: var(--border-2);
+}
+/* The marker, a circle on the name's line: a pending or active stage's position, a complete one's
+   check, a failed one's cross. Its glyph is aria-hidden; the label says the state. */
+.marker {
+  position: relative;
+  grid-column: 1;
+  grid-row: 1;
+  align-self: center;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  inline-size: 1.75em;
+  block-size: 1.75em;
+  border: var(--line-m) solid var(--border-2);
+  border-radius: var(--radius-full);
+  color: var(--fg-2);
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.marker svg {
+  inline-size: 70%;
+  block-size: 70%;
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.active .marker {
+  border-color: var(--interaction-color, var(--blue));
+  background-color: color-mix(in srgb, var(--interaction-color, var(--blue)) 12%, transparent);
+  color: var(--interaction-color, var(--blue));
+  font-weight: 600;
+}
+.complete .marker {
+  border-color: var(--green);
+  background-color: var(--green);
+  color: var(--bg);
+}
+.failed .marker {
+  border-color: var(--red);
+  background-color: var(--red);
+  color: var(--bg);
+}
+/* An active stage's marker sends out a ring that fades, unless motion is reduced, when the tinted
+   marker alone reads as in progress. The ring is painted, never laid out, so it moves nothing. */
+@media (prefers-reduced-motion: no-preference) {
+  .active .marker::after {
+    content: "";
+    position: absolute;
+    inset: calc(-1 * var(--line-m));
+    border: var(--line-m) solid var(--interaction-color, var(--blue));
+    border-radius: var(--radius-full);
+    animation: ring 1.6s ease-out infinite;
+  }
+}
+@keyframes ring {
+  from {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+}
+.name {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: center;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+/* A pending stage's name recedes by color alone: its weight stays, so it keeps its width. */
+.pending .name {
+  color: var(--fg-2);
+}
+/* The detail line, under the name at its start: the label, then the time, wrapping between them,
+   never inside either. */
+.detail {
+  grid-column: 2;
+  grid-row: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--space-xs);
+  font-size: var(--text-s);
+  color: var(--fg-2);
+}
+/* A slot stacks what it may show in one cell, the hidden as wide as the shown, so the slot is the
+   widest of them. */
+.slot {
+  display: inline-grid;
+  justify-items: start;
+}
+.slot > * {
+  grid-area: 1 / 1;
+}
+.slot > .hold {
+  visibility: hidden;
+}
+.label {
+  font-family: var(--font-ui);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.active .label {
+  color: var(--interaction-color, var(--blue));
+}
+.complete .label {
+  color: var(--green);
+}
+.failed .label {
+  color: var(--red);
+}
+/* The time keeps whole, its digits one width. */
+.when {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
