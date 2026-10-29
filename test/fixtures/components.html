@@ -1,8 +1,8 @@
 <!doctype html>
 <!-- The components cases' page: the query's module, when it names one, probe.js or restyle.js in
      test/browser/support/, runs and writes its verdict into #verdict. window.verdict settles once
-     the run ends, a module that failed to load included. Lit's and the foundation's bare
-     specifiers map onto /deps/, where the server answers with the installed packages; the
+     the run ends, a module that failed to load included. Lit's, marked's, and the foundation's
+     bare specifiers map onto /deps/, where the server answers with the installed packages; the
      foundation's map onto its dist/, as its exports do.
      The page links the foundation's lean entry, page.css, and sets no profile. With entry=full in
      the query it links the full entry, page-full.css, imports register-full.js before the module,
@@ -45,6 +45,7 @@
           "lit-element/": "/deps/lit-element/",
           "@lit/reactive-element": "/deps/@lit/reactive-element/reactive-element.js",
           "@lit/reactive-element/": "/deps/@lit/reactive-element/",
+          "marked": "/deps/marked/lib/marked.esm.js",
           "@jaimestill/spike-html-apps-foundation/": "/deps/@jaimestill/spike-html-apps-foundation/dist/"
         }
       }

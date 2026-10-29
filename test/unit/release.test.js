@@ -204,11 +204,34 @@ describe("release pack", () => {
       (_, copy) => delete copy.devDependencies[foundation],
       `package.json doesn't declare devDependency ${foundation}`,
     ],
+    "marked by a range": [
+      (_, copy) => (copy.dependencies.marked = "^18.1.2"),
+      "package.json declares marked ^18.1.2, not an exact pin",
+    ],
+    "marked by a tag": [
+      (_, copy) => (copy.dependencies.marked = "latest"),
+      "package.json declares marked latest, not an exact pin",
+    ],
+    "marked in peerDependencies": [
+      (_, copy) => (copy.peerDependencies.marked = "18.1.2"),
+      "package.json declares peer marked, which no release needs",
+    ],
     "a missing dependency": [
       (_, copy) => delete copy.dependencies.lit,
       "package.json doesn't declare lit",
     ],
-    "no dependencies": [(_, copy) => delete copy.dependencies, "package.json doesn't declare lit"],
+    "a missing marked": [
+      (_, copy) => delete copy.dependencies.marked,
+      "package.json doesn't declare marked",
+    ],
+    "no dependencies, lit": [
+      (_, copy) => delete copy.dependencies,
+      "package.json doesn't declare lit",
+    ],
+    "no dependencies, marked": [
+      (_, copy) => delete copy.dependencies,
+      "package.json doesn't declare marked",
+    ],
     "an undeclared extra dependency": [
       (_, copy) => (copy.dependencies["lit-html"] = "3.3.3"),
       "package.json declares lit-html, which no release needs",

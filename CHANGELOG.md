@@ -6,6 +6,22 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 
 ## [Unreleased]
 
+### Added
+
+- `./markdown.js` exports `markdown(source)`, which renders a Markdown string as a Lit template of
+  plain native elements, which the foundation's elements sheet styles: headings, paragraphs,
+  emphasis, strong, code spans, fenced and indented code, nested ordered and unordered lists with
+  their start, task items, blockquotes, rules, links, GFM tables with their alignment and
+  strikethrough, and line breaks. It reads the source with marked's lexer only; Lit escapes every
+  text value, so raw HTML, block or inline, shows as its text. A link is an anchor, with
+  `rel="noreferrer"` and no target, only to an http, https, or mailto URL or a relative one, and
+  any other scheme shows the link's text; an image shows its alt text. Partial source renders as
+  far as it has arrived, an unclosed fence as a code block, and a growing source re-rendered into
+  the same container updates in place.
+- marked 18.1.2 is the package's second dependency, pinned exactly as lit is. Only
+  `./markdown.js` imports it, so a page that imports no Markdown-rendering module loads none of
+  it; a page that does maps `marked` in its import map, to `marked/lib/marked.esm.js`.
+
 ### Changed
 
 - Breaking: the entry is `sl-entry` and the pagination `sl-pagination`, each a plain name, as

@@ -9,7 +9,7 @@ a peer, and is released by git tag.
 
 Each release is a tag, `v<version>`, whose tree is the package as `pnpm pack` builds it:
 `package.json`, this README, the LICENSE, and `dist/`; each GitHub release also carries the
-tarball. It depends on lit 3.3.3, and takes
+tarball. It depends on lit 3.3.3 and marked 18.1.2, and takes
 [the foundation](https://github.com/JaimeStill/spike-html-apps-foundation) as a peer at
 `^0.2.0`: a consumer declares the foundation beside the components, from any of its sources, and
 the one copy serves both, so a restyle of the foundation's sheets by package name reaches the
@@ -61,6 +61,10 @@ foundation's `page.css`:
   too, and stays inside its box down to 16rem, its supported minimum width.
 - `./pagination.js`: `sl-pagination`, a page of entries between its summary and its controls; it
   dispatches `page-change` and `page-size-change`.
+- `./markdown.js`: `markdown(source)`, a Markdown string as a Lit template of plain elements, by
+  marked's lexer: raw HTML shows as text, an image as its alt text, and a link is an anchor only
+  to an http, https, or mailto URL or a relative one. It is the one module that imports marked,
+  which an import map then maps too.
 - `./*.css`: each component's sheet, which its module imports itself.
 
 `demo/components.html` is a page on all three, with its import map. Each component also has a

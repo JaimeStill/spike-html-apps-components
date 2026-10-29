@@ -16,7 +16,7 @@ export const root = join(import.meta.dirname, "../../..");
 const types = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css" };
 
 // Under pnpm, lit's own dependencies sit beside it in its store directory, not in node_modules/,
-// so the pages' import maps name lit, its dependencies, and the foundation under /deps/: each
+// so the pages' import maps name lit, its dependencies, marked, and the foundation under /deps/: each
 // package's installed directory, by its name. The foundation is the install the components' dist/
 // imports by name, reached as a consumer reaches it.
 const store = dirname(realpathSync(join(root, "node_modules/lit")));
@@ -25,6 +25,8 @@ const deps = {
   "lit-html": join(store, "lit-html"),
   "lit-element": join(store, "lit-element"),
   "@lit/reactive-element": join(store, "@lit/reactive-element"),
+  // marked bundles itself into one module and depends on nothing.
+  marked: join(root, "node_modules/marked"),
   "@jaimestill/spike-html-apps-foundation": join(
     root,
     "node_modules/@jaimestill/spike-html-apps-foundation",
