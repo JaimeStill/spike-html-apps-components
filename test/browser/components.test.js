@@ -1246,6 +1246,10 @@ describe("components", { timeout: 60_000 }, () => {
         assert.deepEqual(broken, [], `${where}: broken across lines`);
         assert.ok(heights.length <= 1, `${where}: uploads of heights ${heights}`);
       }
+      assert.ok(
+        shown.some(({ heights }) => heights.length > 0),
+        `${profile}: an upload without a message to measure`,
+      );
     }
   });
 
@@ -1346,6 +1350,7 @@ describe("components", { timeout: 60_000 }, () => {
           const root = timeline.shadowRoot;
           return {
             parent: timeline.parentElement.className,
+            complete: root.querySelectorAll(".complete").length,
             oneLine: [...root.querySelectorAll(".complete")].every((step) => {
               const label = step.querySelector(".label").getBoundingClientRect();
               const time = step.querySelector("time").getBoundingClientRect();
@@ -1363,8 +1368,9 @@ describe("components", { timeout: 60_000 }, () => {
         ["fit-inline-block", "fit-flex", "fit-grid"],
         `${profile}: the fit section's timelines`,
       );
-      for (const { parent, oneLine, width, column } of fits) {
+      for (const { parent, complete, oneLine, width, column } of fits) {
         const where = `${parent} under ${profile}`;
+        assert.ok(complete > 0, `${where}: a complete stage`);
         assert.ok(oneLine, `${where}: a label and its time wrap`);
         assert.ok(width > 0 && width < column / 2, `${where}: ${width} wide in a ${column} column`);
       }
@@ -1453,6 +1459,8 @@ describe("components", { timeout: 60_000 }, () => {
           const box = log.getBoundingClientRect();
           return {
             parent: log.parentElement.className,
+            events: root.querySelectorAll(".event").length,
+            metadata: root.querySelectorAll("dt, dd").length,
             oneLine: [...root.querySelectorAll(".event")].every((event) => {
               const type = event.querySelector(".type").getBoundingClientRect();
               const time = event.querySelector(".when").getBoundingClientRect();
@@ -1475,8 +1483,10 @@ describe("components", { timeout: 60_000 }, () => {
         ["fit-inline-block", "fit-flex", "fit-grid"],
         `${profile}: the fit section's logs`,
       );
-      for (const { parent, oneLine, outside, sideways, width, column } of fits) {
+      for (const { parent, events, metadata, oneLine, outside, sideways, width, column } of fits) {
         const where = `${parent} under ${profile}`;
+        assert.equal(events, 2, `${where}: the run's first two events`);
+        assert.ok(metadata > 0, `${where}: metadata`);
         assert.ok(oneLine, `${where}: a type and its time wrap`);
         assert.equal(outside, 0, `${where}: metadata outside the log`);
         assert.ok(sideways <= 0, `${where}: the frame scrolls sideways by ${sideways}`);
@@ -1543,6 +1553,10 @@ describe("components", { timeout: 60_000 }, () => {
           assert.ok(beside.every(Boolean), `${where}: a short name's field label off its line`);
         }
       }
+      assert.ok(
+        shown.some(({ narrow, fit, beside }) => !narrow && !fit && beside.length > 0),
+        `${profile}: a short name at full width`,
+      );
     }
   });
 
@@ -1560,6 +1574,7 @@ describe("components", { timeout: 60_000 }, () => {
           const box = results.getBoundingClientRect();
           return {
             parent: results.parentElement.className,
+            matches: root.querySelectorAll(".match").length,
             oneLine: [...root.querySelectorAll(".match")].every((button) => {
               const name = button.querySelector(".name").getBoundingClientRect();
               const field = button.querySelector(".field").getBoundingClientRect();
@@ -1582,8 +1597,9 @@ describe("components", { timeout: 60_000 }, () => {
         ["fit-inline-block", "fit-flex", "fit-grid"],
         `${profile}: the fit section's results`,
       );
-      for (const { parent, oneLine, outside, width, column } of fits) {
+      for (const { parent, matches, oneLine, outside, width, column } of fits) {
         const where = `${parent} under ${profile}`;
+        assert.equal(matches, 2, `${where}: the two short matches`);
         assert.ok(oneLine, `${where}: a name and its label, or a snippet, wrap`);
         assert.equal(outside, 0, `${where}: parts outside the results`);
         assert.ok(width > 0 && width < column / 2, `${where}: ${width} wide in a ${column} column`);
@@ -1675,6 +1691,10 @@ describe("components", { timeout: 60_000 }, () => {
           `${where}: entries start at ${starts}, the pagination at ${edge}`,
         );
       }
+      assert.ok(
+        shown.some(({ starts }) => starts.length > 0),
+        `${profile}: a list with entries`,
+      );
     }
   });
 
@@ -1701,6 +1721,7 @@ describe("components", { timeout: 60_000 }, () => {
               rect(entry, ".meta").height <=
               Math.max(...[...entry.querySelector(".meta").children].map((part) => part.getBoundingClientRect().height)) + 0.5,
             controls: Math.abs(rect(controls, "select").top - rect(controls, ".page-step:last-child").top) < 8,
+            entries: element.shadowRoot.querySelectorAll("sl-entry").length,
             outside: parts(element).filter(([, part]) => {
               const at = part.getBoundingClientRect();
               return at.left < box.left - 0.5 || at.right > box.right + 0.5;
@@ -1717,8 +1738,9 @@ describe("components", { timeout: 60_000 }, () => {
         ["fit-inline-block", "fit-flex", "fit-grid"],
         `${profile}: the fit section's lists`,
       );
-      for (const { parent, head, meta, controls, outside, width, column } of fits) {
+      for (const { parent, head, meta, controls, entries, outside, width, column } of fits) {
         const where = `${parent} under ${profile}`;
+        assert.equal(entries, 1, `${where}: the one short document`);
         assert.ok(head, `${where}: the name and its status wrap`);
         assert.ok(meta, `${where}: the meta wraps`);
         assert.ok(controls, `${where}: the controls wrap`);
