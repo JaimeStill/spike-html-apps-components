@@ -403,7 +403,7 @@ describe("components", { timeout: 60_000 }, () => {
           for (const [facet, name] of Object.entries(choice)) root.setAttribute(attributes[facet], name);
           await document.fonts.ready;
           await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-          results.push({ profile: JSON.stringify(choice), ...measure(choice) });
+          results.push({ profile: JSON.stringify(choice), ...(await measure(choice)) });
         }
         return results;
       })()`);
@@ -1380,11 +1380,13 @@ describe("components", { timeout: 60_000 }, () => {
   // specimen page.
   const LOGS = `(section) => [...document.querySelectorAll(section + " sl-event-log")]`;
 
-  test("the event log's specimen renders every state, at full size or held, within 20rem, its types, times, labels, and values whole, in every profile", async () => {
+  test("the event log's specimen renders every state, at full size or held, within 20rem, its types, times, labels, and values on one line, its identifiers' text whole, in every profile", async () => {
     // Every log shows its frame. The log is as tall as its events, so no frame scrolls down but
     // the many events', which the page holds to 16rem, and it does. At 20rem the states keep
     // within the column, every part of each log inside its box across, and each type, time,
-    // metadata label and value, and data toggle on one line.
+    // metadata label and value, and data toggle on one line. Whether an id fits its line whole
+    // depends on the monospace's width, so the test reads not its look but its text: each event's
+    // subject and id, in full, in its value and its title.
     const measure = `() => {
       const list = document.querySelector(".narrow .states");
       const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
@@ -1410,6 +1412,12 @@ describe("components", { timeout: 60_000 }, () => {
           broken: [...root.querySelectorAll(".type, .when, dt, dd, summary, .no-data")]
             .filter((part) => lines(part) > 1)
             .map((part) => part.textContent),
+          // Each event's identifiers as its values and titles hold them, and as its event has them.
+          identifiers: [...root.querySelectorAll(".event")].map((event, index) => ({
+            texts: [...event.querySelectorAll("dd.cut")].map((dd) => dd.textContent),
+            titles: [...event.querySelectorAll("dd.cut")].map((dd) => dd.title),
+            expected: [log.events[index].subject, log.events[index].id].filter(Boolean),
+          })),
           scrolls: frame.scrollHeight > frame.clientHeight,
         };
       });
@@ -1429,7 +1437,7 @@ describe("components", { timeout: 60_000 }, () => {
       );
       for (const [
         index,
-        { narrow, frame, held, height, scrolls, outside, broken },
+        { narrow, frame, held, height, scrolls, outside, broken, identifiers },
       ] of shown.entries()) {
         const where = `${profile}, log ${index}${narrow ? " at 20rem" : ""}`;
         assert.ok(frame, `${where}: a frame`);
@@ -1441,7 +1449,75 @@ describe("components", { timeout: 60_000 }, () => {
         }
         assert.deepEqual(outside, [], `${where}: parts outside the log`);
         assert.deepEqual(broken, [], `${where}: broken across lines`);
+        for (const [event, { texts, titles, expected }] of identifiers.entries()) {
+          assert.deepEqual(texts, expected, `${where}, event ${event}: its identifiers' text`);
+          assert.deepEqual(titles, expected, `${where}, event ${event}: its identifiers' titles`);
+        }
       }
+    }
+  });
+
+  test("in a log narrower than its identifiers, each subject and id ends in an ellipsis on one line, its whole text kept, and the log never scrolls sideways, in every profile", async () => {
+    // A log 12rem wide, the many events' without their times, appended to the specimen page:
+    // narrower than a UUID in any monospace, so every subject and id is cut whatever the font, the
+    // test failing rather than passing if one is not. Each stays on one line, inside the log, its
+    // value clipped (its content wider than its box), its text and its title the whole identifier;
+    // the frame needs no sideways scroll. (A time keeps whole, so the times are left out: so
+    // narrow a log would scroll for them alone.)
+    const measure = `async () => {
+      const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+      const lines = ${LINES};
+      let log = document.querySelector("#cut sl-event-log");
+      if (!log) {
+        const holder = document.createElement("div");
+        holder.id = "cut";
+        holder.style.inlineSize = "12rem";
+        log = document.createElement("sl-event-log");
+        log.events = document
+          .querySelector("sl-event-log.held")
+          .events.map(({ time, ...event }) => event);
+        holder.append(log);
+        document.querySelector("main").append(holder);
+        await log.updateComplete;
+      }
+      const root = log.shadowRoot;
+      const frame = root.querySelector(".frame");
+      const box = log.getBoundingClientRect();
+      return {
+        width: box.width / rem,
+        events: log.events.length,
+        values: [...root.querySelectorAll(".event")].flatMap((event, index) =>
+          [...event.querySelectorAll("dd.cut")].map((dd, at) => {
+            const rect = dd.getBoundingClientRect();
+            return {
+              expected: [log.events[index].subject, log.events[index].id].filter(Boolean)[at],
+              text: dd.textContent,
+              title: dd.title,
+              lines: lines(dd),
+              cut: dd.scrollWidth > dd.clientWidth,
+              ellipsis: getComputedStyle(dd).textOverflow,
+              inside: rect.left >= box.left - 0.5 && rect.right <= box.right + 0.5,
+            };
+          })),
+        sideways: frame.scrollWidth - frame.clientWidth,
+      };
+    }`;
+    for (const { profile, width, events, values, sideways } of await measureSpecimen(
+      "event-log",
+      measure,
+    )) {
+      assert.ok(Math.abs(width - 12) < 0.01, `${profile}: the log ${width}rem wide, not 12rem`);
+      assert.equal(values.length, events * 2, `${profile}: each event's subject and id`);
+      for (const { expected, text, title, lines, cut, ellipsis, inside } of values) {
+        const where = `${profile}, ${expected}`;
+        assert.equal(text, expected, `${where}: its text`);
+        assert.equal(title, expected, `${where}: its title`);
+        assert.equal(lines, 1, `${where}: on ${lines} lines`);
+        assert.ok(cut, `${where}: whole in a 12rem log`);
+        assert.equal(ellipsis, "ellipsis", `${where}: cut without an ellipsis`);
+        assert.ok(inside, `${where}: outside the log`);
+      }
+      assert.ok(sideways <= 0, `${profile}: the frame scrolls sideways by ${sideways}`);
     }
   });
 

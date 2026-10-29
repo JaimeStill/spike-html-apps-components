@@ -99,8 +99,9 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
   `events` takes each as a structural `LogEvent`, exported, a subset of CloudEvents 1.0 by its
   attribute names, `{ id, type, source, subject?, time, data? }`, its time an RFC 3339 string or a
   `Date`. Each event shows its type; its time by the foundation's `formatDateTime`, absolute and to
-  the second; its source, subject, and id, labelled, grouped under them; and its data, pretty-
-  printed as JSON, a string as it is, in a native details collapsed until opened, or a note when
+  the second; its source, subject, and id, labelled, grouped under them, a subject or an id wider
+  than its line cut with an ellipsis on one line, never broken, its full text kept and shown in its
+  `title`; and its data, pretty-printed as JSON, a string as it is, in a native details collapsed until opened, or a note when
   it has none. Events are keyed by source and id, so events appended leave those shown in their
   own nodes and places, and a details the reader opened stays open. The frame is a polite log of
   additions. The log is as tall as its events; a consumer that constrains its block size holds it
