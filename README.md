@@ -85,23 +85,29 @@ foundation's `page.css`:
   time by the foundation's `formatDateTime`; the active stage is the current step, and a stage that
   advances changes in place, moving nothing. It exports its stage type, holds nothing focusable,
   and sends no event.
+- `./event-log.js`: `sl-event-log`, events as a log in the order given, each its type, its time by
+  the foundation's `formatDateTime`, its source, subject, and id, and its data pretty-printed in a
+  native details, collapsed; events appended leave those shown in place, and a constrained log
+  scrolls inside, following the newest only from its end. It exports its event type, a CloudEvents
+  subset, and sends no event.
 - `./*.css`: each component's sheet, which its module imports itself.
 
 `demo/components.html` is a page on all three, with its import map. Each component also has a
 specimen page, `demo/status-badge.html`, `demo/entry.html`, `demo/pagination.html`,
 `demo/artifact-viewer.html`, `demo/chat-thread.html`, `demo/composer.html`,
-`demo/upload-dropzone.html`, and `demo/stage-timeline.html`, that shows every state of the
-component, labelled, then again in a section 20rem wide, and, for a component that holds a
-control, one instance reached by the keyboard to show its focus ring. The specimen pages link the
-foundation's `page-full.css` and import its `register-full.js`, so a profile applies by its
-attribute on the root.
+`demo/upload-dropzone.html`, `demo/stage-timeline.html`, and `demo/event-log.html`, that shows
+every state of the component, labelled, then again in a section 20rem wide, and, for a component
+that holds a control, one instance reached by the keyboard to show its focus ring. The specimen
+pages link the foundation's `page-full.css` and import its `register-full.js`, so a profile applies
+by its attribute on the root.
 `mise run screenshots` captures each specimen page light and dark, each page in vertical tiles at
 most 1200px tall: by default in flexoki, regular, and mono; with `--palette`, `--space`, or
 `--type`, combined, in the facet's profile named, checked against the pages' registry; with `--all`,
 in each of the four colors, and in compact and in sans. `--page`, repeatable, with a page's name,
 `status-badge`, `entry`, `pagination`, `artifact-viewer`, `chat-thread`, `composer`,
-`upload-dropzone`, or `stage-timeline`, captures only the pages named, and `--scheme light` or
-`--scheme dark` only that scheme; both combine with the profile flags and `--all`.
+`upload-dropzone`, `stage-timeline`, or `event-log`, captures only the pages named, and
+`--scheme light` or `--scheme dark` only that scheme; both combine with the profile flags and
+`--all`.
 
 ## Development
 

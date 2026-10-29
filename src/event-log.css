@@ -1,0 +1,146 @@
+/*
+ * The event log's layout in a shadow root: event-log.ts adopts this sheet into its root after the
+ * foundation's reset and elements sheets (baseline/reset.css and elements.css), which give the
+ * pre, the native details and summary, and the focus outline their look. It holds the log's one
+ * frame, the list's layout, and each event's lines. It reads only the foundation's baseline
+ * tokens, which a shadow root takes by inheritance from the page's entry. Unlayered, it sits above
+ * the adopted layers in the root.
+ *
+ * The host is a flex column holding the frame. Unconstrained, the log is as tall as its events. A
+ * consumer that constrains its block size, by a block-size or max-block-size on the host or a
+ * sized flex or grid parent, holds it there: the frame shrinks to it and the list scrolls inside,
+ * the browser's own scrollbar showing, and the list's padding shows past its last event at the
+ * scroll's end.
+ *
+ * Each event is three lines, divided from the next by a rule: its type, with its time at the
+ * line's end; its source, subject, and id, each labelled, small and muted; and its data's details.
+ * A line wraps between its parts, never inside one, so a type, a time, an id, or a source stays
+ * whole; an opened data's pre keeps its whole lines and scrolls sideways. The frame is a grid of
+ * one column, minmax(0, 1fr), so in a shrink-to-fit parent the log takes its content's width, up
+ * to the parent's: its widest type and time, since the metadata line is contained across, and
+ * wraps at the width the rest give it.
+ */
+
+:host {
+  display: flex;
+  flex-direction: column;
+}
+/* The one frame, the pre's border on the same tokens; it scrolls the list both ways. */
+.frame {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  min-block-size: 0;
+  overflow: auto;
+  border: var(--line-s) solid var(--border);
+  border-radius: var(--radius-sm);
+}
+/* The list, padded across, and each event padded above and below, so the padding scrolls with
+   them and shows after the last event at the scroll's end. The inline padding is the small step,
+   so an id of a run's UUID and its stage's position, as the emulator writes one, fits whole on its
+   line in a log 20rem wide, the frame's scrollbar beside it. */
+.events {
+  margin: 0;
+  padding: 0 var(--space-2xs);
+  list-style: none;
+}
+/* An event: its lines in one column, as wide as the list, so an opened data's pre scrolls inside
+   it rather than widen it; the lines set no margins of their own, the gap spacing them. */
+.event {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3xs);
+  margin: 0;
+  padding-block: var(--space-xs);
+}
+.event > * {
+  margin: 0;
+}
+.event + .event {
+  border-block-start: var(--line-s) solid var(--border);
+}
+/* The type and the time: the type opens the line, the time ends it, and a narrow log wraps the
+   time under the type, at the line's start. */
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0 var(--space-s);
+}
+.type {
+  font-family: var(--font-code);
+  font-weight: 600;
+  white-space: nowrap;
+}
+/* The time keeps whole, its digits one width. */
+.when {
+  font-family: var(--font-ui);
+  font-size: var(--text-s);
+  color: var(--fg-2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* The metadata: each label and its value a pair, the pairs wrapping between them, each whole. A
+   container across, so it takes the width the type and the time give the log rather than set it. */
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2xs) var(--space-s);
+  container-type: inline-size;
+  font-size: var(--text-xs);
+  color: var(--fg-2);
+}
+.pair {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--space-3xs);
+  min-inline-size: 0;
+}
+/* The metadata as its own container queries it: narrower than a pair of a UUID and its label, each
+   pair takes a line of its own, its label over its value. */
+@container (inline-size < 30rem) {
+  .pair {
+    flex: 1 0 100%;
+    flex-direction: column;
+  }
+}
+.meta dt {
+  font-family: var(--font-ui);
+  color: var(--fg-3);
+  white-space: nowrap;
+}
+/* A value keeps whole: it moves to the next line rather than break, and breaks only when it is
+   longer than the line itself. */
+.meta dd {
+  max-inline-size: 100%;
+  margin: 0;
+  font-family: var(--font-code);
+  overflow-wrap: anywhere;
+}
+/* The data's toggle in the label's type, and its JSON, which keeps whole lines and scrolls
+   sideways in its pre. */
+.data > summary {
+  inline-size: fit-content;
+  font-size: var(--text-s);
+  color: var(--fg-2);
+}
+.data > pre {
+  overflow-x: auto;
+  font-size: var(--text-s);
+}
+/* The notes: an event's with no data, in the toggle's place, and the empty log's. */
+.no-data {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-s);
+  color: var(--fg-3);
+}
+.empty {
+  margin: 0;
+  padding: var(--space-xs) var(--space-2xs);
+  color: var(--fg-2);
+}

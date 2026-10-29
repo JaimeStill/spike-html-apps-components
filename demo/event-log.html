@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>event log specimen</title>
+    <!-- The event log's specimen page, from dist/: an empty log; one run's five stage events, as
+         the emulator sends them; the same with one event's data opened among the others, as a
+         reader leaves it while events arrive; events of every kind of data, each opened: an
+         object, a string, null, an array, and none; and many events, three runs', which the page
+         holds to 16rem by demo.css's held class, so they scroll. Appending is not capturable, so
+         the browser tier tests it. Every state is labelled, then shown again in a section 20rem
+         wide; the fit section holds a run's first two events in three parents that size it to
+         their content, an inline-block, a content-sized flex item, and a grid's auto track; and
+         the focus section holds one instance whose first data toggle the screenshot script
+         reaches with a Tab press. The log draws its own frame, so main is unframed: no specimen
+         frame around it. The page links the installed foundation's full entry, page-full.css, and
+         imports register-full.js, so a profile applies by attribute on the root; its import map is
+         components.html's, so it runs served only: mise run demo, or mise run screenshots. -->
+    <link rel="stylesheet" href="/deps/@jaimestill/spike-html-apps-foundation/dist/page-full.css" />
+    <link rel="stylesheet" href="demo.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "lit": "/deps/lit/index.js",
+          "lit/": "/deps/lit/",
+          "lit-html": "/deps/lit-html/lit-html.js",
+          "lit-html/": "/deps/lit-html/",
+          "lit-element/": "/deps/lit-element/",
+          "@lit/reactive-element": "/deps/@lit/reactive-element/reactive-element.js",
+          "@lit/reactive-element/": "/deps/@lit/reactive-element/",
+          "marked": "/deps/marked/lib/marked.esm.js",
+          "@jaimestill/spike-html-apps-foundation/": "/deps/@jaimestill/spike-html-apps-foundation/dist/"
+        }
+      }
+    </script>
+    <script type="module">
+      import "@jaimestill/spike-html-apps-foundation/register-full.js";
+      import "../dist/event-log.js";
+      import { figure, make, specimens } from "./specimen.js";
+
+      // The emulator's stage events, as its stream carries them: the type its prefix and the run
+      // domain's run.stage; the source its instance's; the subject the run's id, a UUID v7; the id
+      // the run's id and the stage's position; and the data the stage, its position, the run's
+      // stage count, and the document's id.
+      const names = ["upload", "metadata", "extraction", "chunks", "embeddings"];
+      const seconds = [7, 9, 16, 31, 58];
+      const runs = [
+        ["0193a5c2-7e4b-7c1d-9f2a-3b4c5d6e7f80", "0193a5c1-2f60-7a8b-8c9d-0e1f2a3b4c5d", 42],
+        ["0193a5c4-1a2b-7c3d-8e4f-5a6b7c8d9e0f", "0193a5c3-9d8e-7f60-a1b2-c3d4e5f60718", 44],
+        ["0193a5c6-3c4d-7e5f-9a6b-7c8d9e0f1a2b", "0193a5c5-4b3a-7c2d-b1e0-f9e8d7c6b5a4", 46],
+      ];
+      const stages = ([run, document, minute]) =>
+        names.map((stage, index) => ({
+          id: `${run}.${index + 1}`,
+          type: "emulator.run.stage",
+          source: "/emulator/lab-a",
+          subject: run,
+          time: `2026-10-29T15:${minute}:${String(seconds[index]).padStart(2, "0")}Z`,
+          data: { stage, position: index + 1, stage_count: names.length, document_id: document },
+        }));
+      const run = stages(runs[0]);
+      const many = runs.flatMap(stages);
+      // An event of each kind of data, the run's own source and subject; the last carries none.
+      const kinds = [
+        { ...run[0], id: "kinds.1", data: run[0].data },
+        { ...run[1], id: "kinds.2", type: "emulator.run.note", data: "Metadata read from the document's first page." },
+        { ...run[2], id: "kinds.3", type: "emulator.run.reset", data: null },
+        { ...run[3], id: "kinds.4", type: "emulator.run.chunks", data: [{ index: 0, tokens: 512 }, { index: 1, tokens: 488 }] },
+        { ...run[4], id: "kinds.5", type: "emulator.run.ping", subject: null, data: undefined },
+      ];
+
+      const log = (fields, open = () => false) => () => {
+        const element = make("sl-event-log", fields);
+        // Each event whose place the open function picks has its data's details opened once the
+        // log renders, as a reader leaves one.
+        element.updateComplete.then(() => {
+          for (const [index, event] of element.shadowRoot.querySelectorAll(".event").entries()) {
+            const details = event.querySelector("details");
+            if (details && open(index)) details.open = true;
+          }
+        });
+        return element;
+      };
+      specimens(
+        [
+          { label: "Empty", build: log({ events: [] }) },
+          { label: "A run's five stage events", build: log({ events: run }) },
+          {
+            label: "Live: one event's data opened among the others, as a reader leaves it while events arrive",
+            build: log({ events: run }, (index) => index === 2),
+          },
+          {
+            label: "Every kind of data, opened: an object, a string, null, an array, and none",
+            build: log({ events: kinds }, () => true),
+          },
+          {
+            label: "Many events: three runs', held to 16rem by the page, scrolling inside the log",
+            build: log({ events: many, className: "held" }),
+          },
+        ],
+        { label: "Focused by Tab: the first event's data toggle", build: log({ events: run.slice(0, 2) }) },
+      );
+      // A run's first two events in each parent that sizes it to its content, by the parent's class
+      // in demo.css.
+      const fit = (label, parent) => ({
+        label,
+        build: () => make("div", { className: parent }, [log({ events: run.slice(0, 2) })()]),
+      });
+      document.querySelector("#fit .fits").append(
+        ...[
+          fit("In an inline-block", "fit-inline-block"),
+          fit("A content-sized flex item: display flex, the log flex none", "fit-flex"),
+          fit("In a grid's auto track, beside a 1fr track", "fit-grid"),
+        ].map(figure),
+      );
+    </script>
+  </head>
+  <body>
+    <main class="unframed">
+      <h1>Event log</h1>
+      <p>
+        <code>sl-event-log</code>, events in order as a log, each its type, time, source, subject,
+        and id, its data on demand, in each of its states.
+      </p>
+
+      <section id="states">
+        <h2>States</h2>
+        <div class="states"></div>
+      </section>
+
+      <section id="narrow" class="narrow">
+        <h2>States at 20rem</h2>
+        <div class="states"></div>
+      </section>
+
+      <section id="fit">
+        <h2>Sized to its content</h2>
+        <p>A run's first two events in parents that size the log to its content.</p>
+        <div class="fits"></div>
+      </section>
+
+      <section id="focus">
+        <h2>Focus visible</h2>
+        <p>The first event's data toggle, reached by the keyboard.</p>
+        <span tabindex="-1" data-focus-start="1"></span>
+        <div class="states"></div>
+      </section>
+    </main>
+  </body>
+</html>

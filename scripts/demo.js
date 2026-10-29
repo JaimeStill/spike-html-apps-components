@@ -17,6 +17,7 @@ for (const page of [
   "composer",
   "upload-dropzone",
   "stage-timeline",
+  "event-log",
 ]) {
   console.log(`${server.origin}/demo/${page}.html`);
 }

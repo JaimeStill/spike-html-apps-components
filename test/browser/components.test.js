@@ -2,9 +2,10 @@
 // adopted sheets, and the entry's formatting, on test/fixtures/components.html, on the lean entry
 // and in every profile on the full entry; each component in every profile, on
 // test/fixtures/profiles.html; and the entry's, the pagination's, the artifact viewer's, the chat
-// thread's, the composer's, the upload dropzone's, and the stage timeline's geometry on their
-// specimen pages under demo/, in every profile, the entry's, the viewer's, the thread's, the
-// composer's, the dropzone's, and the timeline's in parents that size them to their content too.
+// thread's, the composer's, the upload dropzone's, the stage timeline's, and the event log's
+// geometry on their specimen pages under demo/, in every profile, the entry's, the viewer's, the
+// thread's, the composer's, the dropzone's, the timeline's, and the log's in parents that size them
+// to their content too.
 // Adapted from spike-html-packages-components (4c0a5d8): test/browser/components.test.js, renamed,
 // with the formatting, profile, and specimen geometry cases added.
 
@@ -107,6 +108,7 @@ describe("components", { timeout: 60_000 }, () => {
         const reset = await sheet(foundation + "/baseline/reset.css");
         const elements = await sheet(foundation + "/baseline/elements.css");
         const components = [
+          ["sl-event-log", "event-log", "event-log.css"],
           ["sl-stage-timeline", "stage-timeline", "stage-timeline.css"],
           ["sl-upload-dropzone", "upload-dropzone", "upload-dropzone.css"],
           ["sl-composer", "composer", "composer.css"],
@@ -131,6 +133,7 @@ describe("components", { timeout: 60_000 }, () => {
         return { adopted, label: badge.shadowRoot.querySelector("button").textContent };
       })()`);
         for (const tag of [
+          "sl-event-log",
           "sl-stage-timeline",
           "sl-upload-dropzone",
           "sl-composer",
@@ -184,13 +187,20 @@ describe("components", { timeout: 60_000 }, () => {
       const { registered, rendered, errors } = await page.evaluate(`(async () => {
         const registry = await import("@jaimestill/spike-html-apps-foundation/registry.js");
         const { directories, files } = await import("/demo/documents.js");
-        await Promise.all(["stage-timeline", "upload-dropzone", "composer", "chat-thread", "artifact-viewer", "pagination", "entry", "status-badge"].map(
+        await Promise.all(["event-log", "stage-timeline", "upload-dropzone", "composer", "chat-thread", "artifact-viewer", "pagination", "entry", "status-badge"].map(
           (module) => import("/dist/" + module + ".js")));
-        // Each component as a host composes it: a stage timeline part way through a run, an upload
-        // dropzone listing an upload in progress, a composer holding a draft, a chat thread of a
+        // Each component as a host composes it: an event log of a stage event, a stage timeline
+        // part way through a run, an upload dropzone listing an upload in progress, a composer holding a draft, a chat thread of a
         // user's message and the assistant's Markdown reply, an artifact viewer of a Markdown document, the pagination
         // holding one entry per item, a lone entry, and a labelled badge.
         const components = {
+          "sl-event-log": () =>
+            Object.assign(document.createElement("sl-event-log"), {
+              events: [
+                { id: "run-1.1", type: "emulator.run.stage", source: "/emulator/lab-a", subject: "run-1",
+                  time: "2026-10-29T15:42:07Z", data: { stage: "upload", position: 1 } },
+              ],
+            }),
           "sl-stage-timeline": () =>
             Object.assign(document.createElement("sl-stage-timeline"), {
               stages: [
@@ -250,19 +260,24 @@ describe("components", { timeout: 60_000 }, () => {
             // which the type facet's profiles share; the chat thread, which holds none either, the
             // color and padding of the user's message, and its label's font, the interface font;
             // the stage timeline, which holds none either, its complete stage's marker's color,
-            // its step's column gap, the space between marker and text, and its label's font.
+            // its step's column gap, the space between marker and text, and its label's font; the
+            // event log, which holds no button but its data's toggle, its list's color and padding,
+            // and its time's font, the interface font.
             const viewer = tag === "sl-artifact-viewer";
             const thread = tag === "sl-chat-thread";
             const timeline = tag === "sl-stage-timeline";
+            const log = tag === "sl-event-log";
             const style = getComputedStyle(element.shadowRoot.querySelector(
-              viewer ? ".body > *" : thread ? ".user > .message" : timeline ? ".complete > .marker" : "button"));
+              viewer ? ".body > *" : thread ? ".user > .message" : timeline ? ".complete > .marker" : log ? ".events" : "button"));
             const font = viewer
               ? getComputedStyle(element.shadowRoot.querySelector("h1"))
               : thread
                 ? getComputedStyle(element.shadowRoot.querySelector(".role"))
                 : timeline
                   ? getComputedStyle(element.shadowRoot.querySelector(".label"))
-                  : style;
+                  : log
+                    ? getComputedStyle(element.shadowRoot.querySelector(".when"))
+                    : style;
             const look = {
               color: style.color + " on " + style.backgroundColor,
               font: font.fontFamily,
@@ -284,7 +299,7 @@ describe("components", { timeout: 60_000 }, () => {
         space: ["regular", "compact"],
         type: ["mono", "sans"],
       });
-      assert.equal(rendered.length, profiles.length * 8);
+      assert.equal(rendered.length, profiles.length * 9);
       for (const { profile, tag, width, height } of rendered) {
         assert.ok(width > 0 && height > 0, `${tag} under ${profile}: a ${width} × ${height} box`);
       }
@@ -294,6 +309,7 @@ describe("components", { timeout: 60_000 }, () => {
       const looks = (tag, where) =>
         rendered.filter((shown) => shown.tag === tag && where(shown)).map((shown) => shown.look);
       for (const tag of [
+        "sl-event-log",
         "sl-stage-timeline",
         "sl-upload-dropzone",
         "sl-composer",
@@ -346,7 +362,7 @@ describe("components", { timeout: 60_000 }, () => {
     const page = await browser.open(`${server.origin}/demo/${specimen}.html`);
     try {
       return await page.evaluate(`(async () => {
-        const tags = ["sl-entry", "sl-pagination", "sl-artifact-viewer", "sl-chat-thread", "sl-composer", "sl-upload-dropzone", "sl-stage-timeline"]
+        const tags = ["sl-entry", "sl-pagination", "sl-artifact-viewer", "sl-chat-thread", "sl-composer", "sl-upload-dropzone", "sl-stage-timeline", "sl-event-log"]
           .filter((tag) => document.querySelector(tag));
         await Promise.all(tags.map((tag) => customElements.whenDefined(tag)));
         await Promise.all([...document.querySelectorAll(tags.join(","))].map((el) => el.updateComplete));
@@ -1186,6 +1202,120 @@ describe("components", { timeout: 60_000 }, () => {
       for (const { parent, oneLine, width, column } of fits) {
         const where = `${parent} under ${profile}`;
         assert.ok(oneLine, `${where}: a label and its time wrap`);
+        assert.ok(width > 0 && width < column / 2, `${where}: ${width} wide in a ${column} column`);
+      }
+    }
+  });
+  // In-page helper the event log's measures share, as source: each log in a section of its
+  // specimen page.
+  const LOGS = `(section) => [...document.querySelectorAll(section + " sl-event-log")]`;
+
+  test("the event log's specimen renders every state, at full size or held, within 20rem, its types, times, labels, and values whole, in every profile", async () => {
+    // Every log shows its frame. The log is as tall as its events, so no frame scrolls down but
+    // the many events', which the page holds to 16rem, and it does. At 20rem the states keep
+    // within the column, every part of each log inside its box across, and each type, time,
+    // metadata label and value, and data toggle on one line.
+    const measure = `() => {
+      const list = document.querySelector(".narrow .states");
+      const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+      const lines = ${LINES};
+      const shown = (${LOGS})("main").map((log) => {
+        const root = log.shadowRoot;
+        const box = log.getBoundingClientRect();
+        const frame = root.querySelector(".frame");
+        const parts = [...root.querySelectorAll(
+          ".frame, ol, li, .head, .type, .when, .meta, .pair, dt, dd, details, summary, pre, .no-data, .empty")];
+        return {
+          narrow: log.closest(".narrow") !== null,
+          events: log.events.length,
+          frame: frame !== null,
+          held: log.classList.contains("held"),
+          height: box.height / rem,
+          outside: parts
+            .filter((part) => {
+              const rect = part.getBoundingClientRect();
+              return rect.left < box.left - 0.5 || rect.right > box.right + 0.5;
+            })
+            .map((part) => part.localName + "." + part.className),
+          broken: [...root.querySelectorAll(".type, .when, dt, dd, summary, .no-data")]
+            .filter((part) => lines(part) > 1)
+            .map((part) => part.textContent),
+          scrolls: frame.scrollHeight > frame.clientHeight,
+        };
+      });
+      return { overflow: list.scrollWidth - list.clientWidth, shown };
+    }`;
+    for (const { profile, overflow, shown } of await measureSpecimen("event-log", measure)) {
+      assert.ok(overflow <= 0, `${profile}: the states overflow the column by ${overflow}`);
+      assert.equal(
+        shown.length,
+        14,
+        `${profile}: five states twice, the three fits, and the focus state`,
+      );
+      assert.equal(
+        shown.filter(({ held }) => held).length,
+        2,
+        `${profile}: the many events once in the states and once at 20rem`,
+      );
+      for (const [
+        index,
+        { narrow, frame, held, height, scrolls, outside, broken },
+      ] of shown.entries()) {
+        const where = `${profile}, log ${index}${narrow ? " at 20rem" : ""}`;
+        assert.ok(frame, `${where}: a frame`);
+        if (held) {
+          assert.ok(Math.abs(height - 16) < 0.01, `${where}: held to ${height}rem, not 16rem`);
+          assert.ok(scrolls, `${where}: held, its frame scrolls down`);
+        } else {
+          assert.ok(!scrolls, `${where}: at full size, its frame scrolls down`);
+        }
+        assert.deepEqual(outside, [], `${where}: parts outside the log`);
+        assert.deepEqual(broken, [], `${where}: broken across lines`);
+      }
+    }
+  });
+
+  test("in a parent that sizes it to its content, the event log takes its type's and time's width, in every profile", async () => {
+    // The fit section's logs, a run's first two events each: each takes its content's width, so
+    // each event's type and time share one line and its frame needs no sideways scroll, and is no
+    // wider than half the column; its metadata wraps within that width, every part inside it.
+    const results = await measureSpecimen(
+      "event-log",
+      `() => {
+        const column = document.querySelector("#fit .fits").getBoundingClientRect().width;
+        return { fits: (${LOGS})("#fit").map((log) => {
+          const root = log.shadowRoot;
+          const frame = root.querySelector(".frame");
+          const box = log.getBoundingClientRect();
+          return {
+            parent: log.parentElement.className,
+            oneLine: [...root.querySelectorAll(".event")].every((event) => {
+              const type = event.querySelector(".type").getBoundingClientRect();
+              const time = event.querySelector(".when").getBoundingClientRect();
+              return Math.abs(type.bottom - time.bottom) < 2;
+            }),
+            outside: [...root.querySelectorAll("dt, dd")].filter((part) => {
+              const rect = part.getBoundingClientRect();
+              return rect.left < box.left - 0.5 || rect.right > box.right + 0.5;
+            }).length,
+            sideways: frame.scrollWidth - frame.clientWidth,
+            width: box.width,
+            column,
+          };
+        }) };
+      }`,
+    );
+    for (const { profile, fits } of results) {
+      assert.deepEqual(
+        fits.map(({ parent }) => parent),
+        ["fit-inline-block", "fit-flex", "fit-grid"],
+        `${profile}: the fit section's logs`,
+      );
+      for (const { parent, oneLine, outside, sideways, width, column } of fits) {
+        const where = `${parent} under ${profile}`;
+        assert.ok(oneLine, `${where}: a type and its time wrap`);
+        assert.equal(outside, 0, `${where}: metadata outside the log`);
+        assert.ok(sideways <= 0, `${where}: the frame scrolls sideways by ${sideways}`);
         assert.ok(width > 0 && width < column / 2, `${where}: ${width} wide in a ${column} column`);
       }
     }

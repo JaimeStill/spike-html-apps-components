@@ -8,6 +8,18 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 
 ### Added
 
+- `./event-log.js` defines `sl-event-log`, events as a log in the order given, inside one frame.
+  `events` takes each as a structural `LogEvent`, exported, a subset of CloudEvents 1.0 by its
+  attribute names, `{ id, type, source, subject?, time, data? }`, its time an RFC 3339 string or a
+  `Date`. Each event shows its type; its time by the foundation's `formatDateTime`, absolute and to
+  the second; its source, subject, and id, labelled, grouped under them; and its data, pretty-
+  printed as JSON, a string as it is, in a native details collapsed until opened, or a note when
+  it has none. Events are keyed by source and id, so events appended leave those shown in their
+  own nodes and places, and a details the reader opened stays open. The frame is a polite log of
+  additions. The log is as tall as its events; a consumer that constrains its block size holds it
+  there and it scrolls inside, following the newest event as one arrives only while the reader is
+  at its end. It sends no event and binds no key. Its specimen page is `demo/event-log.html`, and
+  `mise run screenshots --page event-log` captures it.
 - `./stage-timeline.js` defines `sl-stage-timeline`, a run's stages as a connected, ordered list
   of steps. `stages` takes each as a structural `TimelineStage`, exported,
   `{ name, position, state, completedAt? }`, its state `pending`, `active`, `complete`, or
