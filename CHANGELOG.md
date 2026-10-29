@@ -8,6 +8,23 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 
 ### Added
 
+- `./document-list.js` defines `sl-document-list`, a page of documents composed of the existing
+  components: one `sl-pagination`, whose default slot holds the list's status line and an
+  `sl-entry` per document. `items` takes each as a structural `DocumentItem`, exported,
+  `{ id, name, content_type, size, created_at, status }`, an API's document with its run's status
+  set beside it, which the list maps onto the entry's file, its `created_at` the entry's time. The
+  pagination's properties, `page`, `size`, `total`, `more`, `pageSizes` (`page-sizes`), and
+  `disabled`, reflected, are the list's under the same names, with the pagination's defaults, and
+  pass through as given. `selected` takes a document's id: its list item is `aria-current="true"`
+  and shows a bar beside its entry, in a column every item holds, so marking one moves no entry.
+  `state`, reflected, `ready`, `loading`, or `error`, with `message`, as the search results'. The
+  status line, one polite live region a line tall in every state, says the list is loading, that it
+  failed with its message, or that there are no documents, and is blank over a ready page, so its
+  text moves nothing. While loading, documents already given stay listed, busy; an error lists
+  none. The entry's `open`, `{ id, kind }`, and the pagination's `page-change`, `{ page }`, and
+  `page-size-change`, `{ size }`, bubble and are composed, so they reach the list's listener as
+  their parts sent them; the list dispatches no event of its own. It binds no key. Its specimen
+  page is `demo/document-list.html`, and `mise run screenshots --page document-list` captures it.
 - `./search-results.js` defines `sl-search-results`, a search's matches under a status line.
   `items` takes each as a structural `SearchMatch`, exported, `{ id, name, field, snippet }`, its
   field `name` or `content`; `query` is the query they are for; and `state`, reflected, `ready`,

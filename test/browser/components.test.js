@@ -2,10 +2,10 @@
 // adopted sheets, and the entry's formatting, on test/fixtures/components.html, on the lean entry
 // and in every profile on the full entry; each component in every profile, on
 // test/fixtures/profiles.html; and the entry's, the pagination's, the artifact viewer's, the chat
-// thread's, the composer's, the upload dropzone's, the stage timeline's, the event log's, and the
-// search results' geometry on their specimen pages under demo/, in every profile, the entry's, the
-// viewer's, the thread's, the composer's, the dropzone's, the timeline's, the log's, and the
-// results' in parents that size them to their content too.
+// thread's, the composer's, the upload dropzone's, the stage timeline's, the event log's, the
+// search results', and the document list's geometry on their specimen pages under demo/, in every
+// profile, the entry's, the viewer's, the thread's, the composer's, the dropzone's, the timeline's,
+// the log's, the results', and the list's in parents that size them to their content too.
 // Adapted from spike-html-packages-components (4c0a5d8): test/browser/components.test.js, renamed,
 // with the formatting, profile, and specimen geometry cases added.
 
@@ -108,6 +108,7 @@ describe("components", { timeout: 60_000 }, () => {
         const reset = await sheet(foundation + "/baseline/reset.css");
         const elements = await sheet(foundation + "/baseline/elements.css");
         const components = [
+          ["sl-document-list", "document-list", "document-list.css"],
           ["sl-search-results", "search-results", "search-results.css"],
           ["sl-event-log", "event-log", "event-log.css"],
           ["sl-stage-timeline", "stage-timeline", "stage-timeline.css"],
@@ -134,6 +135,7 @@ describe("components", { timeout: 60_000 }, () => {
         return { adopted, label: badge.shadowRoot.querySelector("button").textContent };
       })()`);
         for (const tag of [
+          "sl-document-list",
           "sl-search-results",
           "sl-event-log",
           "sl-stage-timeline",
@@ -189,14 +191,20 @@ describe("components", { timeout: 60_000 }, () => {
       const { registered, rendered, errors } = await page.evaluate(`(async () => {
         const registry = await import("@jaimestill/spike-html-apps-foundation/registry.js");
         const { directories, files } = await import("/demo/documents.js");
-        await Promise.all(["search-results", "event-log", "stage-timeline", "upload-dropzone", "composer", "chat-thread", "artifact-viewer", "pagination", "entry", "status-badge"].map(
+        await Promise.all(["document-list", "search-results", "event-log", "stage-timeline", "upload-dropzone", "composer", "chat-thread", "artifact-viewer", "pagination", "entry", "status-badge"].map(
           (module) => import("/dist/" + module + ".js")));
-        // Each component as a host composes it: search results of a match in content, whose
-        // button the profile styles, an event log of a stage event, a stage timeline
+        // Each component as a host composes it: a document list of one document on its first
+        // page, search results of a match in content, whose button the profile styles, an event log of a stage event, a stage timeline
         // part way through a run, an upload dropzone listing an upload in progress, a composer holding a draft, a chat thread of a
         // user's message and the assistant's Markdown reply, an artifact viewer of a Markdown document, the pagination
         // holding one entry per item, a lone entry, and a labelled badge.
         const components = {
+          "sl-document-list": () =>
+            Object.assign(document.createElement("sl-document-list"), {
+              page: 1, size: 3, total: 1, pageSizes: [3, 6, 12], selected: "doc-1",
+              items: [{ id: "doc-1", name: "notes.md", content_type: "text/markdown", size: 18432,
+                created_at: "2026-10-29T15:42:07Z", run_id: "run-1", status: "complete" }],
+            }),
           "sl-search-results": () =>
             Object.assign(document.createElement("sl-search-results"), {
               query: "report",
@@ -261,9 +269,12 @@ describe("components", { timeout: 60_000 }, () => {
           for (const [tag, make] of Object.entries(components)) {
             const element = document.querySelector("main").appendChild(make());
             await element.updateComplete;
+            // The document list's entries render in their own shadow roots, after the list's.
+            const entries = [...element.shadowRoot.querySelectorAll("sl-entry")];
+            await Promise.all(entries.map((entry) => entry.updateComplete));
             const { width, height } = element.getBoundingClientRect();
             // The look the profile gives the component's first button, inside its shadow root, the
-            // search results' their first match's, the composer's its send control, enabled by the draft, the dropzone's its picker button;
+            // search results' their first match's, the document list's its first entry's, the composer's its send control, enabled by the draft, the dropzone's its picker button;
             // the artifact viewer, which holds no button, the color and padding of what its region
             // scrolls, and its Markdown heading's font, since the region's text is the body font,
             // which the type facet's profiles share; the chat thread, which holds none either, the
@@ -276,8 +287,10 @@ describe("components", { timeout: 60_000 }, () => {
             const thread = tag === "sl-chat-thread";
             const timeline = tag === "sl-stage-timeline";
             const log = tag === "sl-event-log";
-            const style = getComputedStyle(element.shadowRoot.querySelector(
-              viewer ? ".body > *" : thread ? ".user > .message" : timeline ? ".complete > .marker" : log ? ".events" : "button"));
+            const style = getComputedStyle(entries.length
+              ? entries[0].shadowRoot.querySelector("button")
+              : element.shadowRoot.querySelector(
+                viewer ? ".body > *" : thread ? ".user > .message" : timeline ? ".complete > .marker" : log ? ".events" : "button"));
             const font = viewer
               ? getComputedStyle(element.shadowRoot.querySelector("h1"))
               : thread
@@ -308,7 +321,7 @@ describe("components", { timeout: 60_000 }, () => {
         space: ["regular", "compact"],
         type: ["mono", "sans"],
       });
-      assert.equal(rendered.length, profiles.length * 10);
+      assert.equal(rendered.length, profiles.length * 11);
       for (const { profile, tag, width, height } of rendered) {
         assert.ok(width > 0 && height > 0, `${tag} under ${profile}: a ${width} × ${height} box`);
       }
@@ -318,6 +331,7 @@ describe("components", { timeout: 60_000 }, () => {
       const looks = (tag, where) =>
         rendered.filter((shown) => shown.tag === tag && where(shown)).map((shown) => shown.look);
       for (const tag of [
+        "sl-document-list",
         "sl-search-results",
         "sl-event-log",
         "sl-stage-timeline",
@@ -372,10 +386,13 @@ describe("components", { timeout: 60_000 }, () => {
     const page = await browser.open(`${server.origin}/demo/${specimen}.html`);
     try {
       return await page.evaluate(`(async () => {
-        const tags = ["sl-entry", "sl-pagination", "sl-artifact-viewer", "sl-chat-thread", "sl-composer", "sl-upload-dropzone", "sl-stage-timeline", "sl-event-log", "sl-search-results"]
+        const tags = ["sl-entry", "sl-pagination", "sl-artifact-viewer", "sl-chat-thread", "sl-composer", "sl-upload-dropzone", "sl-stage-timeline", "sl-event-log", "sl-search-results", "sl-document-list"]
           .filter((tag) => document.querySelector(tag));
         await Promise.all(tags.map((tag) => customElements.whenDefined(tag)));
         await Promise.all([...document.querySelectorAll(tags.join(","))].map((el) => el.updateComplete));
+        // A document list's entries and pagination render in its shadow root, after it.
+        await Promise.all([...document.querySelectorAll("sl-document-list")].flatMap((list) =>
+          [...list.shadowRoot.querySelectorAll("sl-entry, sl-pagination")].map((el) => el.updateComplete)));
         const defaults = { color: "flexoki", space: "regular", type: "mono" };
         const attributes = { color: "data-palette", space: "data-space", type: "data-type", scheme: "data-scheme" };
         const root = document.documentElement;
@@ -1433,6 +1450,142 @@ describe("components", { timeout: 60_000 }, () => {
         assert.ok(oneLine, `${where}: a name and its label, or a snippet, wrap`);
         assert.equal(outside, 0, `${where}: parts outside the results`);
         assert.ok(width > 0 && width < column / 2, `${where}: ${width} wide in a ${column} column`);
+      }
+    }
+  });
+
+  // In-page helpers the document list's measures share, as source: each list in a section of its
+  // specimen page, and, for a list, its parts across its own and its parts' shadow roots, each by
+  // name with its box: its status line, its pagination and the controls' row, and each entry's
+  // button, name, status, meta, size, and clock.
+  const LISTS = `(section) => [...document.querySelectorAll(section + " sl-document-list")]`;
+  const LIST_PARTS = `(list) => {
+    const root = list.shadowRoot;
+    const pagination = root.querySelector("sl-pagination");
+    const parts = [
+      ["status", root.querySelector(".status")],
+      ["pagination", pagination],
+      ["controls", pagination.shadowRoot.querySelector(".pagination")],
+      ...[...root.querySelectorAll("sl-entry")].flatMap((entry) =>
+        ["button", ".name", ".status", ".meta", ".size", ".clock"].map((selector) => [
+          entry.item.name + " " + selector,
+          entry.shadowRoot.querySelector(selector),
+        ]),
+      ),
+    ];
+    return parts.filter(([, element]) => element !== null);
+  }`;
+
+  test("the document list's specimen renders every state within 20rem, its sizes and clocks whole, in every profile", async () => {
+    // Every list shows its status line and one pagination. At 20rem the states keep within the
+    // column, and every part of each list, its status line, its controls, and each entry's
+    // button and parts, inside the list's box across; each entry's parts inside its button; a
+    // size and a clock each on one line; and every entry of a list at one inline start, the mark's
+    // column held clear on each, selected or not.
+    const measure = `() => {
+      const list = document.querySelector(".narrow .states");
+      const lines = ${LINES};
+      const parts = ${LIST_PARTS};
+      const shown = (${LISTS})("main").map((element) => {
+        const root = element.shadowRoot;
+        const box = element.getBoundingClientRect();
+        const outside = (rect, within) => rect.left < within.left - 0.5 || rect.right > within.right + 0.5;
+        const entries = [...root.querySelectorAll("sl-entry")];
+        return {
+          narrow: element.closest(".narrow") !== null,
+          status: root.querySelector(".status[role=status]") !== null,
+          paginations: root.querySelectorAll("sl-pagination").length,
+          outside: parts(element)
+            .filter(([, part]) => outside(part.getBoundingClientRect(), box))
+            .map(([name]) => name),
+          spills: entries.flatMap((entry) => {
+            const button = entry.shadowRoot.querySelector("button").getBoundingClientRect();
+            return [".kind", ".name", ".status", ".meta"]
+              .filter((selector) => outside(entry.shadowRoot.querySelector(selector).getBoundingClientRect(), button))
+              .map((selector) => entry.item.name + " " + selector);
+          }),
+          broken: entries.flatMap((entry) =>
+            [".size", ".clock"]
+              .map((selector) => entry.shadowRoot.querySelector(selector))
+              .filter((part) => part !== null && lines(part) > 1)
+              .map((part) => part.textContent),
+          ),
+          starts: new Set(entries.map((entry) => Math.round(entry.getBoundingClientRect().left))).size,
+        };
+      });
+      return { overflow: list.scrollWidth - list.clientWidth, shown };
+    }`;
+    for (const { profile, overflow, shown } of await measureSpecimen("document-list", measure)) {
+      assert.ok(overflow <= 0, `${profile}: the states overflow the column by ${overflow}`);
+      assert.equal(
+        shown.length,
+        20,
+        `${profile}: eight states twice, the three fits, and the focus state`,
+      );
+      for (const [
+        index,
+        { narrow, status, paginations, outside, spills, broken, starts },
+      ] of shown.entries()) {
+        const where = `${profile}, list ${index}${narrow ? " at 20rem" : ""}`;
+        assert.ok(status, `${where}: a status line`);
+        assert.equal(paginations, 1, `${where}: one pagination`);
+        assert.deepEqual(outside, [], `${where}: parts outside the list`);
+        assert.deepEqual(spills, [], `${where}: parts outside their entry`);
+        assert.deepEqual(broken, [], `${where}: a size or a clock broken across lines`);
+        assert.ok(starts <= 1, `${where}: entries at ${starts} inline starts`);
+      }
+    }
+  });
+
+  test("in a parent that sizes it to its content, the document list takes its content's width, in every profile", async () => {
+    // The fit section's lists, one short document each: each takes its content's width, so the
+    // entry's name shares its line with its status, its meta keeps one line, and the controls
+    // keep one row, every part inside, and is narrower than the column.
+    const results = await measureSpecimen(
+      "document-list",
+      `() => {
+        const column = document.querySelector("#fit .fits").getBoundingClientRect().width;
+        const parts = ${LIST_PARTS};
+        return { fits: (${LISTS})("#fit").map((element) => {
+          const box = element.getBoundingClientRect();
+          const entry = element.shadowRoot.querySelector("sl-entry").shadowRoot;
+          const rect = (root, selector) => root.querySelector(selector).getBoundingClientRect();
+          const controls = element.shadowRoot.querySelector("sl-pagination").shadowRoot;
+          return {
+            parent: element.parentElement.className,
+            head: Math.abs(rect(entry, ".name").bottom - rect(entry, ".status").bottom) < 3,
+            // The meta on one line: no taller than its tallest part. Its parts' text runs may sit a
+            // pixel apart, the time's date and clock in their own spans, so it is measured by box.
+            meta:
+              rect(entry, ".meta").height <=
+              Math.max(...[...entry.querySelector(".meta").children].map((part) => part.getBoundingClientRect().height)) + 0.5,
+            controls: Math.abs(rect(controls, "select").top - rect(controls, ".page-step:last-child").top) < 8,
+            outside: parts(element).filter(([, part]) => {
+              const at = part.getBoundingClientRect();
+              return at.left < box.left - 0.5 || at.right > box.right + 0.5;
+            }).length,
+            width: box.width,
+            column,
+          };
+        }) };
+      }`,
+    );
+    for (const { profile, fits } of results) {
+      assert.deepEqual(
+        fits.map(({ parent }) => parent),
+        ["fit-inline-block", "fit-flex", "fit-grid"],
+        `${profile}: the fit section's lists`,
+      );
+      for (const { parent, head, meta, controls, outside, width, column } of fits) {
+        const where = `${parent} under ${profile}`;
+        assert.ok(head, `${where}: the name and its status wrap`);
+        assert.ok(meta, `${where}: the meta wraps`);
+        assert.ok(controls, `${where}: the controls wrap`);
+        assert.equal(outside, 0, `${where}: parts outside the list`);
+        assert.ok(
+          width > 0 && width < column * 0.6,
+          `${where}: ${width} wide in a ${column} column`,
+        );
       }
     }
   });

@@ -19,6 +19,7 @@ for (const page of [
   "stage-timeline",
   "event-log",
   "search-results",
+  "document-list",
 ]) {
   console.log(`${server.origin}/demo/${page}.html`);
 }

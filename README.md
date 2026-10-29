@@ -94,13 +94,19 @@ foundation's `page.css`:
   native button of its document's name, the field it matched in, and its snippet, the query marked
   case-insensitively as text; it dispatches `open` with a match's id, and has loading and error
   states. It exports its match type and binds no key.
+- `./document-list.js`: `sl-document-list`, a page of documents composed of the components above,
+  an `sl-entry` per document inside one `sl-pagination`, whose properties it takes under the same
+  names and hands through; it marks the selected document, and has empty, loading, and error
+  states. The entry's `open` and the pagination's `page-change` and `page-size-change` reach its
+  listener as their parts sent them; it dispatches none of its own. It exports its document type
+  and binds no key.
 - `./*.css`: each component's sheet, which its module imports itself.
 
 `demo/components.html` is a page on all three, with its import map. Each component also has a
 specimen page, `demo/status-badge.html`, `demo/entry.html`, `demo/pagination.html`,
 `demo/artifact-viewer.html`, `demo/chat-thread.html`, `demo/composer.html`,
-`demo/upload-dropzone.html`, `demo/stage-timeline.html`, `demo/event-log.html`, and
-`demo/search-results.html`, that shows every state of the component, labelled, then again in a
+`demo/upload-dropzone.html`, `demo/stage-timeline.html`, `demo/event-log.html`,
+`demo/search-results.html`, and `demo/document-list.html`, that shows every state of the component, labelled, then again in a
 section 20rem wide, and, for a component that holds a control, one instance reached by the keyboard
 to show its focus ring. The specimen pages link the foundation's `page-full.css` and import its
 `register-full.js`, so a profile applies by its attribute on the root.
@@ -109,8 +115,8 @@ most 1200px tall: by default in flexoki, regular, and mono; with `--palette`, `-
 `--type`, combined, in the facet's profile named, checked against the pages' registry; with `--all`,
 in each of the four colors, and in compact and in sans. `--page`, repeatable, with a page's name,
 `status-badge`, `entry`, `pagination`, `artifact-viewer`, `chat-thread`, `composer`,
-`upload-dropzone`, `stage-timeline`, `event-log`, or `search-results`, captures only the pages
-named, and `--scheme light` or `--scheme dark` only that scheme; both combine with the profile flags
+`upload-dropzone`, `stage-timeline`, `event-log`, `search-results`, or `document-list`, captures
+only the pages named, and `--scheme light` or `--scheme dark` only that scheme; both combine with the profile flags
 and `--all`.
 
 ## Development

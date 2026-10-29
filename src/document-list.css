@@ -1,0 +1,59 @@
+/*
+ * The document list's layout in a shadow root: document-list.ts adopts this sheet into its root
+ * after the foundation's reset and elements sheets (baseline/reset.css and elements.css). It holds
+ * the status line's type, the list's layout, and the selected document's mark. The entries and
+ * the pagination style themselves in their own shadow roots; the status line and the list are
+ * this root's, slotted into the pagination, so this sheet styles them. It reads only the
+ * foundation's baseline tokens, which a shadow root takes by inheritance from the page's entry.
+ * Unlayered, it sits above the adopted layers in the root.
+ *
+ * The list draws no frame: each entry is a native button, bordered by the elements sheet, and the
+ * pagination rules its controls off, so a frame around them would nest frames. It is as tall as
+ * its page, with no cap; a consumer that wants it held scrolls its own box. In a shrink-to-fit
+ * parent it takes its widest line's width, an entry's or the controls', up to the parent's.
+ */
+
+:host {
+  display: block;
+}
+/* The status line, in the interface font, small and muted, between the pagination's summary and
+   the entries: loading, the failure's label and its reason after it, or no documents. It is a
+   line tall when blank too, so its text, coming or going, moves nothing below it. */
+.status {
+  min-block-size: 1lh;
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-s);
+  color: var(--fg-2);
+  overflow-wrap: anywhere;
+}
+.status .empty {
+  color: var(--fg-3);
+}
+.status.error .label {
+  color: var(--red);
+}
+/* The entries, stacked under the status line; each entry's own block margin spaces them. */
+.documents {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* Each document's item is two columns: a mark's, a small step wide, held clear on every item so
+   marking one moves no entry, and the entry's. The selected document's mark is a bar beside its
+   entry, as tall as its button, in the interaction color: a shape there, not a color alone, which
+   aria-current says to assistive technology. */
+.documents > li {
+  display: grid;
+  grid-template-columns: var(--space-3xs) minmax(0, 1fr);
+  column-gap: var(--space-3xs);
+  margin: 0;
+}
+.documents > li::before {
+  content: "";
+  margin-block: var(--space-3xs);
+  border-radius: var(--radius-full);
+}
+.documents > li.selected::before {
+  background-color: var(--interaction-color, var(--blue));
+}

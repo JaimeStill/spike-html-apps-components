@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>document list specimen</title>
+    <!-- The document list's specimen page, from dist/: no documents; loading, a first load's and a
+         page change's with the last page kept; a page of documents, as the emulator lists them with
+         each run's status beside them; one selected; a first load's error with its message; the
+         last page; and a long name, kept inside its entry. Every state is labelled, then shown
+         again in a section 20rem wide; the fit section holds a short page in three parents that
+         size the list to its content, an inline-block, a content-sized flex item, and a grid's auto
+         track; and the focus section holds one instance, its first entry selected, which the
+         screenshot script reaches with a Tab press. Each entry is a native button, bordered, and
+         the pagination rules its controls off, so main is unframed: no specimen frame around them.
+         The page links the installed foundation's full entry, page-full.css, and imports
+         register-full.js, so a profile applies by attribute on the root; its import map is
+         components.html's, so it runs served only: mise run demo, or mise run screenshots. -->
+    <link rel="stylesheet" href="/deps/@jaimestill/spike-html-apps-foundation/dist/page-full.css" />
+    <link rel="stylesheet" href="demo.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "lit": "/deps/lit/index.js",
+          "lit/": "/deps/lit/",
+          "lit-html": "/deps/lit-html/lit-html.js",
+          "lit-html/": "/deps/lit-html/",
+          "lit-element/": "/deps/lit-element/",
+          "@lit/reactive-element": "/deps/@lit/reactive-element/reactive-element.js",
+          "@lit/reactive-element/": "/deps/@lit/reactive-element/",
+          "marked": "/deps/marked/lib/marked.esm.js",
+          "@jaimestill/spike-html-apps-foundation/": "/deps/@jaimestill/spike-html-apps-foundation/dist/"
+        }
+      }
+    </script>
+    <script type="module">
+      import "@jaimestill/spike-html-apps-foundation/register-full.js";
+      import "../dist/document-list.js";
+      import { figure, make, specimens } from "./specimen.js";
+
+      // The emulator's documents, as its listing sends them: each its id, a UUID v7, its name and
+      // content type as the upload declared them, its size in bytes, when it was accepted, and the
+      // run its upload started, with that run's status, running or complete, set beside it as the
+      // app sets it. Eight in all, by three a page, oldest first, the listing's upload order.
+      const documents = [
+        {
+          id: "0193a4e2-0a6c-7f51-9c4d-8e7f6a5b4c3d",
+          name: "terms.md",
+          content_type: "text/markdown",
+          size: 3120,
+          created_at: "2026-10-27T11:12:44Z",
+          run_id: "0193a4e2-0a70-7123-8456-789abcdef012",
+          status: "complete",
+        },
+        {
+          id: "0193a4f7-3d20-7b19-8f0e-1d2c3b4a5968",
+          name: "retainer.docx",
+          content_type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          size: 41230,
+          created_at: "2026-10-27T16:05:19Z",
+          run_id: "0193a4f7-3d25-7e8f-b7a6-958473625140",
+          status: "complete",
+        },
+        {
+          id: "0193a5b0-91e4-7c3a-b2d1-e0f9a8b7c6d5",
+          name: "brand-guide.pdf",
+          content_type: "application/pdf",
+          size: 2418176,
+          created_at: "2026-10-28T09:30:02Z",
+          run_id: "0193a5b0-91e9-74b6-a5c4-d3e2f1a0b9c8",
+          status: "complete",
+        },
+        {
+          id: "0193a5c1-2f60-7a8b-8c9d-0e1f2a3b4c5d",
+          name: "quarterly-report.md",
+          content_type: "text/markdown",
+          size: 18432,
+          created_at: "2026-10-29T14:08:51Z",
+          run_id: "0193a5c1-2f66-7d01-9e2f-3a4b5c6d7e8f",
+          status: "complete",
+        },
+        {
+          id: "0193a5d2-7c10-7e4f-9a1b-2c3d4e5f6071",
+          name: "interview-notes.txt",
+          content_type: "text/plain; charset=utf-8",
+          size: 7204,
+          created_at: "2026-10-29T15:42:03Z",
+          run_id: "0193a5d2-7c14-7a20-8b3c-4d5e6f708192",
+          status: "running",
+        },
+      ];
+      const first = documents.slice(0, 3);
+      const last = documents.slice(3, 5);
+      const long = [
+        {
+          id: "0193a5d9-4e8b-7a6c-9d2e-1f0a3b5c7d9e",
+          name: "2026-10-29-site-survey-north-campus-building-c-mechanical-and-electrical-findings.pdf",
+          content_type: "application/pdf",
+          size: 15938355,
+          created_at: "2026-10-29T16:20:37Z",
+          run_id: "0193a5d9-4e90-7b1c-8d3e-5f7a9b1c3d5e",
+          status: "running",
+        },
+        ...documents.slice(0, 1),
+      ];
+
+      // A list of the fields given, eight documents by three a page unless the fields say
+      // otherwise.
+      const list = (fields) => () =>
+        make("sl-document-list", { page: 1, size: 3, total: 8, more: true, pageSizes: [3, 6, 12], ...fields });
+      specimens(
+        [
+          { label: "Empty: ready, no documents", build: list({ total: 0, more: false }) },
+          {
+            label: "Loading: a first load, nothing listed yet",
+            build: list({ state: "loading", total: null, more: false }),
+          },
+          {
+            label: "Loading: a page change, the last page kept, busy",
+            build: list({ state: "loading", items: first }),
+          },
+          { label: "A page: 1 of 3", build: list({ items: first }) },
+          {
+            label: "Selected: retainer.docx, marked by a rule and aria-current",
+            build: list({ items: first, selected: first[1].id }),
+          },
+          {
+            label: "Error: a first load failed, with its message",
+            build: list({
+              state: "error",
+              message: "The document service didn't answer: 503 Service Unavailable.",
+              total: null,
+              more: false,
+            }),
+          },
+          {
+            label: "The last page: 3 of 3, its newest document's run still running",
+            build: list({ items: last, page: 3, more: false }),
+          },
+          { label: "A long name, kept inside its entry, wrapping at 20rem", build: list({ items: long }) },
+        ],
+        { label: "Focused by Tab: the first entry", build: list({ items: first, selected: first[0].id }) },
+      );
+      // A short page in each parent that sizes the list to its content, by the parent's class in
+      // demo.css.
+      const fit = (label, parent) => ({
+        label,
+        build: () =>
+          make("div", { className: parent }, [list({ items: documents.slice(0, 1), total: 1, more: false })()]),
+      });
+      document.querySelector("#fit .fits").append(
+        ...[
+          fit("In an inline-block", "fit-inline-block"),
+          fit("A content-sized flex item: display flex, the list flex none", "fit-flex"),
+          fit("In a grid's auto track, beside a 1fr track", "fit-grid"),
+        ].map(figure),
+      );
+    </script>
+  </head>
+  <body>
+    <main class="unframed">
+      <h1>Document list</h1>
+      <p>
+        <code>sl-document-list</code>, a page of documents, an <code>sl-entry</code> each, in an
+        <code>sl-pagination</code>, the selected one marked, in each of its states.
+      </p>
+
+      <section id="states">
+        <h2>States</h2>
+        <div class="states"></div>
+      </section>
+
+      <section id="narrow" class="narrow">
+        <h2>States at 20rem</h2>
+        <div class="states"></div>
+      </section>
+
+      <section id="fit">
+        <h2>Sized to its content</h2>
+        <p>One short document in parents that size the list to its content.</p>
+        <div class="fits"></div>
+      </section>
+
+      <section id="focus">
+        <h2>Focus visible</h2>
+        <p>The first entry, selected, reached by the keyboard.</p>
+        <span tabindex="-1" data-focus-start="1"></span>
+        <div class="states"></div>
+      </section>
+    </main>
+  </body>
+</html>
