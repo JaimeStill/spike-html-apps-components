@@ -71,7 +71,10 @@ reached by the keyboard to show its focus ring. The specimen pages link the foun
 root. `mise run screenshots` captures each specimen page light and dark, each page in vertical
 tiles at most 1200px tall: by default in flexoki, regular, and mono; with `--palette`, `--space`,
 or `--type`, combined, in the facet's profile named, checked against the pages' registry; with
-`--all`, in each of the four colors, and in compact and in sans.
+`--all`, in each of the four colors, and in compact and in sans. `--page`, repeatable, with a
+page's name, `status-badge`, `entry`, or `pagination`, captures only the pages named, and
+`--scheme light` or `--scheme dark` only that scheme; both combine with the profile flags and
+`--all`.
 
 ## Development
 
@@ -87,13 +90,15 @@ mise run screenshots --palette primer # the same, in the palette named; the face
 mise run screenshots --space compact  # the same, in the space named
 mise run screenshots --type sans      # the same, in the type named
 mise run screenshots --all            # the full matrix: the four colors at the defaults, then compact and sans at flexoki; no facet flag joins it
+mise run screenshots --page entry     # only the page named; repeatable, and with any of the above
+mise run screenshots --scheme dark    # only the scheme named, light or dark; with any of the above
 mise run screenshots --keep           # keep the captures, with any of the above
 mise run currency                     # report every tool, package, and action pin, and the foundation's tag and peer range, behind its latest
 ```
 
 The task's arguments follow its name, as above; `mise run screenshots -- --space compact` passes
-them the same. An unknown profile name exits 2, listing the facet's registered names; any other
-argument exits 2 with the usage.
+them the same. An unknown profile name exits 2, listing the facet's registered names; an unknown
+page name exits 2, listing the pages' names; any other argument exits 2 with the usage.
 
 A push to main whose `package.json` version has no tag yet releases it: the check, then the pack
 committed and tagged, and a GitHub release from `CHANGELOG.md`.

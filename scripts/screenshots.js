@@ -5,7 +5,10 @@
 // `--space`, and `--type`, each with a name, that facet's profile over the defaults, combined;
 // `--all`, every color at the defaults, then compact and sans at the default color. Each named
 // profile is checked against the registry of every specimen page, after it loads, before any
-// capture: an unknown name prints the facet's registered names and exits 2. Each file name and
+// capture: an unknown name prints the facet's registered names and exits 2. `--page`, with a
+// specimen page's name, repeatable, captures only the pages named, an unknown name printing the
+// pages' names and exiting 2 before the browser launches; `--scheme`, light or dark, captures that
+// scheme alone. Both join the profile arguments and `--all` alike. Each file name and
 // caption names the whole profile, color, space, and type, so every run's names are unambiguous.
 // A tile is at most TILE tall, so no capture runs many screens tall where icat scales it to the
 // terminal's width; a page that fits in one tile keeps its name and caption without the
@@ -22,7 +25,7 @@ import { launch } from "../test/browser/support/browser-pipe.js";
 import { serve } from "../test/browser/support/server.js";
 
 const USAGE =
-  "usage: node scripts/screenshots.js <directory> [--all | [--palette <name>] [--space <name>] [--type <name>]]";
+  "usage: node scripts/screenshots.js <directory> [--all | [--palette <name>] [--space <name>] [--type <name>]] [--page <name>]... [--scheme light|dark]";
 
 /** Each facet's flag, the registry's facet it names, the root attribute it sets, and its
  * default profile. */
@@ -46,14 +49,26 @@ const ALL = [
 const [dir, ...args] = process.argv.slice(2);
 if (!dir) throw new Error(USAGE);
 
-/** The run's choice: `all`, or each named facet's name by its flag. */
+const SCHEMES = ["light", "dark"];
+
+/** The run's choice: `all`, or each named facet's name by its flag; the pages named, in the order
+ * named; and the scheme named, if any. */
 const named = new Map();
 let all = false;
+const pageNames = [];
+let schemeName;
 for (let index = 0; index < args.length; index++) {
   const arg = args[index];
   if (arg === "--all") all = true;
   else if (FACETS.some(({ flag }) => flag === arg) && index + 1 < args.length) {
     named.set(arg, args[++index]);
+  } else if (arg === "--page" && index + 1 < args.length) pageNames.push(args[++index]);
+  else if (
+    arg === "--scheme" &&
+    schemeName === undefined &&
+    SCHEMES.includes(args[index + 1] ?? "")
+  ) {
+    schemeName = args[++index];
   } else throw new Error(USAGE);
 }
 if (all && named.size) throw new Error(USAGE);
@@ -66,8 +81,6 @@ const PROFILES = all
         FACETS.map(({ flag, attribute, fallback }) => [attribute, named.get(flag) ?? fallback]),
       ),
     ];
-
-const SCHEMES = ["light", "dark"];
 
 /** The viewport: each page is captured over its full height at this width. */
 const SIZE = { width: 1280, height: 800 };
@@ -89,6 +102,21 @@ const PAGES = [
   ["2-entry", "the entry", "entry"],
   ["3-pagination", "the pagination", "pagination"],
 ];
+
+/** The run's pages: those `--page` names, each once, in PAGES' order, or every page when none is
+ * named. An unknown name prints every page's name and exits 2, before the server or the browser
+ * starts. */
+const unknownPage = pageNames.find((name) => !PAGES.some(([, , file]) => file === name));
+if (unknownPage !== undefined) {
+  console.error(
+    `screenshots: unknown page ${unknownPage}; the specimen pages: ${PAGES.map(([, , file]) => file).join(", ")}`,
+  );
+  process.exit(2);
+}
+const RUN_PAGES = pageNames.length ? PAGES.filter(([, , file]) => pageNames.includes(file)) : PAGES;
+
+/** The run's schemes: the one `--scheme` names, or both. */
+const RUN_SCHEMES = schemeName ? [schemeName] : SCHEMES;
 
 /** Sends Tab, as a keyboard presses it, so the browser moves focus and marks it focus-visible. */
 async function pressTab(page) {
@@ -167,7 +195,7 @@ const SETTLED = `document.fonts.ready.then(() => new Promise((resolve) =>
  * Each page is read once it loads, so its modules have registered their profiles.
  */
 async function unknownProfile(browser, origin) {
-  for (const [, , file] of PAGES) {
+  for (const [, , file] of RUN_PAGES) {
     const page = await browser.open(`${origin}/demo/${file}.html`);
     try {
       const registry = await page.evaluate(REGISTRY);
@@ -193,10 +221,10 @@ try {
     console.error(unknown);
     process.exitCode = 2;
   }
-  for (const [name, caption, file] of unknown ? [] : PAGES) {
+  for (const [name, caption, file] of unknown ? [] : RUN_PAGES) {
     for (const profile of PROFILES) {
       const label = FACETS.map(({ attribute }) => profile[attribute]);
-      for (const scheme of SCHEMES) {
+      for (const scheme of RUN_SCHEMES) {
         const page = await browser.open(`${server.origin}/demo/${file}.html`);
         try {
           await page.cdp("Emulation.setDeviceMetricsOverride", {
