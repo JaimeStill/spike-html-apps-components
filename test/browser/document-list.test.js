@@ -191,7 +191,7 @@ describe("document list", { timeout: 60_000 }, () => {
     );
     assert.match(
       entries[2].text,
-      /^file interview-notes\.txt running 7\.2 kB text\/plain; charset=utf-8 /,
+      /^interview-notes\.txt running file 7\.2 kB text\/plain; charset=utf-8 /,
     );
   });
 

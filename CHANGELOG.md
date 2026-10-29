@@ -8,6 +8,12 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 
 ### Added
 
+- `sl-entry` takes `selected`, a boolean reflected to the `selected` attribute, false by default,
+  which frames its button in the interaction color, the border and an inset line inside it, so the
+  frame moves nothing; the focus ring sits outside it at the ring's offset, so a selected entry
+  with focus shows both. It is a mark to the eye only: the consumer says it to assistive
+  technology, as `sl-document-list` does with `aria-current`. The entry's specimen page shows it,
+  and its focus state is selected.
 - `./document-list.js` defines `sl-document-list`, a page of documents composed of the existing
   components: one `sl-pagination`, whose default slot holds the list's status line and an
   `sl-entry` per document. `items` takes each as a structural `DocumentItem`, exported,
@@ -139,6 +145,12 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 
 ### Changed
 
+- The entry's name is its primary text, semibold at the body size, and its status a quiet label at
+  the line's end, the smallest size and muted. Its kind, as quiet, opens the meta line under the
+  name in place of a column of its own, so a narrow entry gives its width to the name and the meta,
+  and its text reads name, status, kind, size, content type, time. The meta wraps between its
+  values, and a content type too long for its line breaks after a slash, dot, hyphen, or plus, at a
+  `wbr`, and inside a part only when that part alone is wider than the line.
 - Breaking: the entry is `sl-entry` and the pagination `sl-pagination`, each a plain name, as
   `sl-status-badge` is. Their modules are `./entry.js` and `./pagination.js`, their sheets
   `./entry.css` and `./pagination.css`, and their classes `Entry` and `Pagination`. The old tags

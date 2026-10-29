@@ -1,7 +1,8 @@
 // Entry, Lit with a shadow root: one directory or file of a document hierarchy, as a button.
 // Adapted from spike-html-packages-components (4c0a5d8): src/entry-lit-shadow.ts, renamed, its
-// size and time formatted by the foundation's formatBytes and formatDateTime, and its name and
-// status in a head, the row entry.css wraps, and its time's date and clock in spans.
+// size and time formatted by the foundation's formatBytes and formatDateTime, its name and status
+// in a head, the row entry.css wraps, its kind leading the meta line, its content type breakable at
+// its punctuation, its time's date and clock in spans, and its frame marked when selected.
 
 import { html, LitElement, nothing, type PropertyDeclarations } from "lit";
 
@@ -50,6 +51,16 @@ function kindOf(item: EntryItem): OpenDetail["kind"] {
 }
 
 /**
+ * A content type with a break opportunity, a wbr, after each slash, dot, hyphen, and plus, so a
+ * type too long for its line, "application/vnd.openxmlformats-officedocument…", breaks between its
+ * parts, never inside one, unless a part alone is wider than the line.
+ */
+function renderType(contentType: string) {
+  const parts = contentType.split(/(?<=[/.+-])/);
+  return parts.map((part, i) => (i === 0 ? part : html`<wbr />${part}`));
+}
+
+/**
  * The entry's time, formatDateTime's text, as its date and its clock with the locale's text
  * between, each in a span: entry.css keeps the clock whole and breaks the date only at its spaces,
  * so a narrow line breaks between them and never inside "4:41 PM". A locale that doesn't write the
@@ -73,22 +84,29 @@ function renderTime(updatedAt: string) {
 }
 
 /**
- * Shows one entry: its kind, name, and status; a file's size, absent while it is pending, and
- * content type; and when it was last updated. Activating it sends `open` with its id and kind.
+ * Shows one entry: its name, the primary text, and its status, a quiet label at the line's end;
+ * then a quiet meta line of its kind, a file's size, absent while it is pending, and content type,
+ * and when it was last updated. Activating it sends `open` with its id and kind. `selected` frames
+ * the entry's button in the interaction color, a mark to the eye only: the consumer that selects
+ * it says so to assistive technology, as sl-document-list does with aria-current on its item.
  */
 export class Entry extends LitElement {
   static styles = [reset, elements, styles];
 
   static properties = {
     item: { attribute: false },
+    selected: { type: Boolean, reflect: true },
   } satisfies PropertyDeclarations;
 
   /** The directory or file shown; nothing renders while it is null. */
   declare item: EntryItem | null;
+  /** Frames the entry as the selected one; reflected to the `selected` attribute. */
+  declare selected: boolean;
 
   constructor() {
     super();
     this.item = null;
+    this.selected = false;
   }
 
   #open(): void {
@@ -103,18 +121,18 @@ export class Entry extends LitElement {
     const file = "content_type" in item ? item : null;
     return html`
       <button type="button" class="entry" @click=${this.#open}>
-        <span class="kind">${kindOf(item)}</span>
         <span class="head">
           <span class="name">${item.name}</span>
           <span class="status">${item.status}</span>
         </span>
         <span class="meta">
+          <span class="kind">${kindOf(item)}</span>
           ${
             file && file.size !== null
               ? html`<span class="size">${formatBytes(file.size)}</span>`
               : nothing
           }
-          ${file ? html`<span class="type">${file.content_type}</span>` : nothing}
+          ${file ? html`<span class="type">${renderType(file.content_type)}</span>` : nothing}
           ${renderTime(item.updated_at)}
         </span>
       </button>

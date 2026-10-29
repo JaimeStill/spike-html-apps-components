@@ -5,11 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>entry specimen</title>
     <!-- The entry's specimen page, from dist/, on documents.js's fixture: nothing while item is
-         null, a directory, a file, a pending file, and a long name. Every state is
+         null, a directory, a file, a pending file, a selected file, and a long name. Every state is
          labelled, then shown again in a section 20rem wide; the fit section holds the file in
          three parents that size it to its content, an inline-block, a content-sized flex item,
-         and a grid's auto track; and the focus section holds one instance the screenshot script
-         reaches with a Tab press. The page links the installed
+         and a grid's auto track; and the focus section holds one instance, selected, which the
+         screenshot script reaches with a Tab press, so the focus ring and the selected frame show
+         together. The page links the installed
          foundation's full entry, page-full.css, and imports register-full.js, so a profile
          applies by attribute on the root; its import map is components.html's, so it runs served
          only: mise run demo, or mise run screenshots. -->
@@ -38,13 +39,14 @@
 
       const [directory] = directories.items;
       const [file, , pending] = files.items;
-      const entry = (item) => () => make("sl-entry", { item });
+      const entry = (item, selected = false) => () => make("sl-entry", { item, selected });
       specimens(
         [
           { label: "No item (null): nothing renders, the frame shows the empty slot", build: entry(null) },
           { label: "A directory", build: entry(directory) },
           { label: "A file", build: entry(file) },
           { label: "A pending file: size null, so no size", build: entry(pending) },
+          { label: "Selected: the frame in the interaction color", build: entry(file, true) },
           {
             label: "A long name",
             build: entry({
@@ -53,7 +55,7 @@
             }),
           },
         ],
-        { label: "Focused by Tab", build: entry(file) },
+        { label: "Selected and focused by Tab: the ring outside the frame", build: entry(file, true) },
       );
       // The file in each parent that sizes it to its content, by the parent's class in demo.css.
       const fit = (label, parent) => ({
@@ -92,7 +94,7 @@
 
       <section id="focus">
         <h2>Focus visible</h2>
-        <p>The entry's button, reached by the keyboard.</p>
+        <p>The entry's button, selected, reached by the keyboard.</p>
         <span tabindex="-1" data-focus-start="1"></span>
         <div class="states"></div>
       </section>

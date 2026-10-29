@@ -423,31 +423,39 @@ describe("components", { timeout: 60_000 }, () => {
   const ENTRIES = `(section) => [...document.querySelectorAll(section + " sl-entry")]
     .filter((entry) => entry.item !== null)`;
 
-  test('the entry\'s kind, "directory" the longest, ends a column gap before the name, in every profile', async () => {
+  test("the entry's name is its primary text, its status and kind quieter, the kind starting the meta line under the name, in every profile", async () => {
+    // The name is set larger than the status and the kind, and every entry, a directory's or a
+    // file's, at full width and at 20rem, puts its name and its meta line, which the kind opens,
+    // at one inline start, the kind under the name: no column of its own beside it.
     const results = await measureSpecimen(
       "entry",
-      `() => {
-        const entries = (${ENTRIES})("main");
-        const directories = entries.filter((entry) => !("content_type" in entry.item));
-        return { shown: directories.map((entry) => {
-          const root = entry.shadowRoot;
-          const gap = parseFloat(getComputedStyle(root.querySelector(".entry")).columnGap);
-          return {
-            kind: root.querySelector(".kind").textContent,
-            kindEnd: root.querySelector(".kind").getBoundingClientRect().right + gap,
-            nameStart: root.querySelector(".name").getBoundingClientRect().left,
-          };
-        }) };
-      }`,
+      `() => ({ shown: (${ENTRIES})("main").map((entry) => {
+        const root = entry.shadowRoot;
+        const size = (selector) => parseFloat(getComputedStyle(root.querySelector(selector)).fontSize);
+        const rect = (selector) => root.querySelector(selector).getBoundingClientRect();
+        return {
+          name: entry.item.name,
+          sizes: { name: size(".name"), status: size(".status"), kind: size(".kind") },
+          first: root.querySelector(".meta").firstElementChild.className,
+          starts: [rect(".name").left, rect(".kind").left],
+          under: rect(".kind").top >= rect(".name").bottom - 0.5,
+        };
+      }) })`,
     );
     for (const { profile, shown } of results) {
-      assert.ok(shown.length >= 2, `${profile}: a directory at full width and at 20rem`);
-      for (const { kind, kindEnd, nameStart } of shown) {
-        assert.equal(kind, "directory");
+      assert.ok(shown.length >= 2, `${profile}: entries at full width and at 20rem`);
+      for (const { name, sizes, first, starts, under } of shown) {
+        const where = `${profile}, ${name}`;
         assert.ok(
-          kindEnd <= nameStart + 0.5,
-          `${profile}: the kind and its gap end at ${kindEnd}, the name starts at ${nameStart}`,
+          sizes.name > sizes.status && sizes.name > sizes.kind,
+          `${where}: the name ${sizes.name}px, the status ${sizes.status}px, the kind ${sizes.kind}px`,
         );
+        assert.equal(first, "kind", `${where}: the meta line's first part`);
+        assert.ok(
+          Math.abs(starts[0] - starts[1]) <= 0.5,
+          `${where}: the name and the kind start at ${starts}`,
+        );
+        assert.ok(under, `${where}: the kind under the name`);
       }
     }
   });
@@ -463,10 +471,19 @@ describe("components", { timeout: 60_000 }, () => {
       const status = root.querySelector(".status").getBoundingClientRect();
       const meta = root.querySelector(".meta");
       const metaTop = meta.getBoundingClientRect().top;
-      const parts = [...meta.children].map((part) => part.getBoundingClientRect());
-      const tops = [...new Set(parts.map((part) => Math.round(part.top)))];
-      if (tops.length < 2) return [];
-      const line = (top) => parts.filter((part) => Math.round(part.top) === top);
+      // The meta's lines: its parts, top to bottom, each on the line above's unless it starts
+      // below that line's bottom. Its parts sit on one baseline at two sizes, the kind smaller, so
+      // a line's parts don't share a top; a line spans its parts' boxes.
+      const lines = [];
+      for (const part of [...meta.children].map((child) => child.getBoundingClientRect())
+        .sort((a, b) => a.top - b.top)) {
+        const last = lines.at(-1);
+        if (last && part.top < last.bottom - 0.5) {
+          last.top = Math.min(last.top, part.top);
+          last.bottom = Math.max(last.bottom, part.bottom);
+        } else lines.push({ top: part.top, bottom: part.bottom });
+      }
+      if (lines.length < 2) return [];
       // The lines above the meta: the status is one of them when it wraps between the name and
       // the meta, and on the name's line it ends that line with the name.
       const onName = status.top < name.bottom - 0.5;
@@ -479,9 +496,7 @@ describe("components", { timeout: 60_000 }, () => {
         steps: [
           ...head.slice(1).map((next, i) => next.top - head[i].bottom),
           metaTop - head.at(-1).bottom,
-          ...tops.slice(1).map((top, i) =>
-            Math.min(...line(top).map((part) => part.top)) -
-            Math.max(...line(tops[i]).map((part) => part.bottom))),
+          ...lines.slice(1).map((line, i) => line.top - lines[i].bottom),
         ],
       }];
     }) })`;
@@ -687,15 +702,15 @@ describe("components", { timeout: 60_000 }, () => {
   test("in a parent that sizes it to its content, the entry takes its content's width, in every profile", async () => {
     // The fit section's entries: brand-guide.pdf in an inline-block, as a content-sized flex
     // item, and in a grid's auto track. Each entry is at least as wide as its first line laid out
-    // whole, the kind, the name on one line, and the status, with the column gaps between, and
-    // every part keeps inside its button.
+    // whole, the name on one line and the status, with the head's column gap between, and every
+    // part keeps inside its button.
     const results = await measureSpecimen(
       "entry",
       `() => ({ fits: (${ENTRIES})("#fit").map((entry) => {
         const root = entry.shadowRoot;
         const button = root.querySelector(".entry");
         const box = button.getBoundingClientRect();
-        const gap = parseFloat(getComputedStyle(button).columnGap);
+        const gap = parseFloat(getComputedStyle(root.querySelector(".head")).columnGap);
         const part = (selector) => root.querySelector(selector).getBoundingClientRect();
         const [kind, name, status, meta] = [".kind", ".name", ".status", ".meta"].map(part);
         // The name's text laid out on one line, however its box wraps it.
@@ -709,7 +724,7 @@ describe("components", { timeout: 60_000 }, () => {
           parent: entry.parentElement.className,
           name: entry.item.name,
           width: box.width,
-          natural: kind.width + gap + text + gap + status.width,
+          natural: text + gap + status.width,
           lines: (${LINES})(root.querySelector(".name")),
           status: status.width > 0 && status.height > 0,
           overflow: button.scrollWidth - button.clientWidth,
@@ -735,6 +750,96 @@ describe("components", { timeout: 60_000 }, () => {
         assert.ok(overflow <= 0, `${where}: the entry's content overflows it by ${overflow}`);
         assert.deepEqual(outside, [], `${where}: parts outside the entry`);
       }
+    }
+  });
+
+  test("selected, reflected, frames the entry in the interaction color, moving nothing", async () => {
+    // A file's entry on the specimen page, unselected, then selected by property, then by
+    // attribute removed: the attribute follows the property and the property the attribute; the
+    // frame is the border and an inset shadow in the interaction color only while selected; and
+    // the button and every part keep their boxes across the change.
+    const page = await browser.open(`${server.origin}/demo/entry.html`);
+    try {
+      const { before, selected, after } = await page.evaluate(`(async () => {
+        await customElements.whenDefined("sl-entry");
+        const entry = (${ENTRIES})("#states").find((entry) => !entry.selected && "size" in entry.item);
+        await entry.updateComplete;
+        await document.fonts.ready;
+        const root = entry.shadowRoot;
+        const button = root.querySelector(".entry");
+        // The interaction color as the button resolves it, read from a probe's color.
+        const probe = root.appendChild(document.createElement("span"));
+        probe.style.color = "var(--interaction-color, var(--blue))";
+        const interaction = getComputedStyle(probe).color;
+        probe.remove();
+        const look = () => {
+          const style = getComputedStyle(button);
+          return {
+            attribute: entry.hasAttribute("selected"),
+            property: entry.selected,
+            border: style.borderTopColor === interaction,
+            shadow: style.boxShadow.includes("inset") && style.boxShadow.includes(interaction),
+          };
+        };
+        const boxes = () => [button, ...root.querySelectorAll(".head > *, .meta > *")].map((part) => {
+          const rect = part.getBoundingClientRect();
+          return [rect.left, rect.top, rect.width, rect.height];
+        });
+        const before = { look: look(), boxes: boxes() };
+        entry.selected = true;
+        await entry.updateComplete;
+        const selected = { look: look(), boxes: boxes() };
+        entry.removeAttribute("selected");
+        await entry.updateComplete;
+        return { before, selected, after: look() };
+      })()`);
+      const off = { attribute: false, property: false, border: false, shadow: false };
+      assert.deepEqual(before.look, off, "unselected");
+      assert.deepEqual(
+        selected.look,
+        { attribute: true, property: true, border: true, shadow: true },
+        "selected",
+      );
+      assert.ok(before.boxes.length > 4, "the button and its parts");
+      assert.deepEqual(selected.boxes, before.boxes, "the boxes, selected and not");
+      assert.deepEqual(after, off, "the attribute removed");
+    } finally {
+      await page.close();
+    }
+  });
+
+  test("a selected entry focused by Tab shows its focus ring outside its selected frame", async () => {
+    // The focus section's entry is selected; Tab from the section's mark focuses its button. The
+    // ring, the elements sheet's outline, is drawn past the border box by its offset, with the
+    // surface between it and the frame, the border and inset shadow drawn inside the box, so the
+    // two read as two marks.
+    const page = await browser.open(`${server.origin}/demo/entry.html`);
+    try {
+      await page.cdp("Emulation.setFocusEmulationEnabled", { enabled: true });
+      await page.evaluate(`customElements.whenDefined("sl-entry").then(() =>
+        document.querySelector("#focus sl-entry").updateComplete).then(() =>
+        document.querySelector("#focus [data-focus-start]").focus())`);
+      const tab = { key: "Tab", code: "Tab", windowsVirtualKeyCode: 9 };
+      await page.cdp("Input.dispatchKeyEvent", { type: "keyDown", ...tab });
+      await page.cdp("Input.dispatchKeyEvent", { type: "keyUp", ...tab });
+      const shown = await page.evaluate(`(() => {
+        const entry = document.querySelector("#focus sl-entry");
+        const button = entry.shadowRoot.querySelector(".entry");
+        const style = getComputedStyle(button);
+        return {
+          selected: entry.selected,
+          focused: entry.shadowRoot.activeElement === button && button.matches(":focus-visible"),
+          ring: [style.outlineStyle, parseFloat(style.outlineWidth) > 0],
+          offset: parseFloat(style.outlineOffset),
+          frame: style.boxShadow.includes("inset"),
+        };
+      })()`);
+      assert.deepEqual(
+        { ...shown, offset: shown.offset > 0 },
+        { selected: true, focused: true, ring: ["solid", true], offset: true, frame: true },
+      );
+    } finally {
+      await page.close();
     }
   });
 

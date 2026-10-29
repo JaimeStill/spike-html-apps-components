@@ -54,7 +54,8 @@ const renderRoot = (element) => element.shadowRoot ?? element;
 
 /**
  * The text a reader sees: text nodes in rendered order, through shadow roots and slots, with
- * whitespace collapsed.
+ * whitespace collapsed. Each element's text stands apart from its neighbors' but a wbr's, a break
+ * opportunity inside a word, which adds no space.
  *
  * @param {Node} node
  * @returns {string}
@@ -63,7 +64,8 @@ function renderedText(node) {
   /** @param {Node} n @returns {string} */
   const text = (n) => {
     if (n instanceof Text) return n.data;
-    if (!(n instanceof Element) || n instanceof HTMLStyleElement) return "";
+    if (!(n instanceof Element) || n instanceof HTMLStyleElement || n.localName === "wbr")
+      return "";
     const assigned = n instanceof HTMLSlotElement ? n.assignedNodes() : [];
     const children = assigned.length ? assigned : (n.shadowRoot ?? n).childNodes;
     return ` ${Array.from(children, text).join("")} `;
@@ -233,23 +235,27 @@ const heard = (type, detail) => `${type} ${JSON.stringify(detail)}`;
 function renderCases(report, { listing, filed, cursor }) {
   report.text("text directories", listing, [
     "Showing 4–6 of 8",
-    "directory designs active",
-    "directory invoices active",
-    "directory legal active",
+    "designs active directory",
+    "invoices active directory",
+    "legal active directory",
     "Page Size 3 6 12",
     "/ 3",
   ]);
   report.text("text files", filed, [
     "Showing 1–3 of 5",
-    "file brand-guide.pdf available 2.4 MB application/pdf",
-    "file notes.md available 18.4 kB text/markdown",
-    "file storefront.png pending image/png",
+    "brand-guide.pdf available file 2.4 MB application/pdf",
+    "notes.md available file 18.4 kB text/markdown",
+    "storefront.png pending file image/png",
     "Files per page 3 6 12",
   ]);
   report.text(
     "text cursor",
     cursor,
-    ["file nda-2026.pdf available 96.4 kB", "file retainer.docx", "file terms.md"],
+    [
+      "nda-2026.pdf available file 96.4 kB",
+      "retainer.docx available file 41.2 kB application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "terms.md available file",
+    ],
     ["Showing", "/ "],
   );
   report.text(
@@ -426,7 +432,7 @@ function contractCases(report, { listing }) {
 
   // Read from what renders: a value the element never took in still reads back from its field.
   const sizes = Array.from(parts.sizeSelect(listing).options, (option) => option.value);
-  const name = /^(?:directory|file) (\S+)/.exec(renderedText(parts.entries(listing)[0]))?.[1];
+  const name = /^(\S+)/.exec(renderedText(parts.entries(listing)[0]))?.[1];
   report.equal(
     "contract properties set before definition",
     `page ${parts.pageInput(listing).value}, sizes ${sizes.join("/")}, first entry ${name}`,
