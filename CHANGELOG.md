@@ -6,17 +6,122 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-29
+
 ### Added
 
-- `sl-entry` takes `selected`, a boolean reflected to the `selected` attribute, false by default,
-  which frames its button in the interaction color, the border and an inset line inside it, so the
-  frame moves nothing; while its focus is visible the focus ring alone marks it, the frame giving
-  way to the normal border, its width unchanged, until focus leaves. It is a mark to the eye only:
-  the consumer says it to assistive technology, as `sl-document-list` does with `aria-current`. The
-  entry's specimen page shows it, and its focus state is selected.
-- `sl-pagination` has a `status` slot, after the summary's text on its line, shown while the
-  summary is, and `./pagination.js` exports `summaryRange(page, size, total)`, the summary's first
-  and last rows, or null when it shows none.
+- marked 18.1.2 is the package's second dependency, pinned exactly as lit is. Only
+  `./markdown.js` imports it, so a page that imports no Markdown-rendering module loads none of
+  it; a page that does maps `marked` in its import map, to `marked/lib/marked.esm.js`.
+- `./markdown.js` exports `markdown(source)`, which renders a Markdown string as a Lit template of
+  plain native elements, which the foundation's elements sheet styles: headings, paragraphs,
+  emphasis, strong, code spans, fenced and indented code, nested ordered and unordered lists with
+  their start, task items, blockquotes, rules, links, GFM tables with their alignment and
+  strikethrough, and line breaks. It reads the source with marked's lexer only; Lit escapes every
+  text value, so raw HTML, block or inline, shows as its text. A link is an anchor, with
+  `rel="noreferrer"` and no target, only to an http, https, or mailto URL or a relative one, and
+  any other scheme shows the link's text; an image shows its alt text. Partial source renders as
+  far as it has arrived, an unclosed fence as a code block, and a growing source re-rendered into
+  the same container updates in place.
+- `./artifact-viewer.js` defines `sl-artifact-viewer`, which shows one artifact, its `name`,
+  `contentType` (the `content-type` attribute), and `content`, by its content type: text/markdown
+  rendered through `markdown()`; application/json, or any `+json` type, parsed and printed with
+  two-space indents; any other text/ type as preformatted text. Parameters and case don't count, so
+  `Text/Markdown; charset=utf-8` is Markdown. JSON that doesn't parse shows its raw text under a
+  labelled note, and a type that isn't text shows a labelled note in place of its content. Its
+  `state`, reflected, is `ready` by default, `loading`, or `error` with its `message`. The viewer
+  is as tall as its content; a consumer that constrains its block size, on the host or by a sized
+  parent, holds it there, and long content scrolls inside the viewer, in a region Tab reaches; its
+  lines never wrap, so a narrow viewer scrolls them sideways. The name and type head one frame,
+  which holds the content or a note; the browser's own scrollbars show on an axis the content
+  overflows, and the padding shows at the scroll's far end. It sizes to its content in any parent,
+  a shrink-to-fit one too, and sends no event. It imports marked through
+  `./markdown.js`, so a page that uses it maps `marked` in its import map. `viewOf(contentType)`
+  exports the choice of view. Its specimen page is `demo/artifact-viewer.html`, and
+  `mise run screenshots --page artifact-viewer` captures it.
+- `./chat-thread.js` defines `sl-chat-thread`, which shows a conversation's `items` in order, a
+  structural subset of Open Responses 2026-04-24 by its JSON field names, its types exported:
+  `message` items, the user's or the assistant's, their `input_text` parts as plain text,
+  `output_text` parts rendered through `markdown()`, and `refusal` parts as a labelled refusal;
+  `reasoning` items, their summary and content text; `function_call` items, their name, call id,
+  and arguments, pretty-printed when they parse as JSON and raw when they don't; and
+  `function_call_output` items, their output, named for the call they answer. Item types, roles,
+  and part types it doesn't know are skipped, with no error. Each message is labelled with its
+  role, the user's at the inline end; a message `in_progress` reads as streaming, with a dot that
+  pulses unless motion is reduced, and re-renders in place as its text grows, keyed by item id, so
+  the items above it keep their nodes and don't move; `incomplete` and `failed` messages are
+  labelled so. `verbose`, reflected, false by default, hides reasoning, calls, and outputs; set,
+  it shows each collapsed in a native details. The items are an ordered list in one frame, as tall
+  as its content unless the consumer constrains it, when it scrolls inside, in a region Tab
+  reaches. It sizes to its content in any parent, a shrink-to-fit one too, and sends no event and
+  binds no key. It imports marked through `./markdown.js`. Its specimen page is
+  `demo/chat-thread.html`, and `mise run screenshots --page chat-thread` captures it.
+- `./composer.js` defines `sl-composer`, a multi-line text field and its send control. Activating
+  send sends `send`, its detail `{ text }`, the field's text as typed, and clears the field first,
+  so a listener that sets `value` keeps what it set; focus returns to the field. Send is disabled
+  while the text is empty or whitespace. `busy`, reflected, puts a stop control in send's place, in
+  the same footprint, which sends `stop` with `{}`; the field still takes typing, and nothing is
+  sent. `disabled`, reflected, disables the field and the control. `value` is the field's text,
+  kept in step with typing, which sends no event; `placeholder` is the field's, and `label`
+  ("Message" by default) names it in a visually hidden label. The field grows with its text by
+  `field-sizing: content` from one line, the control's height, to eight, then scrolls with the
+  browser's own scrollbar; without `field-sizing` it keeps one row. It binds no key: Enter,
+  Shift+Enter, and Escape do what a native textarea does. Its specimen page is
+  `demo/composer.html`, and `mise run screenshots --page composer` captures it.
+- `./upload-dropzone.js` defines `sl-upload-dropzone`, a zone that takes files, several at a time,
+  dropped on it or chosen through the native file picker its button opens, by pointer or keyboard,
+  and sends `files-select` either way, its detail `{ files }`, an array of the `File`s. A drag of
+  files marks the zone, kept while it moves across the zone's children and cleared when it leaves
+  or drops; a drag of anything but files leaves the zone alone, and a drop of files is never the
+  browser's, so a missed drop never opens the file in the page. `disabled`, reflected, refuses
+  files by both paths, its drop effect none, and reads as disabled. `accept` is the picker's; a
+  drop is not filtered by it, and the app validates what it receives. `uploads` lists the app's
+  uploads, each a structural `UploadItem`, exported, `{ id, name, size, sent, state, message? }`:
+  its name, on one line and cut short when long, and its size by the foundation's `formatBytes`;
+  an uploading one its bytes sent of its size and a native progress bar, and a cancel control
+  named for the file, which sends `upload-cancel` with `{ id }`; a done, failed, or cancelled one
+  its label, a failed one its message. Neither progress nor a change of state moves an upload's
+  rows. It binds no key. Its specimen page is `demo/upload-dropzone.html`, and
+  `mise run screenshots --page upload-dropzone` captures it.
+- `./stage-timeline.js` defines `sl-stage-timeline`, a run's stages as a connected, ordered list
+  of steps. `stages` takes each as a structural `TimelineStage`, exported,
+  `{ name, position, state, completedAt? }`, its state `pending`, `active`, `complete`, or
+  `failed`, and its completion time an RFC 3339 string or a `Date`. The steps show in their
+  positions' order, each its name; its state's label, Pending, In progress, Complete, or Failed;
+  its marker, its position, a check, or a cross; and its completion time by the foundation's
+  `formatDateTime`, to the second. The active stage is the list's current step, its marker
+  ringed by a pulse unless motion is reduced. A stage that advances changes in its own nodes, and
+  its label and time hold their slots' widths, so nothing moves as a state changes, in a
+  shrink-to-fit parent too. It holds nothing focusable, sends no event, and binds no key. Its
+  specimen page is `demo/stage-timeline.html`, and `mise run screenshots --page stage-timeline`
+  captures it.
+- `./event-log.js` defines `sl-event-log`, events as a log in the order given, inside one frame.
+  `events` takes each as a structural `LogEvent`, exported, a subset of CloudEvents 1.0 by its
+  attribute names, `{ id, type, source, subject?, time, data? }`, its time an RFC 3339 string or a
+  `Date`. Each event shows its type; its time by the foundation's `formatDateTime`, absolute and to
+  the second; its source, subject, and id, labelled, grouped under them; and its data, pretty-
+  printed as JSON, a string as it is, in a native details collapsed until opened, or a note when
+  it has none. Events are keyed by source and id, so events appended leave those shown in their
+  own nodes and places, and a details the reader opened stays open. The frame is a polite log of
+  additions. The log is as tall as its events; a consumer that constrains its block size holds it
+  there and it scrolls inside, following the newest event as one arrives only while the reader is
+  at its end. It sends no event and binds no key. Its specimen page is `demo/event-log.html`, and
+  `mise run screenshots --page event-log` captures it.
+- `./search-results.js` defines `sl-search-results`, a search's matches under a status line.
+  `items` takes each as a structural `SearchMatch`, exported, `{ id, name, field, snippet }`, its
+  field `name` or `content`; `query` is the query they are for; and `state`, reflected, `ready`,
+  `loading`, or `error`, with `message` saying why it failed. The status line, one polite live
+  region in every state, prompts before any query, says it is searching, counts the matches for
+  the query, says there are none, or says the search failed with its message. Each match is a
+  native button, its document's name with its field's label, "in name" or "in content", at the
+  line's end, and under them its snippet, ellipses kept and joined to the text beside them; a name
+  match whose snippet only repeats its name shows the name alone. The query's occurrences in the
+  name and the snippet are marked case-insensitively, letter by letter, as text, so markup and a
+  pattern's specials in either are literal, and a letter whose other case is longer shifts no
+  mark; a blank query marks nothing. Activating a match sends `open`, its detail `{ id }`. While
+  loading, matches already given stay listed, busy; an error lists none. It binds no key. Its
+  specimen page is `demo/search-results.html`, and `mise run screenshots --page search-results`
+  captures it.
 - `./document-list.js` defines `sl-document-list`, a page of documents composed of the existing
   components: one `sl-pagination`, whose default slot holds the list's status line and an
   `sl-entry` per document. `items` takes each as a structural `DocumentItem`, exported,
@@ -37,126 +142,21 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
   `page-size-change`, `{ size }`, bubble and are composed, so they reach the list's listener as
   their parts sent them; the list dispatches no event of its own. It binds no key. Its specimen
   page is `demo/document-list.html`, and `mise run screenshots --page document-list` captures it.
-- `./search-results.js` defines `sl-search-results`, a search's matches under a status line.
-  `items` takes each as a structural `SearchMatch`, exported, `{ id, name, field, snippet }`, its
-  field `name` or `content`; `query` is the query they are for; and `state`, reflected, `ready`,
-  `loading`, or `error`, with `message` saying why it failed. The status line, one polite live
-  region in every state, prompts before any query, says it is searching, counts the matches for
-  the query, says there are none, or says the search failed with its message. Each match is a
-  native button, its document's name with its field's label, "in name" or "in content", at the
-  line's end, and under them its snippet, ellipses kept and joined to the text beside them; a name
-  match whose snippet only repeats its name shows the name alone. The query's occurrences in the
-  name and the snippet are marked case-insensitively, letter by letter, as text, so markup and a
-  pattern's specials in either are literal, and a letter whose other case is longer shifts no
-  mark; a blank query marks nothing. Activating a match sends `open`, its detail `{ id }`. While
-  loading, matches already given stay listed, busy; an error lists none. It binds no key. Its
-  specimen page is `demo/search-results.html`, and `mise run screenshots --page search-results`
-  captures it.
-- `./event-log.js` defines `sl-event-log`, events as a log in the order given, inside one frame.
-  `events` takes each as a structural `LogEvent`, exported, a subset of CloudEvents 1.0 by its
-  attribute names, `{ id, type, source, subject?, time, data? }`, its time an RFC 3339 string or a
-  `Date`. Each event shows its type; its time by the foundation's `formatDateTime`, absolute and to
-  the second; its source, subject, and id, labelled, grouped under them; and its data, pretty-
-  printed as JSON, a string as it is, in a native details collapsed until opened, or a note when
-  it has none. Events are keyed by source and id, so events appended leave those shown in their
-  own nodes and places, and a details the reader opened stays open. The frame is a polite log of
-  additions. The log is as tall as its events; a consumer that constrains its block size holds it
-  there and it scrolls inside, following the newest event as one arrives only while the reader is
-  at its end. It sends no event and binds no key. Its specimen page is `demo/event-log.html`, and
-  `mise run screenshots --page event-log` captures it.
-- `./stage-timeline.js` defines `sl-stage-timeline`, a run's stages as a connected, ordered list
-  of steps. `stages` takes each as a structural `TimelineStage`, exported,
-  `{ name, position, state, completedAt? }`, its state `pending`, `active`, `complete`, or
-  `failed`, and its completion time an RFC 3339 string or a `Date`. The steps show in their
-  positions' order, each its name; its state's label, Pending, In progress, Complete, or Failed;
-  its marker, its position, a check, or a cross; and its completion time by the foundation's
-  `formatDateTime`, to the second. The active stage is the list's current step, its marker
-  ringed by a pulse unless motion is reduced. A stage that advances changes in its own nodes, and
-  its label and time hold their slots' widths, so nothing moves as a state changes, in a
-  shrink-to-fit parent too. It holds nothing focusable, sends no event, and binds no key. Its
-  specimen page is `demo/stage-timeline.html`, and `mise run screenshots --page stage-timeline`
-  captures it.
-- `./upload-dropzone.js` defines `sl-upload-dropzone`, a zone that takes files, several at a time,
-  dropped on it or chosen through the native file picker its button opens, by pointer or keyboard,
-  and sends `files-select` either way, its detail `{ files }`, an array of the `File`s. A drag of
-  files marks the zone, kept while it moves across the zone's children and cleared when it leaves
-  or drops; a drag of anything but files leaves the zone alone, and a drop of files is never the
-  browser's, so a missed drop never opens the file in the page. `disabled`, reflected, refuses
-  files by both paths, its drop effect none, and reads as disabled. `accept` is the picker's; a
-  drop is not filtered by it, and the app validates what it receives. `uploads` lists the app's
-  uploads, each a structural `UploadItem`, exported, `{ id, name, size, sent, state, message? }`:
-  its name, on one line and cut short when long, and its size by the foundation's `formatBytes`;
-  an uploading one its bytes sent of its size and a native progress bar, and a cancel control
-  named for the file, which sends `upload-cancel` with `{ id }`; a done, failed, or cancelled one
-  its label, a failed one its message. Neither progress nor a change of state moves an upload's
-  rows. It binds no key. Its specimen page is `demo/upload-dropzone.html`, and
-  `mise run screenshots --page upload-dropzone` captures it.
-- `./composer.js` defines `sl-composer`, a multi-line text field and its send control. Activating
-  send sends `send`, its detail `{ text }`, the field's text as typed, and clears the field first,
-  so a listener that sets `value` keeps what it set; focus returns to the field. Send is disabled
-  while the text is empty or whitespace. `busy`, reflected, puts a stop control in send's place, in
-  the same footprint, which sends `stop` with `{}`; the field still takes typing, and nothing is
-  sent. `disabled`, reflected, disables the field and the control. `value` is the field's text,
-  kept in step with typing, which sends no event; `placeholder` is the field's, and `label`
-  ("Message" by default) names it in a visually hidden label. The field grows with its text by
-  `field-sizing: content` from one line, the control's height, to eight, then scrolls with the
-  browser's own scrollbar; without `field-sizing` it keeps one row. It binds no key: Enter,
-  Shift+Enter, and Escape do what a native textarea does. Its specimen page is
-  `demo/composer.html`, and `mise run screenshots --page composer` captures it.
-- `./chat-thread.js` defines `sl-chat-thread`, which shows a conversation's `items` in order, a
-  structural subset of Open Responses 2026-04-24 by its JSON field names, its types exported:
-  `message` items, the user's or the assistant's, their `input_text` parts as plain text,
-  `output_text` parts rendered through `markdown()`, and `refusal` parts as a labelled refusal;
-  `reasoning` items, their summary and content text; `function_call` items, their name, call id,
-  and arguments, pretty-printed when they parse as JSON and raw when they don't; and
-  `function_call_output` items, their output, named for the call they answer. Item types, roles,
-  and part types it doesn't know are skipped, with no error. Each message is labelled with its
-  role, the user's at the inline end; a message `in_progress` reads as streaming, with a dot that
-  pulses unless motion is reduced, and re-renders in place as its text grows, keyed by item id, so
-  the items above it keep their nodes and don't move; `incomplete` and `failed` messages are
-  labelled so. `verbose`, reflected, false by default, hides reasoning, calls, and outputs; set,
-  it shows each collapsed in a native details. The items are an ordered list in one frame, as tall
-  as its content unless the consumer constrains it, when it scrolls inside, in a region Tab
-  reaches. It sizes to its content in any parent, a shrink-to-fit one too, and sends no event and
-  binds no key. It imports marked through `./markdown.js`. Its specimen page is
-  `demo/chat-thread.html`, and `mise run screenshots --page chat-thread` captures it.
-- `./artifact-viewer.js` defines `sl-artifact-viewer`, which shows one artifact, its `name`,
-  `contentType` (the `content-type` attribute), and `content`, by its content type: text/markdown
-  rendered through `markdown()`; application/json, or any `+json` type, parsed and printed with
-  two-space indents; any other text/ type as preformatted text. Parameters and case don't count, so
-  `Text/Markdown; charset=utf-8` is Markdown. JSON that doesn't parse shows its raw text under a
-  labelled note, and a type that isn't text shows a labelled note in place of its content. Its
-  `state`, reflected, is `ready` by default, `loading`, or `error` with its `message`. The viewer
-  is as tall as its content; a consumer that constrains its block size, on the host or by a sized
-  parent, holds it there, and long content scrolls inside the viewer, in a region Tab reaches; its lines never wrap, so a narrow viewer scrolls them sideways. The name and
-  type head one frame, which holds the content or a note; the browser's own scrollbars show on an
-  axis the content overflows, and the padding shows at the scroll's far end. It sizes to its content in
-  any parent, a shrink-to-fit one too, and sends no event. It imports marked through
-  `./markdown.js`, so a page that uses it maps `marked` in its import map. `viewOf(contentType)`
-  exports the choice of view. Its specimen page is `demo/artifact-viewer.html`, and
-  `mise run screenshots --page artifact-viewer` captures it.
-- `./markdown.js` exports `markdown(source)`, which renders a Markdown string as a Lit template of
-  plain native elements, which the foundation's elements sheet styles: headings, paragraphs,
-  emphasis, strong, code spans, fenced and indented code, nested ordered and unordered lists with
-  their start, task items, blockquotes, rules, links, GFM tables with their alignment and
-  strikethrough, and line breaks. It reads the source with marked's lexer only; Lit escapes every
-  text value, so raw HTML, block or inline, shows as its text. A link is an anchor, with
-  `rel="noreferrer"` and no target, only to an http, https, or mailto URL or a relative one, and
-  any other scheme shows the link's text; an image shows its alt text. Partial source renders as
-  far as it has arrived, an unclosed fence as a code block, and a growing source re-rendered into
-  the same container updates in place.
-- marked 18.1.2 is the package's second dependency, pinned exactly as lit is. Only
-  `./markdown.js` imports it, so a page that imports no Markdown-rendering module loads none of
-  it; a page that does maps `marked` in its import map, to `marked/lib/marked.esm.js`.
+- `sl-entry` takes `selected`, a boolean reflected to the `selected` attribute, false by default,
+  which frames its button in the interaction color, the border and an inset line inside it, so the
+  frame moves nothing; while its focus is visible the focus ring alone marks it, the frame giving
+  way to the normal border, its width unchanged, until focus leaves. It is a mark to the eye only:
+  the consumer says it to assistive technology, as `sl-document-list` does with `aria-current`. The
+  entry's specimen page shows it, and its focus state is selected.
+- `sl-pagination` has a `status` slot, after the summary's text on its line, shown while the
+  summary is, and `./pagination.js` exports `summaryRange(page, size, total)`, the summary's first
+  and last rows, or null when it shows none.
+- `mise run screenshots` takes `--page <name>`, repeatable, capturing only the specimen pages
+  named, and `--scheme light` or `--scheme dark`, capturing that scheme alone; both combine with
+  the profile flags and `--all`. An unknown page name exits 2, listing the pages' names.
 
 ### Changed
 
-- The entry's name is its primary text, semibold at the body size, and its status a quiet label at
-  the line's end, the smallest size and muted. Its kind, as quiet, opens the meta line under the
-  name in place of a column of its own, so a narrow entry gives its width to the name and the meta,
-  and its text reads name, status, kind, size, content type, time. The meta wraps between its
-  values, and a content type too long for its line breaks after a slash, dot, hyphen, or plus, at a
-  `wbr`, and inside a part only when that part alone is wider than the line.
 - Breaking: the entry is `sl-entry` and the pagination `sl-pagination`, each a plain name, as
   `sl-status-badge` is. Their modules are `./entry.js` and `./pagination.js`, their sheets
   `./entry.css` and `./pagination.css`, and their classes `Entry` and `Pagination`. The old tags
@@ -164,6 +164,12 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
   `./pagination-lit-shadow.js`, the sheets `./entry-shadow.css` and `./pagination-shadow.css`, and
   the classes `EntryLitShadow` and `PaginationLitShadow` no longer exist; a consumer renames its
   imports and its tags.
+- The entry's name is its primary text, semibold at the body size, and its status a quiet label at
+  the line's end, the smallest size and muted. Its kind, as quiet, opens the meta line under the
+  name in place of a column of its own, so a narrow entry gives its width to the name and the meta,
+  and its text reads name, status, kind, size, content type, time. The meta wraps between its
+  values, and a content type too long for its line breaks after a slash, dot, hyphen, or plus, at a
+  `wbr`, and inside a part only when that part alone is wider than the line.
 
 ## [0.2.0] - 2026-10-27
 
@@ -235,6 +241,7 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 - The release by tag: `v<version>`, whose tree is the pack, with the tarball on its GitHub
   release.
 
-[Unreleased]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/JaimeStill/spike-html-apps-components/releases/tag/v0.1.0

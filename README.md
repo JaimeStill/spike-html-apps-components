@@ -16,17 +16,17 @@ the one copy serves both, so a restyle of the foundation's sheets by package nam
 components' shadow roots too. Install both by their tags:
 
 ```
-npm install --allow-git=root github:JaimeStill/spike-html-apps-components#v0.2.0 github:JaimeStill/spike-html-apps-foundation#v0.2.0
-pnpm add github:JaimeStill/spike-html-apps-components#v0.2.0 github:JaimeStill/spike-html-apps-foundation#v0.2.0
-bun add github:JaimeStill/spike-html-apps-components#v0.2.0 github:JaimeStill/spike-html-apps-foundation#v0.2.0
+npm install --allow-git=root github:JaimeStill/spike-html-apps-components#v0.3.0 github:JaimeStill/spike-html-apps-foundation#v0.2.0
+pnpm add github:JaimeStill/spike-html-apps-components#v0.3.0 github:JaimeStill/spike-html-apps-foundation#v0.2.0
+bun add github:JaimeStill/spike-html-apps-components#v0.3.0 github:JaimeStill/spike-html-apps-foundation#v0.2.0
 ```
 
 Or by their release tarballs:
 
 ```
-npm install --allow-remote=root https://github.com/JaimeStill/spike-html-apps-components/releases/download/v0.2.0/jaimestill-spike-html-apps-components-0.2.0.tgz https://github.com/JaimeStill/spike-html-apps-foundation/releases/download/v0.2.0/jaimestill-spike-html-apps-foundation-0.2.0.tgz
-pnpm add https://github.com/JaimeStill/spike-html-apps-components/releases/download/v0.2.0/jaimestill-spike-html-apps-components-0.2.0.tgz https://github.com/JaimeStill/spike-html-apps-foundation/releases/download/v0.2.0/jaimestill-spike-html-apps-foundation-0.2.0.tgz
-bun add https://github.com/JaimeStill/spike-html-apps-components/releases/download/v0.2.0/jaimestill-spike-html-apps-components-0.2.0.tgz https://github.com/JaimeStill/spike-html-apps-foundation/releases/download/v0.2.0/jaimestill-spike-html-apps-foundation-0.2.0.tgz
+npm install --allow-remote=root https://github.com/JaimeStill/spike-html-apps-components/releases/download/v0.3.0/jaimestill-spike-html-apps-components-0.3.0.tgz https://github.com/JaimeStill/spike-html-apps-foundation/releases/download/v0.2.0/jaimestill-spike-html-apps-foundation-0.2.0.tgz
+pnpm add https://github.com/JaimeStill/spike-html-apps-components/releases/download/v0.3.0/jaimestill-spike-html-apps-components-0.3.0.tgz https://github.com/JaimeStill/spike-html-apps-foundation/releases/download/v0.2.0/jaimestill-spike-html-apps-foundation-0.2.0.tgz
+bun add https://github.com/JaimeStill/spike-html-apps-components/releases/download/v0.3.0/jaimestill-spike-html-apps-components-0.3.0.tgz https://github.com/JaimeStill/spike-html-apps-foundation/releases/download/v0.2.0/jaimestill-spike-html-apps-foundation-0.2.0.tgz
 ```
 
 - npm 12 refuses a git dependency unless `--allow-git` allows it, and a remote tarball unless
