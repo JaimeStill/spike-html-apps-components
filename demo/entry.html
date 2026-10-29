@@ -9,8 +9,8 @@
          labelled, then shown again in a section 20rem wide; the fit section holds the file in
          three parents that size it to its content, an inline-block, a content-sized flex item,
          and a grid's auto track; and the focus section holds one instance, selected, which the
-         screenshot script reaches with a Tab press, so the focus ring and the selected frame show
-         together. The page links the installed
+         screenshot script reaches with a Tab press, so the focus ring shows in place of the
+         selected frame. The page links the installed
          foundation's full entry, page-full.css, and imports register-full.js, so a profile
          applies by attribute on the root; its import map is components.html's, so it runs served
          only: mise run demo, or mise run screenshots. -->
@@ -55,7 +55,7 @@
             }),
           },
         ],
-        { label: "Selected and focused by Tab: the ring outside the frame", build: entry(file, true) },
+        { label: "Selected and focused by Tab: the ring alone, the frame withheld", build: entry(file, true) },
       );
       // The file in each parent that sizes it to its content, by the parent's class in demo.css.
       const fit = (label, parent) => ({

@@ -808,11 +808,11 @@ describe("components", { timeout: 60_000 }, () => {
     }
   });
 
-  test("a selected entry focused by Tab shows its focus ring outside its selected frame", async () => {
-    // The focus section's entry is selected; Tab from the section's mark focuses its button. The
-    // ring, the elements sheet's outline, is drawn past the border box by its offset, with the
-    // surface between it and the frame, the border and inset shadow drawn inside the box, so the
-    // two read as two marks.
+  test("a selected entry focused by Tab shows its focus ring alone, and its frame once focus leaves", async () => {
+    // The focus section's entry is selected; Tab from the section's mark focuses its button. While
+    // its focus is visible the ring, the elements sheet's outline, is the one mark: the border is
+    // not the interaction color and there is no inset shadow, the border's width the same. Focus
+    // moved to another entry's button, the frame returns.
     const page = await browser.open(`${server.origin}/demo/entry.html`);
     try {
       await page.cdp("Emulation.setFocusEmulationEnabled", { enabled: true });
@@ -822,21 +822,53 @@ describe("components", { timeout: 60_000 }, () => {
       const tab = { key: "Tab", code: "Tab", windowsVirtualKeyCode: 9 };
       await page.cdp("Input.dispatchKeyEvent", { type: "keyDown", ...tab });
       await page.cdp("Input.dispatchKeyEvent", { type: "keyUp", ...tab });
-      const shown = await page.evaluate(`(() => {
+      // The focus section's entry as it shows: its ring, its frame, and its border's width.
+      const look = `(() => {
         const entry = document.querySelector("#focus sl-entry");
         const button = entry.shadowRoot.querySelector(".entry");
+        // The interaction color as the button resolves it, read from a probe's color.
+        const probe = entry.shadowRoot.appendChild(document.createElement("span"));
+        probe.style.color = "var(--interaction-color, var(--blue))";
+        const interaction = getComputedStyle(probe).color;
+        probe.remove();
         const style = getComputedStyle(button);
         return {
           selected: entry.selected,
           focused: entry.shadowRoot.activeElement === button && button.matches(":focus-visible"),
-          ring: [style.outlineStyle, parseFloat(style.outlineWidth) > 0],
-          offset: parseFloat(style.outlineOffset),
-          frame: style.boxShadow.includes("inset"),
+          ring: style.outlineStyle !== "none" && parseFloat(style.outlineWidth) > 0,
+          border: style.borderTopColor === interaction,
+          shadow: style.boxShadow.includes("inset"),
+          width: style.borderTopWidth,
         };
-      })()`);
+      })()`;
+      const focused = await page.evaluate(look);
       assert.deepEqual(
-        { ...shown, offset: shown.offset > 0 },
-        { selected: true, focused: true, ring: ["solid", true], offset: true, frame: true },
+        { ...focused, width: undefined },
+        {
+          selected: true,
+          focused: true,
+          ring: true,
+          border: false,
+          shadow: false,
+          width: undefined,
+        },
+        "focused by Tab",
+      );
+      await page.evaluate(
+        `(${ENTRIES})("#states").find((entry) => entry.item).shadowRoot.querySelector(".entry").focus()`,
+      );
+      const left = await page.evaluate(look);
+      assert.deepEqual(
+        left,
+        {
+          selected: true,
+          focused: false,
+          ring: false,
+          border: true,
+          shadow: true,
+          width: focused.width,
+        },
+        "focus on another entry",
       );
     } finally {
       await page.close();

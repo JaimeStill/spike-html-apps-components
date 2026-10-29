@@ -10,10 +10,10 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 
 - `sl-entry` takes `selected`, a boolean reflected to the `selected` attribute, false by default,
   which frames its button in the interaction color, the border and an inset line inside it, so the
-  frame moves nothing; the focus ring sits outside it at the ring's offset, so a selected entry
-  with focus shows both. It is a mark to the eye only: the consumer says it to assistive
-  technology, as `sl-document-list` does with `aria-current`. The entry's specimen page shows it,
-  and its focus state is selected.
+  frame moves nothing; while its focus is visible the focus ring alone marks it, the frame giving
+  way to the normal border, its width unchanged, until focus leaves. It is a mark to the eye only:
+  the consumer says it to assistive technology, as `sl-document-list` does with `aria-current`. The
+  entry's specimen page shows it, and its focus state is selected.
 - `sl-pagination` has a `status` slot, after the summary's text on its line, shown while the
   summary is, and `./pagination.js` exports `summaryRange(page, size, total)`, the summary's first
   and last rows, or null when it shows none.

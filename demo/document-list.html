@@ -12,8 +12,8 @@
          again in a section 20rem wide; the fit section holds a short page in three parents that
          size the list to its content, an inline-block, a content-sized flex item, and a grid's auto
          track; and the focus section holds one instance, its first entry selected, which the
-         screenshot script reaches with a Tab press, so the focus ring and the selected frame show
-         together. Each entry is a native button, bordered, and
+         screenshot script reaches with a Tab press, so the focus ring shows in place of the
+         selected frame. Each entry is a native button, bordered, and
          the pagination rules its controls off, so main is unframed: no specimen frame around them.
          The page links the installed foundation's full entry, page-full.css, and imports
          register-full.js, so a profile applies by attribute on the root; its import map is
@@ -141,7 +141,7 @@
           },
           { label: "A long name, kept inside its entry, wrapping at 20rem", build: list({ items: long }) },
         ],
-        { label: "Selected and focused by Tab: the first entry, the ring outside the frame", build: list({ items: first, selected: first[0].id }) },
+        { label: "Selected and focused by Tab: the first entry, the ring alone, the frame withheld", build: list({ items: first, selected: first[0].id }) },
       );
       // A short page in each parent that sizes the list to its content, by the parent's class in
       // demo.css.

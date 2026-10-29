@@ -37,10 +37,11 @@
 }
 /* Selected, the frame is drawn in the interaction color: the border takes the color, and an inset
    shadow a line wide inside it doubles its weight, so the mark is a heavier frame, not a hue alone,
-   and moves nothing, since every entry's border is already there and a shadow takes no space. The
-   focus ring, the elements sheet's outline, sits outside the border at its offset, a gap of the
-   surface between them, so a selected entry that has focus shows both. */
-:host([selected]) .entry {
+   and moves nothing, since every entry's border is already there and a shadow takes no space.
+   While the button's focus is visible, the focus ring, the elements sheet's outline, is the one
+   mark: the frame gives way to the normal border, its width unchanged, so nothing moves, and
+   returns when focus leaves or comes by a pointer without a visible ring. */
+:host([selected]) .entry:not(:focus-visible) {
   border-color: var(--interaction-color, var(--blue));
   box-shadow: inset 0 0 0 var(--line-s) var(--interaction-color, var(--blue));
 }
