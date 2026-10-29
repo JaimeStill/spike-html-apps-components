@@ -1,9 +1,9 @@
 # spike-html-apps-components
 
 The components layer of [spike-html-apps](https://github.com/JaimeStill/spike-html-apps):
-the status badge, the entry, and the pagination, Lit with shadow roots, and their sheets. It is ES
-modules with their type declarations and stylesheets, built on the foundation, which they take as
-a peer, and is released by git tag.
+eleven Lit components with shadow roots, their sheets, and a Markdown renderer. It is ES modules
+with their type declarations and stylesheets, built on the foundation, which they take as a peer,
+and is released by git tag.
 
 ## Install
 
@@ -105,22 +105,21 @@ foundation's `page.css`:
   them; it dispatches none of its own. It exports its document type and binds no key.
 - `./*.css`: each component's sheet, which its module imports itself.
 
-`demo/components.html` is a page on all three, with its import map. Each component also has a
-specimen page, `demo/status-badge.html`, `demo/entry.html`, `demo/pagination.html`,
-`demo/artifact-viewer.html`, `demo/chat-thread.html`, `demo/composer.html`,
-`demo/upload-dropzone.html`, `demo/stage-timeline.html`, `demo/event-log.html`,
-`demo/search-results.html`, and `demo/document-list.html`, that shows every state of the component, labelled, then again in a
-section 20rem wide, and, for a component that holds a control, one instance reached by the keyboard
-to show its focus ring. The specimen pages link the foundation's `page-full.css` and import its
-`register-full.js`, so a profile applies by its attribute on the root.
+`demo/components.html` puts the status badge, the entry, and the pagination on one page, with its
+import map. Each component has a specimen page, `demo/<name>.html`, for `status-badge`, `entry`,
+`pagination`, `artifact-viewer`, `chat-thread`, `composer`, `upload-dropzone`, `stage-timeline`,
+`event-log`, `search-results`, and `document-list`. A specimen page shows every state of its
+component, labelled, then again in a section 20rem wide, and, for a component that holds a
+control, one instance reached by the keyboard to show its focus ring. The specimen pages link the
+foundation's `page-full.css` and import its `register-full.js`, so a profile applies by its
+attribute on the root.
+
 `mise run screenshots` captures each specimen page light and dark, each page in vertical tiles at
 most 1200px tall: by default in flexoki, regular, and mono; with `--palette`, `--space`, or
-`--type`, combined, in the facet's profile named, checked against the pages' registry; with `--all`,
-in each of the four colors, and in compact and in sans. `--page`, repeatable, with a page's name,
-`status-badge`, `entry`, `pagination`, `artifact-viewer`, `chat-thread`, `composer`,
-`upload-dropzone`, `stage-timeline`, `event-log`, `search-results`, or `document-list`, captures
-only the pages named, and `--scheme light` or `--scheme dark` only that scheme; both combine with the profile flags
-and `--all`.
+`--type`, combined, in the facet's profile named, checked against the pages' registry; with
+`--all`, in each of the four colors, and in compact and in sans. `--page <name>`, repeatable,
+captures only the specimen pages named, and `--scheme light` or `--scheme dark` only that scheme;
+both combine with the profile flags and `--all`.
 
 ## Development
 

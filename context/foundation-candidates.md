@@ -1,10 +1,10 @@
 # Foundation candidates
 
-Patterns the components keep locally that the foundation could own, found while the eleven
-components were built. Each is checked against `src/`: it recurs in two or more components, or it
-fills a gap in the foundation that a component had to work around. They are grouped by the shape
-the foundation would give them, so a foundation goal can stage them by group; each names what it
-is, where it occurs, why it is shared, and that shape. A candidate the foundation takes leaves the
+This note lists the patterns the components keep locally that the foundation could own. Each is
+checked against `src/`: it recurs in two or more components, or it fills a gap in the foundation
+that a component had to work around. They are grouped by the shape the foundation would give them,
+so a foundation goal can stage them by group; each names what it is, where it occurs, why it is
+shared, and that shape. A candidate the foundation takes leaves the
 components' sheets in the same change, and leaves this note.
 
 ## Tokens
@@ -46,9 +46,8 @@ components' sheets in the same change, and leaves this note.
   component that lists its items as a list. Shape: a utility class; not an elements-sheet rule,
   since prose lists keep their markers.
 - **Keep whole.** `white-space: nowrap` on a size, a count, a time, an id, or a label, in every
-  sheet but `artifact-viewer.css` and `status-badge.css`, with `font-variant-numeric:
-  tabular-nums` where its digits
-  change: the bytes in `upload-dropzone.css`, the time in `stage-timeline.css` and
+  sheet but `artifact-viewer.css` and `status-badge.css`, with `font-variant-numeric: tabular-nums`
+  where its digits change: the bytes in `upload-dropzone.css`, the time in `stage-timeline.css` and
   `event-log.css`. Shape: a utility class for each, or one for a numeric value that does both.
 - **Break only when longer than the line.** A value that moves to the next line whole and breaks
   inside only when it alone is wider than the line: `max-inline-size: 100%` with
@@ -106,8 +105,8 @@ components' sheets in the same change, and leaves this note.
 
 ## Left local
 
-Reported during the build, checked, and kept in their components: each occurs in one, and fills
-no gap another component has met.
+These patterns stay in their components: each occurs in one, and fills no gap another component
+has met.
 
 - Pluralized counts ("1 match", "3 matches") and the query in typographic quotes:
   `search-results.ts`.
