@@ -12,3 +12,8 @@ the code and the README do not express.
   is ported by hand, never taken as a dependency.
 - A version bump, with its `CHANGELOG.md` section headed `## [<version>]`, is what releases; a push
   to main that bumps nothing ends green.
+
+## Notes
+
+- [`foundation-candidates.md`](foundation-candidates.md): the patterns the components keep locally
+  that the foundation could own, grouped by the shape the foundation would give them.
