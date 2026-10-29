@@ -205,11 +205,11 @@ describe("components", { timeout: 60_000 }, () => {
             await element.updateComplete;
             const { width, height } = element.getBoundingClientRect();
             // The look the profile gives the component's first button, inside its shadow root;
-            // the artifact viewer, which holds no button, its region's color and padding, and its
-            // Markdown heading's font, since the region's text is the body font, which the type
-            // facet's profiles share.
+            // the artifact viewer, which holds no button, the color and padding of what its region
+            // scrolls, and its Markdown heading's font, since the region's text is the body font,
+            // which the type facet's profiles share.
             const viewer = tag === "sl-artifact-viewer";
-            const style = getComputedStyle(element.shadowRoot.querySelector(viewer ? ".body" : "button"));
+            const style = getComputedStyle(element.shadowRoot.querySelector(viewer ? ".body > *" : "button"));
             const font = viewer ? getComputedStyle(element.shadowRoot.querySelector("h1")) : style;
             const look = {
               color: style.color + " on " + style.backgroundColor,
@@ -646,7 +646,7 @@ describe("components", { timeout: 60_000 }, () => {
       const shown = (${VIEWERS})("main").map((viewer) => {
         const root = viewer.shadowRoot;
         const box = viewer.getBoundingClientRect();
-        const parts = [...root.querySelectorAll(".head, .name, .type, .note, .body")];
+        const parts = [...root.querySelectorAll(".head, .name, .type, .frame, .note, .body")];
         const region = root.querySelector(".body");
         return {
           name: viewer.name,

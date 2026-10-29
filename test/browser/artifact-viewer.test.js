@@ -222,6 +222,57 @@ describe("artifact viewer", { timeout: 60_000 }, () => {
     assert.ok(after.scrollTop > 0, `the keys scrolled the region to ${after.scrollTop}`);
   });
 
+  test("scrolled to its end, the region shows its padding past the content, in each view", async () => {
+    // A viewer 12rem wide and 10rem tall, of lines too long and too many for it: scrolled to the
+    // end of both axes, the text's widest line and last line, and the Markdown code block's
+    // border, stop short of the region's edges by the padding, never cut at the frame.
+    const long = Array.from({ length: 40 }, (_, i) => `line ${i + 1} ${"x".repeat(60)}end`).join(
+      "\n",
+    );
+    const cases = [
+      { contentType: "text/plain", content: long },
+      { contentType: "application/json", content: JSON.stringify({ line: "y".repeat(80) }) },
+      { contentType: "text/markdown", content: "```\n" + long + "\n```" },
+    ];
+    for (const fields of cases) {
+      await shown({ name: "wide", ...fields });
+      const gaps = await page.evaluate(`(() => {
+        const viewer = document.querySelector("sl-artifact-viewer");
+        viewer.style.inlineSize = "12rem";
+        viewer.style.maxBlockSize = "10rem";
+        const region = viewer.shadowRoot.querySelector(".body");
+        region.scrollLeft = region.scrollWidth;
+        region.scrollTop = region.scrollHeight;
+        // The region's edges inside its scrollbars, where its content stops showing.
+        const box = region.getBoundingClientRect();
+        const edge = {
+          right: box.left + region.clientLeft + region.clientWidth,
+          bottom: box.top + region.clientTop + region.clientHeight,
+        };
+        const code = region.querySelector(".document pre");
+        let end;
+        if (code) {
+          end = code.getBoundingClientRect();
+        } else {
+          // The text's box: its widest line's end, and its last line's foot.
+          const range = document.createRange();
+          range.selectNodeContents(region.querySelector(".content"));
+          end = range.getBoundingClientRect();
+        }
+        const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+        return {
+          scrolled: region.scrollLeft > 0,
+          inline: (edge.right - end.right) / rem,
+          block: (edge.bottom - end.bottom) / rem,
+        };
+      })()`);
+      const where = fields.contentType;
+      assert.ok(gaps.scrolled, `${where}: the region scrolls sideways`);
+      assert.ok(gaps.inline >= 0.5, `${where}: ${gaps.inline}rem past the content's inline end`);
+      assert.ok(gaps.block >= 0.5, `${where}: ${gaps.block}rem past the content's block end`);
+    }
+  });
+
   test("the viewer sends no event as its properties change", async () => {
     const sent = await page.evaluate(`(async () => {
       const viewer = document.querySelector("main").appendChild(

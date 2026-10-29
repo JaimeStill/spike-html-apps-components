@@ -49,6 +49,13 @@
     border: var(--line-s) dashed var(--border);
     border-radius: var(--radius-sm);
   }
+  /* A page whose component draws its own frame, and never renders nothing, drops the dashed one,
+     so the capture shows the component's frame alone. */
+  .unframed .state-frame {
+    min-block-size: 0;
+    padding: 0;
+    border: 0;
+  }
 
   /* The parents that size a component to its content: an inline-block; a flex container whose
      item is sized by its content alone, neither growing nor shrinking; and a grid whose auto

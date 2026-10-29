@@ -94,14 +94,15 @@ export class ArtifactViewer extends LitElement {
   }
 
   // The scrolling region: the keyboard reaches it by Tab, so arrow and page keys scroll it, and
-  // it is named for the artifact.
+  // it is named for the artifact. Its one child is the content it scrolls, padded, so the padding
+  // scrolls with the content and shows at its far edges.
   #region(content: unknown, markdownView = false) {
     const label = `${this.name || "Artifact"} content`;
     return markdownView
       ? html`<div class="body markdown" tabindex="0" role="region" aria-label=${label}>
           <div class="document">${content}</div>
         </div>`
-      : html`<pre class="body" tabindex="0" role="region" aria-label=${label}>${content}</pre>`;
+      : html`<pre class="body" tabindex="0" role="region" aria-label=${label}><span class="content">${content}</span></pre>`;
   }
 
   #note(kind: string, label: string, detail: string | typeof nothing = nothing) {
@@ -111,6 +112,7 @@ export class ArtifactViewer extends LitElement {
     </p>`;
   }
 
+  // The frame's content: a note, a region, or the invalid JSON note over its raw text's region.
   #renderContent() {
     switch (this.state) {
       case "loading":
@@ -147,7 +149,7 @@ export class ArtifactViewer extends LitElement {
             ${this.contentType ? html`<span class="type">${this.contentType}</span>` : nothing}
           </header>`
         : nothing;
-    return html`${head}${this.#renderContent()}`;
+    return html`${head}<div class="frame">${this.#renderContent()}</div>`;
   }
 }
 

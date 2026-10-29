@@ -16,8 +16,10 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
   labelled note, and a type that isn't text shows a labelled note in place of its content. Its
   `state`, reflected, is `ready` by default, `loading`, or `error` with its `message`. Long content
   scrolls inside the viewer, held to a max-block-size of 32rem that a consumer may override, in a
-  region Tab reaches; its lines never wrap, so a narrow viewer scrolls them sideways. It sizes to
-  its content in any parent, a shrink-to-fit one too, and sends no event. It imports marked through
+  region Tab reaches; its lines never wrap, so a narrow viewer scrolls them sideways. The name and
+  type head one frame, which holds the content or a note; a shade at each edge that content runs
+  past cues the scroll, and the padding shows at the scroll's far end. It sizes to its content in
+  any parent, a shrink-to-fit one too, and sends no event. It imports marked through
   `./markdown.js`, so a page that uses it maps `marked` in its import map. `viewOf(contentType)`
   exports the choice of view. Its specimen page is `demo/artifact-viewer.html`, and
   `mise run screenshots --page artifact-viewer` captures it.
