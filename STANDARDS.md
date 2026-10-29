@@ -18,10 +18,11 @@ The architecture pages that apply, in the architecture repository:
   profile renders as it does there.
 - A component is finished in every state it can show (empty, loading, streaming, error, long
   content, narrow width) and in every profile, light and dark, regular and compact.
-- Focus is always visible, motion is brief and honours reduced motion, and nothing shifts layout
-  as data arrives.
+- Focus is always visible, and nothing shifts layout as data arrives. Motion is brief, or a quiet
+  loop that signals ongoing work and ends with it; all of it honours reduced motion.
 - A component sizes to its content in any parent, a shrink-to-fit one too: no container query or
-  containment takes its width from the host.
+  containment on the host, and none that sets the component's width. An inner element may query
+  the width the component already has.
 - A value, such as a size or a clock, never breaks inside itself; a narrow line breaks between
   values.
 - Density, alignment, and spacing come from the foundation's tokens, never a literal.
@@ -48,8 +49,9 @@ The architecture pages that apply, in the architecture repository:
 
 ## Code
 
-- Code meets the bar of spike-html-conventions' `layers/` code at a88828a: a 2–4 line header, a
-  one-line doc comment per export, and comments only for a non-obvious why.
+- Code meets the bar of spike-html-conventions' `layers/` code at a88828a: a header of about 2–6
+  lines, a one-line doc comment per export, and comments only for a non-obvious why, beside the
+  code it explains rather than in the header.
 - A copied file names its source repository and commit in a provenance line, which reads
   `From|Adapted from <repo> (<commit>): <path>`. It names the immediate source alone; that source
   keeps the earlier lines.
