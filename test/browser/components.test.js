@@ -2,10 +2,10 @@
 // adopted sheets, and the entry's formatting, on test/fixtures/components.html, on the lean entry
 // and in every profile on the full entry; each component in every profile, on
 // test/fixtures/profiles.html; and the entry's, the pagination's, the artifact viewer's, the chat
-// thread's, the composer's, the upload dropzone's, the stage timeline's, and the event log's
-// geometry on their specimen pages under demo/, in every profile, the entry's, the viewer's, the
-// thread's, the composer's, the dropzone's, the timeline's, and the log's in parents that size them
-// to their content too.
+// thread's, the composer's, the upload dropzone's, the stage timeline's, the event log's, and the
+// search results' geometry on their specimen pages under demo/, in every profile, the entry's, the
+// viewer's, the thread's, the composer's, the dropzone's, the timeline's, the log's, and the
+// results' in parents that size them to their content too.
 // Adapted from spike-html-packages-components (4c0a5d8): test/browser/components.test.js, renamed,
 // with the formatting, profile, and specimen geometry cases added.
 
@@ -108,6 +108,7 @@ describe("components", { timeout: 60_000 }, () => {
         const reset = await sheet(foundation + "/baseline/reset.css");
         const elements = await sheet(foundation + "/baseline/elements.css");
         const components = [
+          ["sl-search-results", "search-results", "search-results.css"],
           ["sl-event-log", "event-log", "event-log.css"],
           ["sl-stage-timeline", "stage-timeline", "stage-timeline.css"],
           ["sl-upload-dropzone", "upload-dropzone", "upload-dropzone.css"],
@@ -133,6 +134,7 @@ describe("components", { timeout: 60_000 }, () => {
         return { adopted, label: badge.shadowRoot.querySelector("button").textContent };
       })()`);
         for (const tag of [
+          "sl-search-results",
           "sl-event-log",
           "sl-stage-timeline",
           "sl-upload-dropzone",
@@ -187,13 +189,20 @@ describe("components", { timeout: 60_000 }, () => {
       const { registered, rendered, errors } = await page.evaluate(`(async () => {
         const registry = await import("@jaimestill/spike-html-apps-foundation/registry.js");
         const { directories, files } = await import("/demo/documents.js");
-        await Promise.all(["event-log", "stage-timeline", "upload-dropzone", "composer", "chat-thread", "artifact-viewer", "pagination", "entry", "status-badge"].map(
+        await Promise.all(["search-results", "event-log", "stage-timeline", "upload-dropzone", "composer", "chat-thread", "artifact-viewer", "pagination", "entry", "status-badge"].map(
           (module) => import("/dist/" + module + ".js")));
-        // Each component as a host composes it: an event log of a stage event, a stage timeline
+        // Each component as a host composes it: search results of a match in content, whose
+        // button the profile styles, an event log of a stage event, a stage timeline
         // part way through a run, an upload dropzone listing an upload in progress, a composer holding a draft, a chat thread of a
         // user's message and the assistant's Markdown reply, an artifact viewer of a Markdown document, the pagination
         // holding one entry per item, a lone entry, and a labelled badge.
         const components = {
+          "sl-search-results": () =>
+            Object.assign(document.createElement("sl-search-results"), {
+              query: "report",
+              items: [{ id: "doc-1", name: "quarterly-report.md", field: "content",
+                snippet: "\u2026This report covers the three regions\u2026" }],
+            }),
           "sl-event-log": () =>
             Object.assign(document.createElement("sl-event-log"), {
               events: [
@@ -254,7 +263,7 @@ describe("components", { timeout: 60_000 }, () => {
             await element.updateComplete;
             const { width, height } = element.getBoundingClientRect();
             // The look the profile gives the component's first button, inside its shadow root, the
-            // composer's its send control, enabled by the draft, the dropzone's its picker button;
+            // search results' their first match's, the composer's its send control, enabled by the draft, the dropzone's its picker button;
             // the artifact viewer, which holds no button, the color and padding of what its region
             // scrolls, and its Markdown heading's font, since the region's text is the body font,
             // which the type facet's profiles share; the chat thread, which holds none either, the
@@ -299,7 +308,7 @@ describe("components", { timeout: 60_000 }, () => {
         space: ["regular", "compact"],
         type: ["mono", "sans"],
       });
-      assert.equal(rendered.length, profiles.length * 9);
+      assert.equal(rendered.length, profiles.length * 10);
       for (const { profile, tag, width, height } of rendered) {
         assert.ok(width > 0 && height > 0, `${tag} under ${profile}: a ${width} × ${height} box`);
       }
@@ -309,6 +318,7 @@ describe("components", { timeout: 60_000 }, () => {
       const looks = (tag, where) =>
         rendered.filter((shown) => shown.tag === tag && where(shown)).map((shown) => shown.look);
       for (const tag of [
+        "sl-search-results",
         "sl-event-log",
         "sl-stage-timeline",
         "sl-upload-dropzone",
@@ -362,7 +372,7 @@ describe("components", { timeout: 60_000 }, () => {
     const page = await browser.open(`${server.origin}/demo/${specimen}.html`);
     try {
       return await page.evaluate(`(async () => {
-        const tags = ["sl-entry", "sl-pagination", "sl-artifact-viewer", "sl-chat-thread", "sl-composer", "sl-upload-dropzone", "sl-stage-timeline", "sl-event-log"]
+        const tags = ["sl-entry", "sl-pagination", "sl-artifact-viewer", "sl-chat-thread", "sl-composer", "sl-upload-dropzone", "sl-stage-timeline", "sl-event-log", "sl-search-results"]
           .filter((tag) => document.querySelector(tag));
         await Promise.all(tags.map((tag) => customElements.whenDefined(tag)));
         await Promise.all([...document.querySelectorAll(tags.join(","))].map((el) => el.updateComplete));
@@ -1316,6 +1326,112 @@ describe("components", { timeout: 60_000 }, () => {
         assert.ok(oneLine, `${where}: a type and its time wrap`);
         assert.equal(outside, 0, `${where}: metadata outside the log`);
         assert.ok(sideways <= 0, `${where}: the frame scrolls sideways by ${sideways}`);
+        assert.ok(width > 0 && width < column / 2, `${where}: ${width} wide in a ${column} column`);
+      }
+    }
+  });
+
+  // In-page helper the search results' measures share, as source: each results element in a
+  // section of its specimen page.
+  const SEARCHES = `(section) => [...document.querySelectorAll(section + " sl-search-results")]`;
+
+  test("the search results' specimen renders every state within 20rem, their field labels whole, in every profile", async () => {
+    // Every results element shows its status line. At 20rem the states keep within the column,
+    // every part of each inside its box across, a long name and snippet wrapping inside their
+    // button; each field label keeps one line, and at full width sits on its name's line, at the
+    // line's end.
+    const measure = `() => {
+      const list = document.querySelector(".narrow .states");
+      const lines = ${LINES};
+      const shown = (${SEARCHES})("main").map((results) => {
+        const root = results.shadowRoot;
+        const box = results.getBoundingClientRect();
+        const parts = [...root.querySelectorAll(".status, ul, li, button, .head, .name, .field, .snippet, mark")];
+        return {
+          narrow: results.closest(".narrow") !== null,
+          fit: results.closest("#fit") !== null,
+          status: root.querySelector(".status[role=status]") !== null,
+          outside: parts
+            .filter((part) => {
+              const rect = part.getBoundingClientRect();
+              return rect.left < box.left - 0.5 || rect.right > box.right + 0.5;
+            })
+            .map((part) => part.localName + "." + part.className),
+          broken: [...root.querySelectorAll(".field")]
+            .filter((part) => lines(part) > 1)
+            .map((part) => part.textContent),
+          // Each short name's field label on its name's last line, ending the button's content.
+          beside: [...root.querySelectorAll(".match")]
+            .filter((button) => button.querySelector(".name").textContent.length < 24)
+            .map((button) => {
+              const name = button.querySelector(".name").getBoundingClientRect();
+              const field = button.querySelector(".field").getBoundingClientRect();
+              const head = button.querySelector(".head").getBoundingClientRect();
+              return Math.abs(name.bottom - field.bottom) < 3 && Math.abs(field.right - head.right) < 1;
+            }),
+        };
+      });
+      return { overflow: list.scrollWidth - list.clientWidth, shown };
+    }`;
+    for (const { profile, overflow, shown } of await measureSpecimen("search-results", measure)) {
+      assert.ok(overflow <= 0, `${profile}: the states overflow the column by ${overflow}`);
+      assert.equal(
+        shown.length,
+        24,
+        `${profile}: ten states twice, the three fits, and the focus state`,
+      );
+      for (const [index, { narrow, fit, status, outside, broken, beside }] of shown.entries()) {
+        const where = `${profile}, results ${index}${narrow ? " at 20rem" : ""}`;
+        assert.ok(status, `${where}: a status line`);
+        assert.deepEqual(outside, [], `${where}: parts outside the results`);
+        assert.deepEqual(broken, [], `${where}: a field label broken across lines`);
+        if (!narrow && !fit) {
+          assert.ok(beside.every(Boolean), `${where}: a short name's field label off its line`);
+        }
+      }
+    }
+  });
+
+  test("in a parent that sizes them to their content, the search results take their content's width, in every profile", async () => {
+    // The fit section's results, two short matches each: each takes its content's width, so each
+    // name shares its line with its field label and each snippet keeps one line, every part
+    // inside, and is no wider than half the column.
+    const results = await measureSpecimen(
+      "search-results",
+      `() => {
+        const column = document.querySelector("#fit .fits").getBoundingClientRect().width;
+        const lines = ${LINES};
+        return { fits: (${SEARCHES})("#fit").map((results) => {
+          const root = results.shadowRoot;
+          const box = results.getBoundingClientRect();
+          return {
+            parent: results.parentElement.className,
+            oneLine: [...root.querySelectorAll(".match")].every((button) => {
+              const name = button.querySelector(".name").getBoundingClientRect();
+              const field = button.querySelector(".field").getBoundingClientRect();
+              const snippet = button.querySelector(".snippet");
+              return Math.abs(name.bottom - field.bottom) < 3 && (!snippet || lines(snippet) === 1);
+            }),
+            outside: [...root.querySelectorAll(".status, button, .name, .field, .snippet")].filter((part) => {
+              const rect = part.getBoundingClientRect();
+              return rect.left < box.left - 0.5 || rect.right > box.right + 0.5;
+            }).length,
+            width: box.width,
+            column,
+          };
+        }) };
+      }`,
+    );
+    for (const { profile, fits } of results) {
+      assert.deepEqual(
+        fits.map(({ parent }) => parent),
+        ["fit-inline-block", "fit-flex", "fit-grid"],
+        `${profile}: the fit section's results`,
+      );
+      for (const { parent, oneLine, outside, width, column } of fits) {
+        const where = `${parent} under ${profile}`;
+        assert.ok(oneLine, `${where}: a name and its label, or a snippet, wrap`);
+        assert.equal(outside, 0, `${where}: parts outside the results`);
         assert.ok(width > 0 && width < column / 2, `${where}: ${width} wide in a ${column} column`);
       }
     }

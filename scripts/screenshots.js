@@ -107,6 +107,7 @@ const PAGES = [
   ["7-upload-dropzone", "the upload dropzone", "upload-dropzone"],
   ["8-stage-timeline", "the stage timeline", "stage-timeline"],
   ["9-event-log", "the event log", "event-log"],
+  ["10-search-results", "the search results", "search-results"],
 ];
 
 /** The run's pages: those `--page` names, each once, in PAGES' order, or every page when none is

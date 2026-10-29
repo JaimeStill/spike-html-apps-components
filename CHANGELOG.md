@@ -8,6 +8,21 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 
 ### Added
 
+- `./search-results.js` defines `sl-search-results`, a search's matches under a status line.
+  `items` takes each as a structural `SearchMatch`, exported, `{ id, name, field, snippet }`, its
+  field `name` or `content`; `query` is the query they are for; and `state`, reflected, `ready`,
+  `loading`, or `error`, with `message` saying why it failed. The status line, one polite live
+  region in every state, prompts before any query, says it is searching, counts the matches for
+  the query, says there are none, or says the search failed with its message. Each match is a
+  native button, its document's name with its field's label, "in name" or "in content", at the
+  line's end, and under them its snippet, ellipses kept and joined to the text beside them; a name
+  match whose snippet only repeats its name shows the name alone. The query's occurrences in the
+  name and the snippet are marked case-insensitively, letter by letter, as text, so markup and a
+  pattern's specials in either are literal, and a letter whose other case is longer shifts no
+  mark; a blank query marks nothing. Activating a match sends `open`, its detail `{ id }`. While
+  loading, matches already given stay listed, busy; an error lists none. It binds no key. Its
+  specimen page is `demo/search-results.html`, and `mise run screenshots --page search-results`
+  captures it.
 - `./event-log.js` defines `sl-event-log`, events as a log in the order given, inside one frame.
   `events` takes each as a structural `LogEvent`, exported, a subset of CloudEvents 1.0 by its
   attribute names, `{ id, type, source, subject?, time, data? }`, its time an RFC 3339 string or a

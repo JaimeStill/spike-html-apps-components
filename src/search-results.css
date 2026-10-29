@@ -1,0 +1,91 @@
+/*
+ * The search results' layout in a shadow root: search-results.ts adopts this sheet into its root
+ * after the foundation's reset and elements sheets (baseline/reset.css and elements.css), which
+ * give each match's native button its look, the marks their highlight, and the focus outline. It
+ * holds the status line's type, the list's layout, and each match's lines, and no look of its own
+ * for the button. It reads only the foundation's baseline tokens, which a shadow root takes by
+ * inheritance from the page's entry. Unlayered, it sits above the adopted layers in the root.
+ *
+ * The results draw no frame of their own: each match is a native button, bordered by the elements
+ * sheet, and a frame around them would nest one frame in another. The status line opens the
+ * results, in every state, so the list below it never moves it. The results are as tall as their
+ * matches, with no cap; a consumer that wants them held scrolls its own box.
+ *
+ * Each match is two lines: the name, with the field it matched in at the line's end, and under
+ * them the snippet. The field wraps under the name, at the line's end, only when the two don't
+ * fit side by side. A name and a snippet wrap at their spaces, and inside a word only when the
+ * word is longer than its line, so a long one stays inside the button; the field label keeps
+ * whole. In a shrink-to-fit parent the results take their widest line's width, a snippet's as a
+ * rule, up to the parent's.
+ */
+
+:host {
+  display: block;
+}
+/* The status line, in the interface font, small and muted: the prompt, the search under way, the
+   count, no matches, or the failure's label and its reason after it. */
+.status {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-s);
+  color: var(--fg-2);
+  overflow-wrap: anywhere;
+}
+.status .prompt {
+  color: var(--fg-3);
+}
+.status.error .label {
+  color: var(--red);
+}
+/* The matches, stacked under the status line, each button a step apart. */
+.matches {
+  display: grid;
+  gap: var(--space-2xs);
+  margin: var(--space-xs) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.matches > li {
+  margin: 0;
+}
+/* A match: the button as wide as the list, its lines in one column, starting at its inline start. */
+.match {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3xs);
+  inline-size: 100%;
+  padding-block: var(--space-2xs);
+  text-align: start;
+}
+/* The head: the name, then the field at the line's end, in a row that wraps, as the entry's head
+   does. */
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--space-xs);
+  min-inline-size: 0;
+}
+/* The name grows into the line up to its own width, and breaks inside a word only when the word
+   is longer than its line. */
+.name {
+  flex: 1 1 16ch;
+  max-inline-size: max-content;
+  min-inline-size: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+/* The field's quiet label keeps whole, at the line's end, on the name's line or under it. */
+.field {
+  margin-inline-start: auto;
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  color: var(--fg-2);
+  white-space: nowrap;
+}
+/* The snippet, small and muted under the name, its ellipses kept as given. */
+.snippet {
+  font-size: var(--text-s);
+  color: var(--fg-2);
+  overflow-wrap: anywhere;
+}
