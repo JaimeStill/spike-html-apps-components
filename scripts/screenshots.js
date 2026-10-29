@@ -102,6 +102,7 @@ const PAGES = [
   ["2-entry", "the entry", "entry"],
   ["3-pagination", "the pagination", "pagination"],
   ["4-artifact-viewer", "the artifact viewer", "artifact-viewer"],
+  ["5-chat-thread", "the chat thread", "chat-thread"],
 ];
 
 /** The run's pages: those `--page` names, each once, in PAGES' order, or every page when none is

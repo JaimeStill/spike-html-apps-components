@@ -1,8 +1,9 @@
 // The components from this repository's dist/: conventions' 27 probe cases, the restyle case, the
 // adopted sheets, and the entry's formatting, on test/fixtures/components.html, on the lean entry
 // and in every profile on the full entry; each component in every profile, on
-// test/fixtures/profiles.html; and the entry's and the pagination's geometry on their specimen
-// pages under demo/, in every profile, the entry's in parents that size it to its content too.
+// test/fixtures/profiles.html; and the entry's, the pagination's, the artifact viewer's, and the
+// chat thread's geometry on their specimen pages under demo/, in every profile, the entry's, the
+// viewer's, and the thread's in parents that size them to their content too.
 // Adapted from spike-html-packages-components (4c0a5d8): test/browser/components.test.js, renamed,
 // with the formatting, profile, and specimen geometry cases added.
 
@@ -105,6 +106,7 @@ describe("components", { timeout: 60_000 }, () => {
         const reset = await sheet(foundation + "/baseline/reset.css");
         const elements = await sheet(foundation + "/baseline/elements.css");
         const components = [
+          ["sl-chat-thread", "chat-thread", "chat-thread.css"],
           ["sl-artifact-viewer", "artifact-viewer", "artifact-viewer.css"],
           ["sl-pagination", "pagination", "pagination.css"],
           ["sl-entry", "entry", "entry.css"],
@@ -124,7 +126,13 @@ describe("components", { timeout: 60_000 }, () => {
         await badge.updateComplete;
         return { adopted, label: badge.shadowRoot.querySelector("button").textContent };
       })()`);
-        for (const tag of ["sl-artifact-viewer", "sl-pagination", "sl-entry", "sl-status-badge"]) {
+        for (const tag of [
+          "sl-chat-thread",
+          "sl-artifact-viewer",
+          "sl-pagination",
+          "sl-entry",
+          "sl-status-badge",
+        ]) {
           assert.deepEqual(adopted[tag], ["reset", "elements", "own"], tag);
         }
         assert.equal(label, "Draft");
@@ -169,11 +177,20 @@ describe("components", { timeout: 60_000 }, () => {
       const { registered, rendered, errors } = await page.evaluate(`(async () => {
         const registry = await import("@jaimestill/spike-html-apps-foundation/registry.js");
         const { directories, files } = await import("/demo/documents.js");
-        await Promise.all(["artifact-viewer", "pagination", "entry", "status-badge"].map(
+        await Promise.all(["chat-thread", "artifact-viewer", "pagination", "entry", "status-badge"].map(
           (module) => import("/dist/" + module + ".js")));
-        // Each component as a host composes it: an artifact viewer of a Markdown document, the
-        // pagination holding one entry per item, a lone entry, and a labelled badge.
+        // Each component as a host composes it: a chat thread of a user's message and the
+        // assistant's Markdown reply, an artifact viewer of a Markdown document, the pagination
+        // holding one entry per item, a lone entry, and a labelled badge.
         const components = {
+          "sl-chat-thread": () =>
+            Object.assign(document.createElement("sl-chat-thread"), {
+              items: [
+                { type: "message", role: "user", content: [{ type: "input_text", text: "Status?" }] },
+                { type: "message", id: "msg_1", role: "assistant", status: "completed",
+                  content: [{ type: "output_text", text: "All **3** stages completed." }] },
+              ],
+            }),
           "sl-artifact-viewer": () =>
             Object.assign(document.createElement("sl-artifact-viewer"), {
               name: "notes.md",
@@ -207,10 +224,17 @@ describe("components", { timeout: 60_000 }, () => {
             // The look the profile gives the component's first button, inside its shadow root;
             // the artifact viewer, which holds no button, the color and padding of what its region
             // scrolls, and its Markdown heading's font, since the region's text is the body font,
-            // which the type facet's profiles share.
+            // which the type facet's profiles share; the chat thread, which holds none either, the
+            // color and padding of the user's message, and its label's font, the interface font.
             const viewer = tag === "sl-artifact-viewer";
-            const style = getComputedStyle(element.shadowRoot.querySelector(viewer ? ".body > *" : "button"));
-            const font = viewer ? getComputedStyle(element.shadowRoot.querySelector("h1")) : style;
+            const thread = tag === "sl-chat-thread";
+            const style = getComputedStyle(element.shadowRoot.querySelector(
+              viewer ? ".body > *" : thread ? ".user > .message" : "button"));
+            const font = viewer
+              ? getComputedStyle(element.shadowRoot.querySelector("h1"))
+              : thread
+                ? getComputedStyle(element.shadowRoot.querySelector(".role"))
+                : style;
             const look = {
               color: style.color + " on " + style.backgroundColor,
               font: font.fontFamily,
@@ -230,7 +254,7 @@ describe("components", { timeout: 60_000 }, () => {
         space: ["regular", "compact"],
         type: ["mono", "sans"],
       });
-      assert.equal(rendered.length, profiles.length * 4);
+      assert.equal(rendered.length, profiles.length * 5);
       for (const { profile, tag, width, height } of rendered) {
         assert.ok(width > 0 && height > 0, `${tag} under ${profile}: a ${width} × ${height} box`);
       }
@@ -239,7 +263,13 @@ describe("components", { timeout: 60_000 }, () => {
       // sets another font than mono, and compact pads tighter than regular.
       const looks = (tag, where) =>
         rendered.filter((shown) => shown.tag === tag && where(shown)).map((shown) => shown.look);
-      for (const tag of ["sl-artifact-viewer", "sl-pagination", "sl-entry", "sl-status-badge"]) {
+      for (const tag of [
+        "sl-chat-thread",
+        "sl-artifact-viewer",
+        "sl-pagination",
+        "sl-entry",
+        "sl-status-badge",
+      ]) {
         const colors = looks(tag, ({ space, type }) => space === "regular" && type === "mono");
         assert.equal(
           new Set(colors.map((look) => look.color)).size,
@@ -283,7 +313,7 @@ describe("components", { timeout: 60_000 }, () => {
     const page = await browser.open(`${server.origin}/demo/${specimen}.html`);
     try {
       return await page.evaluate(`(async () => {
-        const tags = ["sl-entry", "sl-pagination", "sl-artifact-viewer"]
+        const tags = ["sl-entry", "sl-pagination", "sl-artifact-viewer", "sl-chat-thread"]
           .filter((tag) => document.querySelector(tag));
         await Promise.all(tags.map((tag) => customElements.whenDefined(tag)));
         await Promise.all([...document.querySelectorAll(tags.join(","))].map((el) => el.updateComplete));
@@ -727,6 +757,107 @@ describe("components", { timeout: 60_000 }, () => {
         const where = `${parent} under ${profile}`;
         assert.ok(sideways <= 0, `${where}: the region scrolls sideways by ${sideways}`);
         assert.ok(width < column / 2, `${where}: ${width} wide in a ${column} column`);
+      }
+    }
+  });
+
+  // In-page helper the chat thread's measures share, as source: each thread in a section of its
+  // specimen page.
+  const THREADS = `(section) => [...document.querySelectorAll(section + " sl-chat-thread")]`;
+
+  test("the chat thread's specimen renders every state, at full size or held, within 20rem, its ids whole, in every profile", async () => {
+    // Every thread shows its frame. The thread is as tall as its content, so no frame scrolls down
+    // but the long content's, which the page holds to 16rem, and it does. At 20rem the states keep
+    // within the column, every part of each thread inside its box across, and each id, function
+    // name, kind, role, status, and inline code span in a reply on one line.
+    const measure = `() => {
+      const list = document.querySelector(".narrow .states");
+      const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+      const lines = ${LINES};
+      const shown = (${THREADS})("main").map((thread) => {
+        const root = thread.shadowRoot;
+        const box = thread.getBoundingClientRect();
+        const frame = root.querySelector(".frame");
+        const parts = [...root.querySelectorAll(
+          ".frame, ol, li, article, details, summary, .meta, .content, pre, table, p")];
+        return {
+          narrow: thread.closest(".narrow") !== null,
+          items: thread.items.length,
+          frame: frame !== null,
+          held: thread.classList.contains("held"),
+          height: box.height / rem,
+          outside: parts
+            .filter((part) => {
+              const rect = part.getBoundingClientRect();
+              return rect.left < box.left - 0.5 || rect.right > box.right + 0.5;
+            })
+            .map((part) => part.localName + "." + part.className),
+          broken: [...root.querySelectorAll(".id, .name, .kind, .role, .status, .markdown code:not(pre code)")]
+            .filter((part) => lines(part) > 1)
+            .map((part) => part.textContent),
+          scrolls: frame.scrollHeight > frame.clientHeight,
+        };
+      });
+      return { overflow: list.scrollWidth - list.clientWidth, shown };
+    }`;
+    for (const { profile, overflow, shown } of await measureSpecimen("chat-thread", measure)) {
+      assert.ok(overflow <= 0, `${profile}: the states overflow the column by ${overflow}`);
+      assert.equal(
+        shown.length,
+        46,
+        `${profile}: 21 states twice, the three fits, and the focus state`,
+      );
+      assert.equal(
+        shown.filter(({ held }) => held).length,
+        5,
+        `${profile}: the long content twice in the states, twice at 20rem, and once focused`,
+      );
+      for (const [
+        index,
+        { narrow, frame, held, height, scrolls, outside, broken },
+      ] of shown.entries()) {
+        const where = `${profile}, thread ${index}${narrow ? " at 20rem" : ""}`;
+        assert.ok(frame, `${where}: a frame`);
+        if (held) {
+          assert.ok(Math.abs(height - 16) < 0.01, `${where}: held to ${height}rem, not 16rem`);
+          assert.ok(scrolls, `${where}: held, its frame scrolls down`);
+        } else {
+          assert.ok(!scrolls, `${where}: at full size, its frame scrolls down`);
+        }
+        assert.deepEqual(outside, [], `${where}: parts outside the thread`);
+        assert.deepEqual(broken, [], `${where}: broken across lines`);
+      }
+    }
+  });
+
+  test("in a parent that sizes it to its content, the chat thread takes its content's width, in every profile", async () => {
+    // The fit section's threads, a short exchange each: each takes its content's width, so its
+    // frame needs no sideways scroll, and is no wider than half the column.
+    const results = await measureSpecimen(
+      "chat-thread",
+      `() => {
+        const column = document.querySelector("#fit .fits").getBoundingClientRect().width;
+        return { fits: (${THREADS})("#fit").map((thread) => {
+          const frame = thread.shadowRoot.querySelector(".frame");
+          return {
+            parent: thread.parentElement.className,
+            sideways: frame.scrollWidth - frame.clientWidth,
+            width: thread.getBoundingClientRect().width,
+            column,
+          };
+        }) };
+      }`,
+    );
+    for (const { profile, fits } of results) {
+      assert.deepEqual(
+        fits.map(({ parent }) => parent),
+        ["fit-inline-block", "fit-flex", "fit-grid"],
+        `${profile}: the fit section's threads`,
+      );
+      for (const { parent, sideways, width, column } of fits) {
+        const where = `${parent} under ${profile}`;
+        assert.ok(sideways <= 0, `${where}: the frame scrolls sideways by ${sideways}`);
+        assert.ok(width > 0 && width < column / 2, `${where}: ${width} wide in a ${column} column`);
       }
     }
   });

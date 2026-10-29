@@ -277,8 +277,9 @@ describe("markdown", { timeout: 60_000 }, () => {
   test("a page that imports no Markdown-rendering module requests no marked module", async () => {
     // The components page with every other module of dist/ imported; marked's request appears only
     // once the renderer is imported, which shows the case can see it.
-    // The modules that render Markdown, the renderer and the artifact viewer, are left out.
-    const renderers = ["markdown.js", "artifact-viewer.js"];
+    // The modules that render Markdown, the renderer, the artifact viewer, and the chat thread,
+    // are left out.
+    const renderers = ["markdown.js", "artifact-viewer.js", "chat-thread.js"];
     const modules = readdirSync(join(root, "dist")).filter(
       (file) => file.endsWith(".js") && !renderers.includes(file),
     );

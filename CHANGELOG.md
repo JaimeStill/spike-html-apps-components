@@ -8,6 +8,23 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 
 ### Added
 
+- `./chat-thread.js` defines `sl-chat-thread`, which shows a conversation's `items` in order, a
+  structural subset of Open Responses 2026-04-24 by its JSON field names, its types exported:
+  `message` items, the user's or the assistant's, their `input_text` parts as plain text,
+  `output_text` parts rendered through `markdown()`, and `refusal` parts as a labelled refusal;
+  `reasoning` items, their summary and content text; `function_call` items, their name, call id,
+  and arguments, pretty-printed when they parse as JSON and raw when they don't; and
+  `function_call_output` items, their output, named for the call they answer. Item types, roles,
+  and part types it doesn't know are skipped, with no error. Each message is labelled with its
+  role, the user's at the inline end; a message `in_progress` reads as streaming, with a dot that
+  pulses unless motion is reduced, and re-renders in place as its text grows, keyed by item id, so
+  the items above it keep their nodes and don't move; `incomplete` and `failed` messages are
+  labelled so. `verbose`, reflected, false by default, hides reasoning, calls, and outputs; set,
+  it shows each collapsed in a native details. The items are an ordered list in one frame, as tall
+  as its content unless the consumer constrains it, when it scrolls inside, in a region Tab
+  reaches. It sizes to its content in any parent, a shrink-to-fit one too, and sends no event and
+  binds no key. It imports marked through `./markdown.js`. Its specimen page is
+  `demo/chat-thread.html`, and `mise run screenshots --page chat-thread` captures it.
 - `./artifact-viewer.js` defines `sl-artifact-viewer`, which shows one artifact, its `name`,
   `contentType` (the `content-type` attribute), and `content`, by its content type: text/markdown
   rendered through `markdown()`; application/json, or any `+json` type, parsed and printed with

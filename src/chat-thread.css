@@ -1,0 +1,178 @@
+/*
+ * The chat thread's layout in a shadow root: chat-thread.ts adopts this sheet into its root after
+ * the foundation's reset and elements sheets (baseline/reset.css and elements.css), which give the
+ * rendered Markdown, the pre, and the native details and summary their look. It holds the
+ * thread's one frame, the list's layout, each message's alignment and label, a refusal's mark,
+ * and the streaming indicator. It reads only the foundation's baseline tokens, which a shadow root
+ * takes by inheritance from the page's entry. Unlayered, it sits above the adopted layers in the
+ * root.
+ *
+ * The host is a flex column holding the frame. Unconstrained, the thread is as tall as its
+ * content. A consumer that constrains its block size, by a block-size or max-block-size on the
+ * host or a sized flex or grid parent, holds it there: the frame shrinks to it and the list
+ * scrolls inside, the browser's own scrollbar showing, and the list's padding shows past its last
+ * item at the scroll's end.
+ *
+ * The frame is a grid of one column, minmax(0, 1fr), around the list: under a min-content
+ * constraint the track is zero, and under a max-content one it is the list's widest line, so in
+ * a shrink-to-fit parent the thread takes its content's width up to the parent's. A long word in
+ * a message wraps anywhere rather than widen it; a code block, the arguments, and an output keep
+ * whole lines and scroll sideways in their pre.
+ */
+
+:host {
+  display: flex;
+  flex-direction: column;
+}
+/* The one frame, the pre's border on the same tokens; it scrolls the list both ways. The gutter
+   is not reserved, as the artifact viewer's region reserves none. */
+.frame {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  min-block-size: 0;
+  overflow: auto;
+  border: var(--line-s) solid var(--border);
+  border-radius: var(--radius-sm);
+}
+/* The list, padded, so the padding scrolls with it and shows after its last item. */
+.thread {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s);
+  margin: 0;
+  padding: var(--space-s);
+  list-style: none;
+}
+.thread > .item {
+  min-inline-size: 0;
+  margin: 0;
+}
+/* A user's message sits at the inline end, on the first elevated surface, short of the full
+   width; the assistant's spans the list. Neither has a border: the thread's frame is the one. */
+.thread > .user {
+  align-self: flex-end;
+  max-inline-size: 85%;
+}
+.user > .message {
+  padding: var(--space-2xs) var(--space-s);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-1);
+}
+/* The label row: the role, or a verbose item's kind and names, then its status. It wraps between
+   its parts, never inside one, so an id stays whole. A user's label sits at the inline end, over
+   its text. */
+.meta {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-3xs) var(--space-xs);
+  font-family: var(--font-ui);
+  font-size: var(--text-s);
+  color: var(--fg-2);
+}
+.message > .meta {
+  display: flex;
+  margin-block-end: var(--space-3xs);
+}
+.user > .message > .meta {
+  justify-content: flex-end;
+}
+/* A verbose item's summary: its kind, names, and status inline after the native marker, in the
+   label's type. */
+summary {
+  font-size: var(--text-s);
+  color: var(--fg-2);
+}
+.role,
+.kind {
+  font-weight: 600;
+}
+.kind,
+.name,
+.id,
+.status {
+  white-space: nowrap;
+}
+.id {
+  color: var(--fg-3);
+}
+/* A message's content: plain text keeps its line breaks, and any text wraps anywhere rather than
+   overflow the thread. A code block in the Markdown, the arguments, and an output keep their
+   whole lines and scroll sideways in the pre; a wide table scrolls the same way. */
+.content {
+  overflow-wrap: anywhere;
+}
+.text {
+  white-space: pre-wrap;
+}
+/* Inline code in the Markdown, where a reply names an id, a path, or a value, keeps whole: it
+   moves to the next line rather than break at a hyphen, and breaks only when it is longer than the
+   line itself. */
+.markdown code:not(pre code) {
+  display: inline-block;
+  max-inline-size: 100%;
+}
+.content pre {
+  overflow-x: auto;
+  overflow-wrap: normal;
+}
+.markdown table {
+  display: block;
+  max-inline-size: max-content;
+  overflow-x: auto;
+}
+/* A refusal: its label, and a rule at its start in the warning hue, so it reads apart from the
+   answer and from a quotation's neutral rule. */
+.refusal {
+  padding-inline-start: var(--space-s);
+  border-inline-start: var(--line-m) solid var(--orange);
+}
+.refusal > .label {
+  color: var(--orange);
+}
+/* The status beside the label: streaming quietly, with a dot that pulses unless motion is
+   reduced; incomplete and failed each in their own hue. */
+.status.in_progress::before {
+  content: "";
+  display: inline-block;
+  margin-inline-end: var(--space-3xs);
+  vertical-align: 0.1em;
+  inline-size: 0.5em;
+  block-size: 0.5em;
+  border-radius: var(--radius-full);
+  background-color: var(--interaction-color, var(--blue));
+}
+@media (prefers-reduced-motion: no-preference) {
+  .status.in_progress::before {
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+}
+@keyframes pulse {
+  50% {
+    opacity: 0.25;
+  }
+}
+.status.incomplete {
+  color: var(--orange);
+}
+.status.failed {
+  color: var(--red);
+}
+/* A verbose item's details: its text quieter than a message's. */
+.verbose > .content {
+  color: var(--fg-2);
+}
+.verbose .text + .text {
+  margin-block-start: var(--space-2xs);
+}
+/* The empty notes: the thread's, and a verbose item's with nothing to show. */
+.empty-thread {
+  padding: var(--space-xs) var(--space-s);
+  color: var(--fg-2);
+}
+.empty {
+  font-size: var(--text-s);
+  color: var(--fg-2);
+}
