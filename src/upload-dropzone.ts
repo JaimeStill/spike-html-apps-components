@@ -144,8 +144,9 @@ export class UploadDropzone extends LitElement {
   }
 
   #cancel(upload: UploadItem): void {
-    if (upload.state === "uploading")
+    if (upload.state === "uploading") {
       emit<UploadCancelDetail>(this, "upload-cancel", { id: upload.id });
+    }
   }
 
   #upload(upload: UploadItem) {

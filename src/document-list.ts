@@ -18,7 +18,7 @@ import reset from "@jaimestill/spike-html-apps-foundation/baseline/reset.css" wi
 import { define } from "@jaimestill/spike-html-apps-foundation/dom.js";
 import "./entry.ts";
 import type { FileItem } from "./entry.ts";
-import { summaryRange } from "./pagination.ts";
+import { Pagination, summaryRange } from "./pagination.ts";
 import styles from "./document-list.css" with { type: "css" };
 
 /** The tag the element defines. */
@@ -88,12 +88,7 @@ export class DocumentList extends LitElement {
     selected: { type: String },
     state: { type: String, reflect: true },
     message: { type: String },
-    page: { type: Number },
-    size: { type: Number },
-    total: { type: Number },
-    more: { type: Boolean },
-    pageSizes: { type: Array, attribute: "page-sizes" },
-    disabled: { type: Boolean, reflect: true },
+    ...Pagination.properties,
   } satisfies PropertyDeclarations;
 
   /** The page's documents, in the order given. */
@@ -162,8 +157,9 @@ export class DocumentList extends LitElement {
     // never replaced.
     const joins = this.state !== "error" && summaryRange(this.page, this.size, this.total) !== null;
     // The pagination takes its properties as the list was given them, and holds the status line,
-    // in its summary's status slot or its default slot, and the entries, in its default slot. Each entry is keyed by its document's id, so a focused
-    // entry stays with its document as the page changes around it.
+    // in its summary's status slot or its default slot, and the entries, in its default slot. Each
+    // entry is keyed by its document's id, so a focused entry stays with its document as the page
+    // changes around it.
     return html`<sl-pagination
       .page=${this.page}
       .size=${this.size}

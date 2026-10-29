@@ -72,7 +72,7 @@ function sameLetter(a: string, b: string): boolean {
  * never on a lowered copy, so each mark's offsets are the text's own even where a letter's other
  * case is longer, and nothing in the query is a pattern. An empty needle marks nothing.
  */
-function marked(text: string, needle: readonly string[]): unknown {
+function withMarks(text: string, needle: readonly string[]): unknown {
   if (!needle.length) return text;
   const letters = Array.from(text ?? "");
   const parts: unknown[] = [];
@@ -145,8 +145,8 @@ export class SearchResults extends LitElement {
 
   /** The query the matches are for: their marks, and the status line's words. */
   declare query: string;
-  /** The matches to list, in the order given. Named items, since an element's `matches` is the DOM's
-   * selector test. */
+  /** The matches to list, in the order given. Named items, since an element's `matches` is the
+   * DOM's selector test. */
   declare items: readonly SearchMatch[];
   /** Loading, error, or ready; reflected to the `state` attribute. */
   declare state: SearchState;
@@ -187,10 +187,10 @@ export class SearchResults extends LitElement {
     return html`<li>
       <button type="button" class="match" data-field=${match.field} @click=${() => this.#open(match)}>
         <span class="head">
-          <span class="name">${marked(match.name, needle)}</span>
+          <span class="name">${withMarks(match.name, needle)}</span>
           <span class="field">${fields[match.field] ?? match.field}</span>
         </span>
-        ${repeatsName(match) ? nothing : html`<span class="snippet">${marked(joined(match.snippet), needle)}</span>`}
+        ${repeatsName(match) ? nothing : html`<span class="snippet">${withMarks(joined(match.snippet), needle)}</span>`}
       </button>
     </li>`;
   }

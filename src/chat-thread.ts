@@ -101,7 +101,7 @@ function pretty(text: string): string {
 
 /** The label a status shows beside an item's kind; a completed item, or one without a status,
  * shows none. */
-const STATUS_LABELS: Record<string, string> = {
+const STATUS_LABELS: Partial<Record<ItemStatus, string>> = {
   in_progress: "Streaming",
   incomplete: "Incomplete",
   failed: "Failed",
@@ -140,7 +140,7 @@ export class ChatThread extends LitElement {
   }
 
   // An item's status, labelled, when it has one worth saying: streaming carries its indicator.
-  #status(status: string | undefined) {
+  #status(status: ItemStatus | undefined) {
     const label = status ? STATUS_LABELS[status] : undefined;
     if (!label) return nothing;
     return html`<span class="status ${status}">${label}</span>`;
