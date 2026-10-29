@@ -24,7 +24,7 @@
     "@jaimestill/spike-html-apps-foundation": "github:JaimeStill/spike-html-apps-foundation#v0.2.0",
     "eslint": "10.13.0",
     "eslint-import-resolver-typescript": "4.4.5",
-    "eslint-plugin-boundaries": "7.3.0",
+    "eslint-plugin-boundaries": "7.4.0",
     "eslint-plugin-import-x": "4.17.1",
     "globals": "17.13.0",
     "prettier": "3.9.10",
