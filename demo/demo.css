@@ -64,12 +64,24 @@
 
   /* The parents that size a component to its content: an inline-block; a flex container whose
      item is sized by its content alone, neither growing nor shrinking; and a grid whose auto
-     track takes its content's width beside a 1fr track, which takes the rest. Each is outlined, so
-     the capture shows the width the component took. */
+     track takes its content's width beside a 1fr track, which takes the rest. Each outlines the
+     width the component took, a step out from it, so the component sits inset in the outline:
+     the inline-block, the component's parent, pads it and draws the outline on itself; the flex
+     and grid items are the component, which has no frame and is not padded here, so its outline
+     is offset by the same step, and its container pads to hold the offset clear of the caption. */
+  .fit-inline-block,
+  .fit-flex,
+  .fit-grid {
+    padding: var(--space-xs);
+  }
   .fit-inline-block,
   .fit-flex > *,
   .fit-grid > * {
     outline: var(--line-s) dotted var(--border-2);
+  }
+  .fit-flex > *,
+  .fit-grid > * {
+    outline-offset: var(--space-xs);
   }
   .fit-inline-block {
     display: inline-block;
