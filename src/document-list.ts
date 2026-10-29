@@ -1,14 +1,9 @@
 // The document list, Lit with a shadow root: a page of documents, composed of the components that
-// already show each part. Each document is an sl-entry, and the page is an sl-pagination, whose
-// default slot holds the list between its summary and its controls; the list adds only what
-// neither has, the selected document's mark and the list's loading, error, and empty states. Its
-// document is a structural shape of its own, which a document API's document fits once its run's
-// status is beside it; the component knows no SDK and no domain. It binds no key.
-//
-// The composed parts send their own events: an entry's `open`, and the pagination's `page-change`
-// and `page-size-change`, each dispatched bubbling and composed by the foundation's emit, so each
-// crosses the part's shadow root and this one and reaches the list's listener as it was sent, its
-// detail the part's own. The list re-dispatches none of them, which would send each twice.
+// already show each part, each document an sl-entry in the default slot of an sl-pagination,
+// between its summary and its controls. The list adds only the selected document's mark and its
+// loading, error, and empty states. Its document is a structural shape of its own, which a document
+// API's document fits once its run's status is beside it; it knows no SDK and no domain, and binds
+// no key.
 
 import { html, LitElement, nothing, type PropertyDeclarations } from "lit";
 import { repeat } from "lit/directives/repeat.js";
@@ -160,6 +155,12 @@ export class DocumentList extends LitElement {
     // in its summary's status slot or its default slot, and the entries, in its default slot. Each
     // entry is keyed by its document's id, so a focused entry stays with its document as the page
     // changes around it.
+    //
+    // The composed parts send their own events: an entry's `open`, and the pagination's
+    // `page-change` and `page-size-change`, each dispatched bubbling and composed by the
+    // foundation's emit, so each crosses the part's shadow root and this one and reaches the list's
+    // listener as it was sent, its detail the part's own. The list re-dispatches none of them,
+    // which would send each twice.
     return html`<sl-pagination
       .page=${this.page}
       .size=${this.size}
