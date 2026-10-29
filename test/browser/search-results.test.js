@@ -171,14 +171,15 @@ describe("search results", { timeout: 60_000 }, () => {
       }
       results.setAttribute("state", "loading");
       await results.updateComplete;
-      seen.push([results.state, true]);
+      const now = results.shadowRoot.querySelector(".status");
+      seen.push([results.state, now === status, now.textContent]);
       return seen;
     })()`);
     assert.deepEqual(reflected, [
       ["loading", true],
       ["error", true],
       ["ready", true],
-      ["loading", true],
+      ["loading", true, "Searching for “report”…"],
     ]);
   });
 

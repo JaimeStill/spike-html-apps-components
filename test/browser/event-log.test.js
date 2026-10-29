@@ -116,7 +116,7 @@ describe("event log", { timeout: 60_000 }, () => {
       ],
       summary: "Data",
       open: false,
-      data: JSON.stringify(stage(0).data, null, 2),
+      data: '{\n  "stage": "upload",\n  "position": 1,\n  "stage_count": 5,\n  "document_id": "doc-1"\n}',
       note: null,
     });
     assert.equal(events[1].time, "Oct 29, 2026, 3:42:01 PM");
@@ -188,11 +188,32 @@ describe("event log", { timeout: 60_000 }, () => {
     );
   });
 
-  test("events of one id from two sources are two events", async () => {
-    await mount([stage(0), { ...stage(0), source: "/emulator/lab-b" }]);
+  test("events of one id from two sources are two events, each keeping its own node", async () => {
+    // Keyed by id alone, the two would be one key: reordered, each row would update in place, and
+    // the details opened on lab-b's row would stay on the second row, now lab-a's.
+    const a = stage(0);
+    const b = { ...stage(0), source: "/emulator/lab-b" };
+    await mount([a, b]);
     assert.deepEqual(
       (await read()).events.map(({ meta }) => meta[0][1]),
       ["/emulator/lab-a", "/emulator/lab-b"],
+    );
+    const moved = await page.evaluate(`(async () => {
+      const log = document.querySelector("sl-event-log");
+      const before = [...log.shadowRoot.querySelectorAll(".event")];
+      before[1].querySelector("details").open = true;
+      log.events = ${JSON.stringify([b, a])};
+      await log.updateComplete;
+      const after = [...log.shadowRoot.querySelectorAll(".event")];
+      return after.length === 2 && after[0] === before[1] && after[1] === before[0];
+    })()`);
+    assert.ok(moved, "each event's node moves with it");
+    assert.deepEqual(
+      (await read()).events.map(({ meta, open }) => [meta[0][1], open]),
+      [
+        ["/emulator/lab-b", true],
+        ["/emulator/lab-a", false],
+      ],
     );
   });
 

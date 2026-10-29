@@ -306,16 +306,20 @@ describe("upload dropzone", { timeout: 60_000 }, () => {
       { type: "dragover", prevented: true, effect: "none" },
       "the pointer shows a refusal",
     );
-    assert.equal(
-      drags.find(({ type }) => type === "drop")?.prevented ?? true,
-      true,
-      "a refused drop never opens the file",
-    );
+    // A drop that arrives anyway is taken from the browser, so it never opens the file, and sent
+    // nowhere.
+    const dropped = await drag("drop", ["a.txt"]);
+    assert.equal(dropped.prevented, true, "a refused drop never opens the file");
+    assert.deepEqual((await read()).heard, [], "a refused drop sends nothing");
     assert.equal(await openPicker(), null, "the picker does not open");
-    // A click on the button, or a change on the input, sends nothing either.
+    // A click on the button, or a change on the input holding a file, sends nothing either.
     await page.evaluate(`(() => {
       window.part(".pick").click();
-      window.part("input").dispatchEvent(new Event("change"));
+      const input = window.part("input");
+      const transfer = new DataTransfer();
+      transfer.items.add(new File(["x"], "a.txt"));
+      input.files = transfer.files;
+      input.dispatchEvent(new Event("change"));
     })()`);
     const after = await read();
     assert.deepEqual([after.sent, after.heard], [[], []]);

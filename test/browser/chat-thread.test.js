@@ -356,10 +356,18 @@ describe("chat thread", { timeout: 60_000 }, () => {
         initial: verbose,
         reflected: thread.hasAttribute("verbose"),
         hidden: root.querySelectorAll("details").length,
+        articles: [before.length, articles().length],
         kept: articles().every((node, index) => node === before[index]),
       };
     })()`);
-    assert.deepEqual(result, { initial: 3, reflected: false, hidden: 0, kept: true });
+    assert.ok(result.articles[0] > 0, "the thread shows messages");
+    assert.deepEqual(result, {
+      initial: 3,
+      reflected: false,
+      hidden: 0,
+      articles: [result.articles[0], result.articles[0]],
+      kept: true,
+    });
   });
 
   test("the thread sends no event as its items and verbose change", async () => {
@@ -378,7 +386,6 @@ describe("chat thread", { timeout: 60_000 }, () => {
         Object.assign(thread, fields);
         await thread.updateComplete;
       }
-      for (const details of thread.shadowRoot.querySelectorAll("details")) details.open = true;
       return sent;
     })()`);
     assert.deepEqual(sent, []);

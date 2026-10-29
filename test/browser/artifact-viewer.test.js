@@ -76,6 +76,8 @@ describe("artifact viewer", { timeout: 60_000 }, () => {
   }
 
   const value = { id: "run-1", stages: [{ name: "classify", outputs: 3 }] };
+  const printed =
+    '{\n  "id": "run-1",\n  "stages": [\n    {\n      "name": "classify",\n      "outputs": 3\n    }\n  ]\n}';
   for (const contentType of [
     "application/json",
     "application/json; charset=utf-8",
@@ -87,7 +89,7 @@ describe("artifact viewer", { timeout: 60_000 }, () => {
     test(`${JSON.stringify(contentType)} parses and prints as JSON, two spaces an indent`, async () => {
       const view = await shown({ name: "run.json", contentType, content: JSON.stringify(value) });
       assert.equal(view.region.element, "pre");
-      assert.equal(view.region.text, JSON.stringify(value, null, 2));
+      assert.equal(view.region.text, printed);
       assert.deepEqual(view.notes, []);
     });
   }
@@ -114,12 +116,12 @@ describe("artifact viewer", { timeout: 60_000 }, () => {
     assert.equal(view.region.text, content);
   });
 
-  for (const contentType of [
-    "image/png",
-    "application/octet-stream",
-    "application/pdf",
-    "",
-    "text",
+  for (const [contentType, detail] of [
+    ["image/png", "image/png isn't text."],
+    ["application/octet-stream", "application/octet-stream isn't text."],
+    ["application/pdf", "application/pdf isn't text."],
+    ["", "It has no content type."],
+    ["text", "text isn't text."],
   ]) {
     test(`${JSON.stringify(contentType)} shows a labelled note in place of its content`, async () => {
       const content = "\u0089PNG\r\n\u001a\n-the-bytes-";
@@ -129,10 +131,7 @@ describe("artifact viewer", { timeout: 60_000 }, () => {
         view.notes.map(({ kind, label }) => [kind, label]),
         [["unsupported", "This content type can't be shown."]],
       );
-      assert.equal(
-        view.notes[0].detail,
-        contentType ? `${contentType} isn't text.` : "It has no content type.",
-      );
+      assert.equal(view.notes[0].detail, detail);
       assert.ok(!JSON.stringify(view).includes("-the-bytes-"), "the content isn't shown");
     });
   }
