@@ -13,7 +13,7 @@
 // A tile is at most TILE tall, so no capture runs many screens tall where icat scales it to the
 // terminal's width; a page that fits in one tile keeps its name and caption without the
 // `--<k>of<m>` and `(k of m)` suffix. A capture sets the profile's attributes on the root, then
-// reaches the focus state with real Tab presses, so :focus-visible matches.
+// reaches the focus state, on a page with one, by real Tab presses, so :focus-visible matches.
 // Adapted from spike-html-apps-foundation (679e550): scripts/screenshots.js, its states the
 // specimen pages, each captured whole in tiles, the focus reached by Tab, and its profiles chosen
 // by argument.
@@ -105,6 +105,7 @@ const PAGES = [
   ["5-chat-thread", "the chat thread", "chat-thread"],
   ["6-composer", "the composer", "composer"],
   ["7-upload-dropzone", "the upload dropzone", "upload-dropzone"],
+  ["8-stage-timeline", "the stage timeline", "stage-timeline"],
 ];
 
 /** The run's pages: those `--page` names, each once, in PAGES' order, or every page when none is
@@ -140,9 +141,11 @@ const RENDERED = `(async () => {
 })()`;
 
 /** Focuses the focus section's mark, which takes focus only by script, and returns how many Tab
- * presses reach the component's focus state. */
+ * presses reach the component's focus state: none on a page with no focus section, whose component
+ * holds nothing focusable. */
 const FOCUS_START = `(() => {
   const mark = document.querySelector("[data-focus-start]");
+  if (!mark) return 0;
   mark.focus();
   return Number(mark.dataset.focusStart) || 1;
 })()`;

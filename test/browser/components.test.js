@@ -2,9 +2,9 @@
 // adopted sheets, and the entry's formatting, on test/fixtures/components.html, on the lean entry
 // and in every profile on the full entry; each component in every profile, on
 // test/fixtures/profiles.html; and the entry's, the pagination's, the artifact viewer's, the chat
-// thread's, the composer's, and the upload dropzone's geometry on their specimen pages under demo/,
-// in every profile, the entry's, the viewer's, the thread's, the composer's, and the dropzone's in
-// parents that size them to their content too.
+// thread's, the composer's, the upload dropzone's, and the stage timeline's geometry on their
+// specimen pages under demo/, in every profile, the entry's, the viewer's, the thread's, the
+// composer's, the dropzone's, and the timeline's in parents that size them to their content too.
 // Adapted from spike-html-packages-components (4c0a5d8): test/browser/components.test.js, renamed,
 // with the formatting, profile, and specimen geometry cases added.
 
@@ -107,6 +107,7 @@ describe("components", { timeout: 60_000 }, () => {
         const reset = await sheet(foundation + "/baseline/reset.css");
         const elements = await sheet(foundation + "/baseline/elements.css");
         const components = [
+          ["sl-stage-timeline", "stage-timeline", "stage-timeline.css"],
           ["sl-upload-dropzone", "upload-dropzone", "upload-dropzone.css"],
           ["sl-composer", "composer", "composer.css"],
           ["sl-chat-thread", "chat-thread", "chat-thread.css"],
@@ -130,6 +131,7 @@ describe("components", { timeout: 60_000 }, () => {
         return { adopted, label: badge.shadowRoot.querySelector("button").textContent };
       })()`);
         for (const tag of [
+          "sl-stage-timeline",
           "sl-upload-dropzone",
           "sl-composer",
           "sl-chat-thread",
@@ -182,13 +184,21 @@ describe("components", { timeout: 60_000 }, () => {
       const { registered, rendered, errors } = await page.evaluate(`(async () => {
         const registry = await import("@jaimestill/spike-html-apps-foundation/registry.js");
         const { directories, files } = await import("/demo/documents.js");
-        await Promise.all(["upload-dropzone", "composer", "chat-thread", "artifact-viewer", "pagination", "entry", "status-badge"].map(
+        await Promise.all(["stage-timeline", "upload-dropzone", "composer", "chat-thread", "artifact-viewer", "pagination", "entry", "status-badge"].map(
           (module) => import("/dist/" + module + ".js")));
-        // Each component as a host composes it: an upload dropzone listing an upload in progress,
-        // a composer holding a draft, a chat thread of a
+        // Each component as a host composes it: a stage timeline part way through a run, an upload
+        // dropzone listing an upload in progress, a composer holding a draft, a chat thread of a
         // user's message and the assistant's Markdown reply, an artifact viewer of a Markdown document, the pagination
         // holding one entry per item, a lone entry, and a labelled badge.
         const components = {
+          "sl-stage-timeline": () =>
+            Object.assign(document.createElement("sl-stage-timeline"), {
+              stages: [
+                { name: "upload", position: 1, state: "complete", completedAt: "2026-10-29T15:42:07Z" },
+                { name: "metadata", position: 2, state: "active" },
+                { name: "extraction", position: 3, state: "pending" },
+              ],
+            }),
           "sl-upload-dropzone": () =>
             Object.assign(document.createElement("sl-upload-dropzone"), {
               uploads: [{ id: "u-1", name: "notes.md", size: 18400, sent: 6300, state: "uploading" }],
@@ -238,20 +248,27 @@ describe("components", { timeout: 60_000 }, () => {
             // the artifact viewer, which holds no button, the color and padding of what its region
             // scrolls, and its Markdown heading's font, since the region's text is the body font,
             // which the type facet's profiles share; the chat thread, which holds none either, the
-            // color and padding of the user's message, and its label's font, the interface font.
+            // color and padding of the user's message, and its label's font, the interface font;
+            // the stage timeline, which holds none either, its complete stage's marker's color,
+            // its step's column gap, the space between marker and text, and its label's font.
             const viewer = tag === "sl-artifact-viewer";
             const thread = tag === "sl-chat-thread";
+            const timeline = tag === "sl-stage-timeline";
             const style = getComputedStyle(element.shadowRoot.querySelector(
-              viewer ? ".body > *" : thread ? ".user > .message" : "button"));
+              viewer ? ".body > *" : thread ? ".user > .message" : timeline ? ".complete > .marker" : "button"));
             const font = viewer
               ? getComputedStyle(element.shadowRoot.querySelector("h1"))
               : thread
                 ? getComputedStyle(element.shadowRoot.querySelector(".role"))
-                : style;
+                : timeline
+                  ? getComputedStyle(element.shadowRoot.querySelector(".label"))
+                  : style;
             const look = {
               color: style.color + " on " + style.backgroundColor,
               font: font.fontFamily,
-              padding: parseFloat(style.paddingInlineStart),
+              padding: timeline
+                ? parseFloat(getComputedStyle(element.shadowRoot.querySelector(".stage")).columnGap)
+                : parseFloat(style.paddingInlineStart),
             };
             rendered.push({ ...choice, profile: JSON.stringify(choice), tag, width, height, look });
             element.remove();
@@ -267,7 +284,7 @@ describe("components", { timeout: 60_000 }, () => {
         space: ["regular", "compact"],
         type: ["mono", "sans"],
       });
-      assert.equal(rendered.length, profiles.length * 7);
+      assert.equal(rendered.length, profiles.length * 8);
       for (const { profile, tag, width, height } of rendered) {
         assert.ok(width > 0 && height > 0, `${tag} under ${profile}: a ${width} × ${height} box`);
       }
@@ -277,6 +294,7 @@ describe("components", { timeout: 60_000 }, () => {
       const looks = (tag, where) =>
         rendered.filter((shown) => shown.tag === tag && where(shown)).map((shown) => shown.look);
       for (const tag of [
+        "sl-stage-timeline",
         "sl-upload-dropzone",
         "sl-composer",
         "sl-chat-thread",
@@ -328,7 +346,7 @@ describe("components", { timeout: 60_000 }, () => {
     const page = await browser.open(`${server.origin}/demo/${specimen}.html`);
     try {
       return await page.evaluate(`(async () => {
-        const tags = ["sl-entry", "sl-pagination", "sl-artifact-viewer", "sl-chat-thread", "sl-composer", "sl-upload-dropzone"]
+        const tags = ["sl-entry", "sl-pagination", "sl-artifact-viewer", "sl-chat-thread", "sl-composer", "sl-upload-dropzone", "sl-stage-timeline"]
           .filter((tag) => document.querySelector(tag));
         await Promise.all(tags.map((tag) => customElements.whenDefined(tag)));
         await Promise.all([...document.querySelectorAll(tags.join(","))].map((el) => el.updateComplete));
@@ -1084,6 +1102,90 @@ describe("components", { timeout: 60_000 }, () => {
         const where = `${parent} under ${profile}`;
         assert.ok(oneLine, `${where}: the prompt and the button wrap`);
         assert.ok(!cut, `${where}: the name is cut short`);
+        assert.ok(width > 0 && width < column / 2, `${where}: ${width} wide in a ${column} column`);
+      }
+    }
+  });
+
+  // In-page helper the stage timeline's measures share, as source: each timeline in a section of
+  // its specimen page.
+  const TIMELINES = `(section) => [...document.querySelectorAll(section + " sl-stage-timeline")]`;
+
+  test("the stage timeline's specimen renders every state within 20rem, its names, labels, and times whole, in every profile", async () => {
+    // Every timeline shows the emulator's five stages. At 20rem the states keep within the column,
+    // every part of each timeline inside its box across. Each label and time keeps one line, and
+    // each step but the last, which has no connector, is one height within a timeline, whatever
+    // its state, as is each detail line.
+    const measure = `() => {
+      const list = document.querySelector(".narrow .states");
+      const lines = ${LINES};
+      const shown = (${TIMELINES})("main").map((timeline) => {
+        const root = timeline.shadowRoot;
+        const box = timeline.getBoundingClientRect();
+        const steps = [...root.querySelectorAll(".stage")];
+        return {
+          narrow: timeline.closest(".narrow") !== null,
+          steps: steps.length,
+          outside: [...root.querySelectorAll(".stage, .marker, .name, .detail, .label, .when")]
+            .filter((part) => {
+              const rect = part.getBoundingClientRect();
+              return rect.left < box.left - 0.5 || rect.right > box.right + 0.5;
+            })
+            .map((part) => part.localName + "." + part.className),
+          broken: [...root.querySelectorAll(".name, .label > .shown, time")]
+            .filter((part) => lines(part) > 1)
+            .map((part) => part.textContent),
+          heights: [...new Set(steps.slice(0, -1).map((step) => Math.round(step.getBoundingClientRect().height)))],
+          details: [...new Set(steps.map((step) => Math.round(step.querySelector(".detail").getBoundingClientRect().height)))],
+        };
+      });
+      return { overflow: list.scrollWidth - list.clientWidth, shown };
+    }`;
+    for (const { profile, overflow, shown } of await measureSpecimen("stage-timeline", measure)) {
+      assert.ok(overflow <= 0, `${profile}: the states overflow the column by ${overflow}`);
+      assert.equal(shown.length, 11, `${profile}: four states twice, and the three fits`);
+      for (const [index, { narrow, steps, outside, broken, heights, details }] of shown.entries()) {
+        const where = `${profile}, timeline ${index}${narrow ? " at 20rem" : ""}`;
+        assert.equal(steps, 5, `${where}: the stages`);
+        assert.deepEqual(outside, [], `${where}: parts outside the timeline`);
+        assert.deepEqual(broken, [], `${where}: broken across lines`);
+        assert.equal(heights.length, 1, `${where}: steps of heights ${heights}`);
+        assert.equal(details.length, 1, `${where}: detail lines of heights ${details}`);
+      }
+    }
+  });
+
+  test("in a parent that sizes it to its content, the stage timeline takes its content's width, in every profile", async () => {
+    // The fit section's timelines, part way through a run: each takes its content's width, so
+    // each complete stage's label and time share one line, and is no wider than half the column.
+    const results = await measureSpecimen(
+      "stage-timeline",
+      `() => {
+        const column = document.querySelector("#fit .fits").getBoundingClientRect().width;
+        return { fits: (${TIMELINES})("#fit").map((timeline) => {
+          const root = timeline.shadowRoot;
+          return {
+            parent: timeline.parentElement.className,
+            oneLine: [...root.querySelectorAll(".complete")].every((step) => {
+              const label = step.querySelector(".label").getBoundingClientRect();
+              const time = step.querySelector("time").getBoundingClientRect();
+              return Math.abs(label.top - time.top) < 1;
+            }),
+            width: timeline.getBoundingClientRect().width,
+            column,
+          };
+        }) };
+      }`,
+    );
+    for (const { profile, fits } of results) {
+      assert.deepEqual(
+        fits.map(({ parent }) => parent),
+        ["fit-inline-block", "fit-flex", "fit-grid"],
+        `${profile}: the fit section's timelines`,
+      );
+      for (const { parent, oneLine, width, column } of fits) {
+        const where = `${parent} under ${profile}`;
+        assert.ok(oneLine, `${where}: a label and its time wrap`);
         assert.ok(width > 0 && width < column / 2, `${where}: ${width} wide in a ${column} column`);
       }
     }

@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>stage timeline specimen</title>
+    <!-- The stage timeline's specimen page, from dist/: a run's five stages, as the emulator names
+         them, all pending; part way, two complete and the third in progress; complete; and failed,
+         the third failing after two completed. Every state is labelled, then shown again in a
+         section 20rem wide; the fit section holds the part-way timeline in three parents that size
+         it to their content, an inline-block, a content-sized flex item, and a grid's auto track.
+         The timeline holds nothing focusable, so the page has no focus section. It draws no frame
+         of its own, and main is unframed: no specimen frame around it, so the capture shows it as a
+         page holds it. The page links the installed foundation's full entry, page-full.css, and
+         imports register-full.js, so a profile applies by attribute on the root; its import map is
+         components.html's, so it runs served only: mise run demo, or mise run screenshots. -->
+    <link rel="stylesheet" href="/deps/@jaimestill/spike-html-apps-foundation/dist/page-full.css" />
+    <link rel="stylesheet" href="demo.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "lit": "/deps/lit/index.js",
+          "lit/": "/deps/lit/",
+          "lit-html": "/deps/lit-html/lit-html.js",
+          "lit-html/": "/deps/lit-html/",
+          "lit-element/": "/deps/lit-element/",
+          "@lit/reactive-element": "/deps/@lit/reactive-element/reactive-element.js",
+          "@lit/reactive-element/": "/deps/@lit/reactive-element/",
+          "marked": "/deps/marked/lib/marked.esm.js",
+          "@jaimestill/spike-html-apps-foundation/": "/deps/@jaimestill/spike-html-apps-foundation/dist/"
+        }
+      }
+    </script>
+    <script type="module">
+      import "@jaimestill/spike-html-apps-foundation/register-full.js";
+      import "../dist/stage-timeline.js";
+      import { figure, make, specimens } from "./specimen.js";
+
+      // The emulator's stages, in order, each completing seconds after the last, as RFC 3339
+      // strings, as a run's JSON carries them.
+      const names = ["upload", "metadata", "extraction", "chunks", "embeddings"];
+      const times = [
+        "2026-10-29T15:42:07Z",
+        "2026-10-29T15:42:09Z",
+        "2026-10-29T15:42:16Z",
+        "2026-10-29T15:42:31Z",
+        "2026-10-29T15:42:58Z",
+      ];
+      // The run's stages, each in the state the list gives by its place, a complete one with its
+      // time.
+      const run = (states) =>
+        names.map((name, index) => ({
+          name,
+          position: index + 1,
+          state: states[index],
+          completedAt: states[index] === "complete" ? times[index] : null,
+        }));
+      const pending = run(["pending", "pending", "pending", "pending", "pending"]);
+      const partWay = run(["complete", "complete", "active", "pending", "pending"]);
+      const complete = run(["complete", "complete", "complete", "complete", "complete"]);
+      const failed = run(["complete", "complete", "failed", "pending", "pending"]);
+
+      const timeline = (stages) => () => make("sl-stage-timeline", { stages });
+      specimens([
+        { label: "All pending: the run has not started", build: timeline(pending) },
+        { label: "Part way: two complete, extraction in progress", build: timeline(partWay) },
+        { label: "Complete: every stage, each with its time", build: timeline(complete) },
+        { label: "Failed: extraction failed after two completed", build: timeline(failed) },
+      ]);
+      // The part-way timeline in each parent that sizes it to its content, by the parent's class
+      // in demo.css.
+      const fit = (label, parent) => ({
+        label,
+        build: () => make("div", { className: parent }, [timeline(partWay)()]),
+      });
+      document.querySelector("#fit .fits").append(
+        ...[
+          fit("In an inline-block", "fit-inline-block"),
+          fit("A content-sized flex item: display flex, the timeline flex none", "fit-flex"),
+          fit("In a grid's auto track, beside a 1fr track", "fit-grid"),
+        ].map(figure),
+      );
+    </script>
+  </head>
+  <body>
+    <main class="unframed">
+      <h1>Stage timeline</h1>
+      <p>
+        <code>sl-stage-timeline</code>, a run's stages as a connected list of steps, each its name,
+        its state, and when it completed, in each of the run's states.
+      </p>
+
+      <section id="states">
+        <h2>States</h2>
+        <div class="states"></div>
+      </section>
+
+      <section id="narrow" class="narrow">
+        <h2>States at 20rem</h2>
+        <div class="states"></div>
+      </section>
+
+      <section id="fit">
+        <h2>Sized to its content</h2>
+        <p>The part-way timeline in parents that size it to their content.</p>
+        <div class="fits"></div>
+      </section>
+    </main>
+  </body>
+</html>

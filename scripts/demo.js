@@ -16,6 +16,7 @@ for (const page of [
   "chat-thread",
   "composer",
   "upload-dropzone",
+  "stage-timeline",
 ]) {
   console.log(`${server.origin}/demo/${page}.html`);
 }

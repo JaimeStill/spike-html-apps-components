@@ -8,6 +8,18 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 
 ### Added
 
+- `./stage-timeline.js` defines `sl-stage-timeline`, a run's stages as a connected, ordered list
+  of steps. `stages` takes each as a structural `TimelineStage`, exported,
+  `{ name, position, state, completedAt? }`, its state `pending`, `active`, `complete`, or
+  `failed`, and its completion time an RFC 3339 string or a `Date`. The steps show in their
+  positions' order, each its name; its state's label, Pending, In progress, Complete, or Failed;
+  its marker, its position, a check, or a cross; and its completion time by the foundation's
+  `formatDateTime`, to the second. The active stage is the list's current step, its marker
+  ringed by a pulse unless motion is reduced. A stage that advances changes in its own nodes, and
+  its label and time hold their slots' widths, so nothing moves as a state changes, in a
+  shrink-to-fit parent too. It holds nothing focusable, sends no event, and binds no key. Its
+  specimen page is `demo/stage-timeline.html`, and `mise run screenshots --page stage-timeline`
+  captures it.
 - `./upload-dropzone.js` defines `sl-upload-dropzone`, a zone that takes files, several at a time,
   dropped on it or chosen through the native file picker its button opens, by pointer or keyboard,
   and sends `files-select` either way, its detail `{ files }`, an array of the `File`s. A drag of
