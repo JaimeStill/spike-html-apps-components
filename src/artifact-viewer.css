@@ -1,0 +1,88 @@
+/*
+ * The artifact viewer's layout in a shadow root: artifact-viewer.ts adopts this sheet into its
+ * root after the foundation's reset and elements sheets (baseline/reset.css and elements.css),
+ * which give the pre and the rendered Markdown their look. It holds the viewer's layout and its
+ * head's type, and draws only the Markdown region's frame, the pre's own, so every view sits in
+ * the same box. It reads only the foundation's baseline tokens, which a shadow root takes by
+ * inheritance from the page's entry. Unlayered, it sits above the adopted layers in the root.
+ *
+ * The host is a flex column: the head, a note, and the region, the region shrinking to the host's
+ * max-block-size, so long content scrolls inside the viewer. A consumer sets the host's
+ * block-size, or another max-block-size, and the region grows or gives way to it.
+ *
+ * The region is a grid of one column, minmax(0, 1fr), around its content: under a min-content
+ * constraint the track is zero, and under a max-content one it is its content's widest line, so
+ * in a shrink-to-fit parent the viewer takes its content's width up to the parent's, and a long
+ * line never widens it past the parent: the region scrolls it.
+ */
+
+:host {
+  display: flex;
+  flex-direction: column;
+  max-block-size: 32rem;
+}
+/* The head: the name, then the content type at the line's end, in a row that wraps, as the
+   entry's head does. Each breaks anywhere, having no space to break at, so a narrow viewer keeps
+   both inside its box. */
+.head {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-3xs) var(--space-xs);
+  margin-block-end: var(--space-2xs);
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+.name {
+  flex: 1 1 16ch;
+  max-inline-size: max-content;
+  min-inline-size: 0;
+  font-size: var(--text-s);
+  font-weight: 600;
+}
+.type {
+  margin-inline-start: auto;
+  font-size: var(--text-s);
+  color: var(--fg-2);
+}
+/* The region, whichever view fills it, scrolls both ways inside its frame. Its content is its
+   grid's one item: the pre's text, or the Markdown's document. */
+.body {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-block-size: 0;
+  overflow: auto;
+}
+/* Markdown has no pre to frame it, so its region takes the pre's frame and padding, on the same
+   tokens. Its code blocks and tables keep their whole lines, as the JSON and text views do, and
+   the region scrolls them sideways. */
+.markdown {
+  padding: var(--space-xs) var(--space-s);
+  border: var(--line-s) solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.document pre {
+  inline-size: max-content;
+  min-inline-size: 100%;
+}
+/* A note: the loading, error, invalid, and unsupported states' label, and its detail on the line
+   below. The invalid JSON note sits above the raw text's region, the elements sheet's block step
+   apart. */
+.note {
+  flex: none;
+  display: grid;
+  gap: var(--space-3xs);
+  padding: var(--space-xs) var(--space-s);
+  border: var(--line-s) dashed var(--border);
+  border-radius: var(--radius-sm);
+  overflow-wrap: anywhere;
+}
+.error > .label {
+  color: var(--red);
+}
+.detail {
+  font-size: var(--text-s);
+  color: var(--fg-2);
+}

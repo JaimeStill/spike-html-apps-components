@@ -8,6 +8,19 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 
 ### Added
 
+- `./artifact-viewer.js` defines `sl-artifact-viewer`, which shows one artifact, its `name`,
+  `contentType` (the `content-type` attribute), and `content`, by its content type: text/markdown
+  rendered through `markdown()`; application/json, or any `+json` type, parsed and printed with
+  two-space indents; any other text/ type as preformatted text. Parameters and case don't count, so
+  `Text/Markdown; charset=utf-8` is Markdown. JSON that doesn't parse shows its raw text under a
+  labelled note, and a type that isn't text shows a labelled note in place of its content. Its
+  `state`, reflected, is `ready` by default, `loading`, or `error` with its `message`. Long content
+  scrolls inside the viewer, held to a max-block-size of 32rem that a consumer may override, in a
+  region Tab reaches; its lines never wrap, so a narrow viewer scrolls them sideways. It sizes to
+  its content in any parent, a shrink-to-fit one too, and sends no event. It imports marked through
+  `./markdown.js`, so a page that uses it maps `marked` in its import map. `viewOf(contentType)`
+  exports the choice of view. Its specimen page is `demo/artifact-viewer.html`, and
+  `mise run screenshots --page artifact-viewer` captures it.
 - `./markdown.js` exports `markdown(source)`, which renders a Markdown string as a Lit template of
   plain native elements, which the foundation's elements sheet styles: headings, paragraphs,
   emphasis, strong, code spans, fenced and indented code, nested ordered and unordered lists with

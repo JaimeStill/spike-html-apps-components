@@ -101,6 +101,7 @@ const PAGES = [
   ["1-status-badge", "the status badge", "status-badge"],
   ["2-entry", "the entry", "entry"],
   ["3-pagination", "the pagination", "pagination"],
+  ["4-artifact-viewer", "the artifact viewer", "artifact-viewer"],
 ];
 
 /** The run's pages: those `--page` names, each once, in PAGES' order, or every page when none is

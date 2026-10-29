@@ -105,6 +105,7 @@ describe("components", { timeout: 60_000 }, () => {
         const reset = await sheet(foundation + "/baseline/reset.css");
         const elements = await sheet(foundation + "/baseline/elements.css");
         const components = [
+          ["sl-artifact-viewer", "artifact-viewer", "artifact-viewer.css"],
           ["sl-pagination", "pagination", "pagination.css"],
           ["sl-entry", "entry", "entry.css"],
           ["sl-status-badge", "status-badge", "status-badge.css"],
@@ -123,7 +124,7 @@ describe("components", { timeout: 60_000 }, () => {
         await badge.updateComplete;
         return { adopted, label: badge.shadowRoot.querySelector("button").textContent };
       })()`);
-        for (const tag of ["sl-pagination", "sl-entry", "sl-status-badge"]) {
+        for (const tag of ["sl-artifact-viewer", "sl-pagination", "sl-entry", "sl-status-badge"]) {
           assert.deepEqual(adopted[tag], ["reset", "elements", "own"], tag);
         }
         assert.equal(label, "Draft");
@@ -168,11 +169,17 @@ describe("components", { timeout: 60_000 }, () => {
       const { registered, rendered, errors } = await page.evaluate(`(async () => {
         const registry = await import("@jaimestill/spike-html-apps-foundation/registry.js");
         const { directories, files } = await import("/demo/documents.js");
-        await Promise.all(["pagination", "entry", "status-badge"].map(
+        await Promise.all(["artifact-viewer", "pagination", "entry", "status-badge"].map(
           (module) => import("/dist/" + module + ".js")));
-        // Each component as a host composes it: the pagination holding one entry per item, a
-        // lone entry, and a labelled badge.
+        // Each component as a host composes it: an artifact viewer of a Markdown document, the
+        // pagination holding one entry per item, a lone entry, and a labelled badge.
         const components = {
+          "sl-artifact-viewer": () =>
+            Object.assign(document.createElement("sl-artifact-viewer"), {
+              name: "notes.md",
+              contentType: "text/markdown",
+              content: "# Notes\\n\\nA paragraph, then a list:\\n\\n- one\\n- two",
+            }),
           "sl-pagination": () => {
             const pagination = document.createElement("sl-pagination");
             Object.assign(pagination, { page: 2, size: 3, total: 8, pageSizes: [3, 6, 12] });
@@ -197,11 +204,16 @@ describe("components", { timeout: 60_000 }, () => {
             const element = document.querySelector("main").appendChild(make());
             await element.updateComplete;
             const { width, height } = element.getBoundingClientRect();
-            // The look the profile gives the component's first button, inside its shadow root.
-            const style = getComputedStyle(element.shadowRoot.querySelector("button"));
+            // The look the profile gives the component's first button, inside its shadow root;
+            // the artifact viewer, which holds no button, its region's color and padding, and its
+            // Markdown heading's font, since the region's text is the body font, which the type
+            // facet's profiles share.
+            const viewer = tag === "sl-artifact-viewer";
+            const style = getComputedStyle(element.shadowRoot.querySelector(viewer ? ".body" : "button"));
+            const font = viewer ? getComputedStyle(element.shadowRoot.querySelector("h1")) : style;
             const look = {
               color: style.color + " on " + style.backgroundColor,
-              font: style.fontFamily,
+              font: font.fontFamily,
               padding: parseFloat(style.paddingInlineStart),
             };
             rendered.push({ ...choice, profile: JSON.stringify(choice), tag, width, height, look });
@@ -218,7 +230,7 @@ describe("components", { timeout: 60_000 }, () => {
         space: ["regular", "compact"],
         type: ["mono", "sans"],
       });
-      assert.equal(rendered.length, profiles.length * 3);
+      assert.equal(rendered.length, profiles.length * 4);
       for (const { profile, tag, width, height } of rendered) {
         assert.ok(width > 0 && height > 0, `${tag} under ${profile}: a ${width} × ${height} box`);
       }
@@ -227,7 +239,7 @@ describe("components", { timeout: 60_000 }, () => {
       // sets another font than mono, and compact pads tighter than regular.
       const looks = (tag, where) =>
         rendered.filter((shown) => shown.tag === tag && where(shown)).map((shown) => shown.look);
-      for (const tag of ["sl-pagination", "sl-entry", "sl-status-badge"]) {
+      for (const tag of ["sl-artifact-viewer", "sl-pagination", "sl-entry", "sl-status-badge"]) {
         const colors = looks(tag, ({ space, type }) => space === "regular" && type === "mono");
         assert.equal(
           new Set(colors.map((look) => look.color)).size,
@@ -271,7 +283,7 @@ describe("components", { timeout: 60_000 }, () => {
     const page = await browser.open(`${server.origin}/demo/${specimen}.html`);
     try {
       return await page.evaluate(`(async () => {
-        const tags = ["sl-entry", "sl-pagination"]
+        const tags = ["sl-entry", "sl-pagination", "sl-artifact-viewer"]
           .filter((tag) => document.querySelector(tag));
         await Promise.all(tags.map((tag) => customElements.whenDefined(tag)));
         await Promise.all([...document.querySelectorAll(tags.join(","))].map((el) => el.updateComplete));
@@ -616,6 +628,97 @@ describe("components", { timeout: 60_000 }, () => {
         assert.ok(status, `${where}: the status shown`);
         assert.ok(overflow <= 0, `${where}: the entry's content overflows it by ${overflow}`);
         assert.deepEqual(outside, [], `${where}: parts outside the entry`);
+      }
+    }
+  });
+
+  // In-page helper the artifact viewer's measures share, as source: each viewer in a section of
+  // its specimen page.
+  const VIEWERS = `(section) => [...document.querySelectorAll(section + " sl-artifact-viewer")]`;
+
+  test("the artifact viewer's specimen renders every state, within 20rem and 32rem, in every profile", async () => {
+    // Every viewer shows its head and a region or a note; none is taller than its max-block-size,
+    // 32rem; at 20rem the states keep within the column, every part of each viewer inside its
+    // box, and a JSON line too long for the column scrolls its region sideways, never wrapping.
+    const measure = `() => {
+      const list = document.querySelector(".narrow .states");
+      const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+      const shown = (${VIEWERS})("main").map((viewer) => {
+        const root = viewer.shadowRoot;
+        const box = viewer.getBoundingClientRect();
+        const parts = [...root.querySelectorAll(".head, .name, .type, .note, .body")];
+        const region = root.querySelector(".body");
+        return {
+          name: viewer.name,
+          narrow: viewer.closest(".narrow") !== null,
+          head: root.querySelector(".head") !== null,
+          shown: root.querySelector(".body, .note") !== null,
+          tall: box.height - 32 * rem,
+          outside: parts
+            .filter((part) => {
+              const rect = part.getBoundingClientRect();
+              return rect.left < box.left - 0.5 || rect.right > box.right + 0.5 ||
+                rect.top < box.top - 0.5 || rect.bottom > box.bottom + 0.5;
+            })
+            .map((part) => part.className),
+          sideways: region !== null && region.scrollWidth > region.clientWidth,
+          scrolls: region !== null && region.scrollHeight > region.clientHeight,
+        };
+      });
+      return { overflow: list.scrollWidth - list.clientWidth, shown };
+    }`;
+    for (const { profile, overflow, shown } of await measureSpecimen("artifact-viewer", measure)) {
+      assert.ok(overflow <= 0, `${profile}: the states overflow the column by ${overflow}`);
+      assert.equal(
+        shown.length,
+        22,
+        `${profile}: nine states twice, the three fits, and the focus state`,
+      );
+      for (const { name, narrow, head, shown: content, tall, outside } of shown) {
+        const where = `${profile}, ${name}${narrow ? " at 20rem" : ""}`;
+        assert.ok(head && content, `${where}: a head and a region or a note`);
+        assert.ok(tall <= 0.5, `${where}: ${tall}px taller than 32rem`);
+        assert.deepEqual(outside, [], `${where}: parts outside the viewer`);
+      }
+      const log = shown.filter(({ name }) => name === "run.log");
+      assert.ok(
+        log.length === 3 && log.every(({ scrolls }) => scrolls),
+        `${profile}: run.log scrolls`,
+      );
+      const [json] = shown.filter(({ name, narrow }) => name === "run.json" && narrow);
+      assert.ok(json.sideways, `${profile}: run.json's id line scrolls sideways at 20rem`);
+    }
+  });
+
+  test("in a parent that sizes it to its content, the artifact viewer takes its content's width, in every profile", async () => {
+    // The fit section's viewers: each is as wide as its widest line, so its region needs no
+    // sideways scroll, and no wider than the column.
+    const results = await measureSpecimen(
+      "artifact-viewer",
+      `() => {
+        const column = document.querySelector("#fit .fits").getBoundingClientRect().width;
+        return { fits: (${VIEWERS})("#fit").map((viewer) => {
+          const region = viewer.shadowRoot.querySelector(".body");
+          const width = viewer.getBoundingClientRect().width;
+          return {
+            parent: viewer.parentElement.className,
+            sideways: region.scrollWidth - region.clientWidth,
+            width,
+            column,
+          };
+        }) };
+      }`,
+    );
+    for (const { profile, fits } of results) {
+      assert.deepEqual(
+        fits.map(({ parent }) => parent),
+        ["fit-inline-block", "fit-flex", "fit-grid"],
+        `${profile}: the fit section's viewers`,
+      );
+      for (const { parent, sideways, width, column } of fits) {
+        const where = `${parent} under ${profile}`;
+        assert.ok(sideways <= 0, `${where}: the region scrolls sideways by ${sideways}`);
+        assert.ok(width < column / 2, `${where}: ${width} wide in a ${column} column`);
       }
     }
   });

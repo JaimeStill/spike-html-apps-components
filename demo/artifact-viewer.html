@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>artifact viewer specimen</title>
+    <!-- The artifact viewer's specimen page, from dist/: a Markdown document, JSON, invalid JSON,
+         plain text, content long enough to scroll, a type that isn't text, loading, and an error.
+         Every state is labelled, then shown again in a section 20rem wide; the fit section holds
+         the JSON viewer in three parents that size it to its content, an inline-block, a
+         content-sized flex item, and a grid's auto track; and the focus section holds one
+         instance whose scrolling region the screenshot script reaches with a Tab press. The page
+         links the installed foundation's full entry, page-full.css, and imports
+         register-full.js, so a profile applies by attribute on the root; its import map is
+         components.html's, so it runs served only: mise run demo, or mise run screenshots. -->
+    <link rel="stylesheet" href="/deps/@jaimestill/spike-html-apps-foundation/dist/page-full.css" />
+    <link rel="stylesheet" href="demo.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "lit": "/deps/lit/index.js",
+          "lit/": "/deps/lit/",
+          "lit-html": "/deps/lit-html/lit-html.js",
+          "lit-html/": "/deps/lit-html/",
+          "lit-element/": "/deps/lit-element/",
+          "@lit/reactive-element": "/deps/@lit/reactive-element/reactive-element.js",
+          "@lit/reactive-element/": "/deps/@lit/reactive-element/",
+          "marked": "/deps/marked/lib/marked.esm.js",
+          "@jaimestill/spike-html-apps-foundation/": "/deps/@jaimestill/spike-html-apps-foundation/dist/"
+        }
+      }
+    </script>
+    <script type="module">
+      import "@jaimestill/spike-html-apps-foundation/register-full.js";
+      import "../dist/artifact-viewer.js";
+      import { figure, make, specimens } from "./specimen.js";
+
+      const document_ = [
+        "# Release notes",
+        "",
+        "The **artifact viewer** renders a run's outputs by their *content type*, with `markdown()`",
+        "for documents like this one. See [the changelog](https://example.com/changelog).",
+        "",
+        "## What changed",
+        "",
+        "- Markdown, JSON, and text each have a view",
+        "- Long content scrolls inside the viewer",
+        "  1. by the keyboard, once it has focus",
+        "  2. or by the pointer",
+        "",
+        "| Type | View | Size |",
+        "| :--- | :--- | ---: |",
+        "| text/markdown | Markdown | 1.5 kB |",
+        "| application/json | JSON | 312 B |",
+        "| text/csv | Text | 48 kB |",
+        "",
+        "```js",
+        'const viewer = document.querySelector("sl-artifact-viewer");',
+        'Object.assign(viewer, { name: "notes.md", contentType: "text/markdown", content });',
+        "```",
+        "",
+        "> A type that isn't text shows a note, never its bytes.",
+      ].join("\n");
+
+      const json = JSON.stringify({
+        id: "run-01J9X4R7Q2M8ZK3T5V6W",
+        status: "complete",
+        stages: [
+          { name: "classify", duration_ms: 1840, outputs: 3 },
+          { name: "summarize", duration_ms: 5216, outputs: 1 },
+        ],
+        updated_at: "2026-10-12T16:41:07Z",
+      });
+
+      const text = [
+        "stage,started_at,duration_ms,status",
+        "classify,2026-10-12T16:40:58Z,1840,complete",
+        "summarize,2026-10-12T16:41:00Z,5216,complete",
+      ].join("\n");
+
+      const long = Array.from(
+        { length: 80 },
+        (_, i) =>
+          `${String(i + 1).padStart(3, " ")}  2026-10-12T16:${String(i % 60).padStart(2, "0")}:07Z  ` +
+          `stage ${(i % 4) + 1} of 4  run-01J9X4R7Q2M8ZK3T5V6W  ${i % 7 === 0 ? "retry" : "ok"}`,
+      ).join("\n");
+
+      const viewer = (fields) => () => make("sl-artifact-viewer", fields);
+      specimens(
+        [
+          {
+            label: "Markdown: text/markdown; charset=utf-8, rendered",
+            build: viewer({ name: "release-notes.md", contentType: "text/markdown; charset=utf-8", content: document_ }),
+          },
+          {
+            label: "JSON: application/json, pretty-printed",
+            build: viewer({ name: "run.json", contentType: "application/json", content: json }),
+          },
+          {
+            label: "JSON by suffix: application/vnd.run+json",
+            build: viewer({ name: "stage.json", contentType: "application/vnd.run+json", content: '{"name":"classify","outputs":3}' }),
+          },
+          {
+            label: "Invalid JSON: its raw text, under a note",
+            build: viewer({ name: "broken.json", contentType: "application/json", content: '{"id": "run-01J9X", "status": complete,}' }),
+          },
+          {
+            label: "Plain text: text/csv, preformatted",
+            build: viewer({ name: "stages.csv", contentType: "text/csv", content: text }),
+          },
+          {
+            label: "Long content: 80 lines, scrolling inside the viewer",
+            build: viewer({ name: "run.log", contentType: "text/plain", content: long }),
+          },
+          {
+            label: "Unsupported: image/png, a note in place of its bytes",
+            build: viewer({ name: "chart.png", contentType: "image/png", content: "\u0089PNG\r\n\u001a\n" }),
+          },
+          {
+            label: "Loading",
+            build: viewer({ name: "summary.md", contentType: "text/markdown", state: "loading" }),
+          },
+          {
+            label: "Error: the message says why",
+            build: viewer({ name: "summary.md", contentType: "text/markdown", state: "error", message: "The pipeline returned 404 Not Found." }),
+          },
+        ],
+        { label: "Focused by Tab: the scrolling region", build: viewer({ name: "run.log", contentType: "text/plain", content: long }) },
+      );
+      // The JSON viewer in each parent that sizes it to its content, by the parent's class in demo.css.
+      const fit = (label, parent) => ({
+        label,
+        build: () =>
+          make("div", { className: parent }, [
+            viewer({ name: "stage.json", contentType: "application/json", content: '{"name":"classify","outputs":3}' })(),
+          ]),
+      });
+      document.querySelector("#fit .fits").append(
+        ...[
+          fit("In an inline-block", "fit-inline-block"),
+          fit("A content-sized flex item: display flex, the viewer flex none", "fit-flex"),
+          fit("In a grid's auto track, beside a 1fr track", "fit-grid"),
+        ].map(figure),
+      );
+    </script>
+  </head>
+  <body>
+    <main>
+      <h1>Artifact viewer</h1>
+      <p><code>sl-artifact-viewer</code>, one artifact's content by its content type, in each of its states.</p>
+
+      <section id="states">
+        <h2>States</h2>
+        <div class="states"></div>
+      </section>
+
+      <section id="narrow" class="narrow">
+        <h2>States at 20rem</h2>
+        <div class="states"></div>
+      </section>
+
+      <section id="fit">
+        <h2>Sized to its content</h2>
+        <p>A short JSON artifact's viewer in parents that size it to its content.</p>
+        <div class="fits"></div>
+      </section>
+
+      <section id="focus">
+        <h2>Focus visible</h2>
+        <p>The viewer's scrolling region, reached by the keyboard.</p>
+        <span tabindex="-1" data-focus-start="1"></span>
+        <div class="states"></div>
+      </section>
+    </main>
+  </body>
+</html>
