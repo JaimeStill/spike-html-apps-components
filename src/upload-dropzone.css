@@ -1,0 +1,140 @@
+/*
+ * The upload dropzone's layout in a shadow root: upload-dropzone.ts adopts this sheet into its
+ * root after the foundation's reset and elements sheets (baseline/reset.css and elements.css),
+ * which give the native buttons and progress bars their look and the focus outline. It holds the
+ * zone's frame and its drag-over and disabled looks, the list's layout, each upload's rows, and
+ * the finished states' labels. It reads only the foundation's baseline tokens, which a shadow
+ * root takes by inheritance from the page's entry. Unlayered, it sits above the adopted layers in
+ * the root.
+ *
+ * The zone is the component's one frame, dashed, around its prompt and its picker button. The
+ * list sits below it, unframed, its uploads divided by rules, and is as tall as its uploads: no
+ * cap, nothing scrolls. Each upload is two rows: its name, cut short with an ellipsis on one line,
+ * and its trailing cell, the cancel control or the finished label, held to the control's height
+ * either way; then its detail line, one line of the small step, the progress bar, the message, or
+ * neither, and the bytes at its end, never broken. So neither progress nor a change of state moves
+ * anything, but a failed upload's message, which wraps rather than hide why. In a shrink-to-fit
+ * parent the component is as wide as its widest line, its prompt and button or a name, up to the
+ * parent's width.
+ */
+
+:host {
+  display: block;
+}
+/* The one frame. Dragging files over it turns its dashes solid in the interaction color, on a
+   tint of it, at the same width, so nothing moves. */
+.zone {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2xs) var(--space-xs);
+  padding: var(--space-l) var(--space-m);
+  border: var(--line-m) dashed var(--border-2);
+  border-radius: var(--radius-md);
+  color: var(--fg-2);
+  text-align: center;
+}
+.zone.over {
+  border-style: solid;
+  border-color: var(--interaction-color, var(--blue));
+  background-color: color-mix(in srgb, var(--interaction-color, var(--blue)) 10%, transparent);
+  color: var(--fg);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .zone {
+    transition:
+      border-color 120ms ease-out,
+      background-color 120ms ease-out;
+  }
+}
+/* Disabled, the zone recedes to a divider's dashes and the faintest text; its button is the
+   elements sheet's disabled button. */
+:host([disabled]) .zone {
+  border-color: var(--border);
+  color: var(--fg-3);
+}
+.uploads {
+  margin: var(--space-s) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.upload {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "name end"
+    "detail detail";
+  align-items: center;
+  gap: var(--space-3xs) var(--space-xs);
+  margin: 0;
+  padding-block: var(--space-2xs);
+}
+.upload + .upload {
+  border-block-start: var(--line-s) solid var(--border);
+}
+/* The name keeps one line, cut short at its end; its title and the controls' names hold it
+   whole. */
+.name {
+  grid-area: name;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* The trailing cell, in the controls' font, is as tall as a button whether it holds one or a
+   label, so the row keeps its height when the cancel control goes. */
+.end {
+  grid-area: end;
+  display: flex;
+  align-items: center;
+  min-block-size: calc(1lh + 2 * var(--space-3xs) + 2 * var(--line-s));
+  font-family: var(--font-ui);
+  line-height: var(--leading-ui);
+}
+.state {
+  font-size: var(--text-s);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.done .state {
+  color: var(--green);
+}
+.failed .state {
+  color: var(--red);
+}
+.cancelled .state,
+.cancelled .name {
+  color: var(--fg-3);
+}
+/* The detail line: at least one line tall, a bar or not, the bytes at its end, under the
+   trailing cell. */
+.detail {
+  grid-area: detail;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-block-size: 1lh;
+  font-size: var(--text-s);
+  color: var(--fg-2);
+}
+progress {
+  flex: 1 1 0;
+  min-inline-size: 0;
+}
+.message {
+  flex: 1 1 0;
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+/* A size never breaks, and its digits share one width; the bytes sent hold the width of the
+   widest count, "999.9 kB", so the line keeps still as they climb. */
+.bytes {
+  margin-inline-start: auto;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.sent {
+  display: inline-block;
+  min-inline-size: 8ch;
+  text-align: end;
+}

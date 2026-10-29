@@ -8,6 +8,21 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 
 ### Added
 
+- `./upload-dropzone.js` defines `sl-upload-dropzone`, a zone that takes files, several at a time,
+  dropped on it or chosen through the native file picker its button opens, by pointer or keyboard,
+  and sends `files-select` either way, its detail `{ files }`, an array of the `File`s. A drag of
+  files marks the zone, kept while it moves across the zone's children and cleared when it leaves
+  or drops; a drag of anything but files leaves the zone alone, and a drop of files is never the
+  browser's, so a missed drop never opens the file in the page. `disabled`, reflected, refuses
+  files by both paths, its drop effect none, and reads as disabled. `accept` is the picker's; a
+  drop is not filtered by it, and the app validates what it receives. `uploads` lists the app's
+  uploads, each a structural `UploadItem`, exported, `{ id, name, size, sent, state, message? }`:
+  its name, on one line and cut short when long, and its size by the foundation's `formatBytes`;
+  an uploading one its bytes sent of its size and a native progress bar, and a cancel control
+  named for the file, which sends `upload-cancel` with `{ id }`; a done, failed, or cancelled one
+  its label, a failed one its message. Neither progress nor a change of state moves an upload's
+  rows. It binds no key. Its specimen page is `demo/upload-dropzone.html`, and
+  `mise run screenshots --page upload-dropzone` captures it.
 - `./composer.js` defines `sl-composer`, a multi-line text field and its send control. Activating
   send sends `send`, its detail `{ text }`, the field's text as typed, and clears the field first,
   so a listener that sets `value` keeps what it set; focus returns to the field. Send is disabled

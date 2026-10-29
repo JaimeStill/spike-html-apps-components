@@ -15,6 +15,7 @@ for (const page of [
   "artifact-viewer",
   "chat-thread",
   "composer",
+  "upload-dropzone",
 ]) {
   console.log(`${server.origin}/demo/${page}.html`);
 }

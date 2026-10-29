@@ -2,9 +2,9 @@
 // adopted sheets, and the entry's formatting, on test/fixtures/components.html, on the lean entry
 // and in every profile on the full entry; each component in every profile, on
 // test/fixtures/profiles.html; and the entry's, the pagination's, the artifact viewer's, the chat
-// thread's, and the composer's geometry on their specimen pages under demo/, in every profile, the
-// entry's, the viewer's, the thread's, and the composer's in parents that size them to their
-// content too.
+// thread's, the composer's, and the upload dropzone's geometry on their specimen pages under demo/,
+// in every profile, the entry's, the viewer's, the thread's, the composer's, and the dropzone's in
+// parents that size them to their content too.
 // Adapted from spike-html-packages-components (4c0a5d8): test/browser/components.test.js, renamed,
 // with the formatting, profile, and specimen geometry cases added.
 
@@ -107,6 +107,7 @@ describe("components", { timeout: 60_000 }, () => {
         const reset = await sheet(foundation + "/baseline/reset.css");
         const elements = await sheet(foundation + "/baseline/elements.css");
         const components = [
+          ["sl-upload-dropzone", "upload-dropzone", "upload-dropzone.css"],
           ["sl-composer", "composer", "composer.css"],
           ["sl-chat-thread", "chat-thread", "chat-thread.css"],
           ["sl-artifact-viewer", "artifact-viewer", "artifact-viewer.css"],
@@ -129,6 +130,7 @@ describe("components", { timeout: 60_000 }, () => {
         return { adopted, label: badge.shadowRoot.querySelector("button").textContent };
       })()`);
         for (const tag of [
+          "sl-upload-dropzone",
           "sl-composer",
           "sl-chat-thread",
           "sl-artifact-viewer",
@@ -180,12 +182,17 @@ describe("components", { timeout: 60_000 }, () => {
       const { registered, rendered, errors } = await page.evaluate(`(async () => {
         const registry = await import("@jaimestill/spike-html-apps-foundation/registry.js");
         const { directories, files } = await import("/demo/documents.js");
-        await Promise.all(["composer", "chat-thread", "artifact-viewer", "pagination", "entry", "status-badge"].map(
+        await Promise.all(["upload-dropzone", "composer", "chat-thread", "artifact-viewer", "pagination", "entry", "status-badge"].map(
           (module) => import("/dist/" + module + ".js")));
-        // Each component as a host composes it: a composer holding a draft, a chat thread of a
+        // Each component as a host composes it: an upload dropzone listing an upload in progress,
+        // a composer holding a draft, a chat thread of a
         // user's message and the assistant's Markdown reply, an artifact viewer of a Markdown document, the pagination
         // holding one entry per item, a lone entry, and a labelled badge.
         const components = {
+          "sl-upload-dropzone": () =>
+            Object.assign(document.createElement("sl-upload-dropzone"), {
+              uploads: [{ id: "u-1", name: "notes.md", size: 18400, sent: 6300, state: "uploading" }],
+            }),
           "sl-composer": () =>
             Object.assign(document.createElement("sl-composer"), { value: "Status?" }),
           "sl-chat-thread": () =>
@@ -227,7 +234,7 @@ describe("components", { timeout: 60_000 }, () => {
             await element.updateComplete;
             const { width, height } = element.getBoundingClientRect();
             // The look the profile gives the component's first button, inside its shadow root, the
-            // composer's its send control, enabled by the draft;
+            // composer's its send control, enabled by the draft, the dropzone's its picker button;
             // the artifact viewer, which holds no button, the color and padding of what its region
             // scrolls, and its Markdown heading's font, since the region's text is the body font,
             // which the type facet's profiles share; the chat thread, which holds none either, the
@@ -260,7 +267,7 @@ describe("components", { timeout: 60_000 }, () => {
         space: ["regular", "compact"],
         type: ["mono", "sans"],
       });
-      assert.equal(rendered.length, profiles.length * 6);
+      assert.equal(rendered.length, profiles.length * 7);
       for (const { profile, tag, width, height } of rendered) {
         assert.ok(width > 0 && height > 0, `${tag} under ${profile}: a ${width} × ${height} box`);
       }
@@ -270,6 +277,7 @@ describe("components", { timeout: 60_000 }, () => {
       const looks = (tag, where) =>
         rendered.filter((shown) => shown.tag === tag && where(shown)).map((shown) => shown.look);
       for (const tag of [
+        "sl-upload-dropzone",
         "sl-composer",
         "sl-chat-thread",
         "sl-artifact-viewer",
@@ -320,7 +328,7 @@ describe("components", { timeout: 60_000 }, () => {
     const page = await browser.open(`${server.origin}/demo/${specimen}.html`);
     try {
       return await page.evaluate(`(async () => {
-        const tags = ["sl-entry", "sl-pagination", "sl-artifact-viewer", "sl-chat-thread", "sl-composer"]
+        const tags = ["sl-entry", "sl-pagination", "sl-artifact-viewer", "sl-chat-thread", "sl-composer", "sl-upload-dropzone"]
           .filter((tag) => document.querySelector(tag));
         await Promise.all(tags.map((tag) => customElements.whenDefined(tag)));
         await Promise.all([...document.querySelectorAll(tags.join(","))].map((el) => el.updateComplete));
@@ -974,6 +982,108 @@ describe("components", { timeout: 60_000 }, () => {
         const where = `${parent} under ${profile}`;
         assert.ok(sideways <= 0, `${where}: the field scrolls sideways by ${sideways}`);
         assert.ok(oneLine, `${where}: the draft wraps`);
+        assert.ok(width > 0 && width < column / 2, `${where}: ${width} wide in a ${column} column`);
+      }
+    }
+  });
+  // In-page helper the upload dropzone's measures share, as source: each dropzone in a section of
+  // its specimen page.
+  const DROPZONES = `(section) => [...document.querySelectorAll(section + " sl-upload-dropzone")]`;
+
+  test("the upload dropzone's specimen renders every state within 20rem, its names cut short and its sizes and labels whole, in every profile", async () => {
+    // Every dropzone shows its zone; only the drag-over state's, once in the states and once at
+    // 20rem, is marked. At 20rem the states keep within the column, every part of each dropzone
+    // inside its box across. Each name keeps one line, cut short when long; each size, bytes sent,
+    // label, and control keeps one line. Within a dropzone, every upload without a message is one
+    // height inside its divider, whatever its state or progress.
+    const measure = `() => {
+      const list = document.querySelector(".narrow .states");
+      const lines = ${LINES};
+      const shown = (${DROPZONES})("main").map((dropzone) => {
+        const root = dropzone.shadowRoot;
+        const box = dropzone.getBoundingClientRect();
+        const parts = [...root.querySelectorAll(
+          ".zone, .prompt, button, .upload, .name, .end, .detail, progress, .bytes, .message")];
+        const items = [...root.querySelectorAll(".upload")];
+        return {
+          narrow: dropzone.closest(".narrow") !== null,
+          zone: root.querySelector(".zone") !== null,
+          over: root.querySelector(".zone.over") !== null,
+          outside: parts
+            .filter((part) => {
+              const rect = part.getBoundingClientRect();
+              return rect.left < box.left - 0.5 || rect.right > box.right + 0.5;
+            })
+            .map((part) => part.localName + "." + part.className),
+          // The bytes hold the sent count in an inline-block, whose box's top the line helper
+          // counts apart from its text's, so they are measured by height: one line of their own.
+          broken: [
+            ...[...root.querySelectorAll(".name, .state, button")].filter((part) => lines(part) > 1),
+            ...[...root.querySelectorAll(".bytes")].filter((part) =>
+              part.getBoundingClientRect().height > 1.5 * parseFloat(getComputedStyle(part).lineHeight)),
+          ].map((part) => part.textContent.trim()),
+          heights: [...new Set(items
+            .filter((item) => !item.querySelector(".message"))
+            .map((item) => item.clientHeight))],
+        };
+      });
+      return { overflow: list.scrollWidth - list.clientWidth, shown };
+    }`;
+    for (const { profile, overflow, shown } of await measureSpecimen("upload-dropzone", measure)) {
+      assert.ok(overflow <= 0, `${profile}: the states overflow the column by ${overflow}`);
+      assert.equal(
+        shown.length,
+        26,
+        `${profile}: eleven states twice, the three fits, and the focus state`,
+      );
+      assert.equal(
+        shown.filter(({ over }) => over).length,
+        2,
+        `${profile}: the drag-over state, in the states and at 20rem`,
+      );
+      for (const [index, { narrow, zone, outside, broken, heights }] of shown.entries()) {
+        const where = `${profile}, dropzone ${index}${narrow ? " at 20rem" : ""}`;
+        assert.ok(zone, `${where}: a zone`);
+        assert.deepEqual(outside, [], `${where}: parts outside the dropzone`);
+        assert.deepEqual(broken, [], `${where}: broken across lines`);
+        assert.ok(heights.length <= 1, `${where}: uploads of heights ${heights}`);
+      }
+    }
+  });
+
+  test("in a parent that sizes it to its content, the upload dropzone takes its content's width, in every profile", async () => {
+    // The fit section's dropzones, one short upload each: each takes its content's width, so its
+    // prompt and button share one line and its upload's name shows whole, and is no wider than
+    // half the column.
+    const results = await measureSpecimen(
+      "upload-dropzone",
+      `() => {
+        const column = document.querySelector("#fit .fits").getBoundingClientRect().width;
+        return { fits: (${DROPZONES})("#fit").map((dropzone) => {
+          const root = dropzone.shadowRoot;
+          const prompt = root.querySelector(".prompt").getBoundingClientRect();
+          const pick = root.querySelector(".pick").getBoundingClientRect();
+          const name = root.querySelector(".name");
+          return {
+            parent: dropzone.parentElement.className,
+            oneLine: Math.abs((prompt.top + prompt.bottom) / 2 - (pick.top + pick.bottom) / 2) < 1,
+            cut: name.scrollWidth > name.clientWidth,
+            width: dropzone.getBoundingClientRect().width,
+            column,
+          };
+        }) };
+      }`,
+    );
+    for (const { profile, fits } of results) {
+      assert.deepEqual(
+        fits.map(({ parent }) => parent),
+        ["fit-inline-block", "fit-flex", "fit-grid"],
+        `${profile}: the fit section's dropzones`,
+      );
+      for (const { parent, oneLine, cut, width, column } of fits) {
+        const where = `${parent} under ${profile}`;
+        assert.ok(oneLine, `${where}: the prompt and the button wrap`);
+        assert.ok(!cut, `${where}: the name is cut short`);
         assert.ok(width > 0 && width < column / 2, `${where}: ${width} wide in a ${column} column`);
       }
     }

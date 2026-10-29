@@ -104,6 +104,7 @@ const PAGES = [
   ["4-artifact-viewer", "the artifact viewer", "artifact-viewer"],
   ["5-chat-thread", "the chat thread", "chat-thread"],
   ["6-composer", "the composer", "composer"],
+  ["7-upload-dropzone", "the upload dropzone", "upload-dropzone"],
 ];
 
 /** The run's pages: those `--page` names, each once, in PAGES' order, or every page when none is

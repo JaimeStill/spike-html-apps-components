@@ -76,21 +76,26 @@ foundation's `page.css`:
 - `./composer.js`: `sl-composer`, a multi-line text field that grows to eight lines, and its
   send control, which a stop control replaces while `busy`; it dispatches `send` with the text,
   then clears the field, and `stop`. It binds no key.
+- `./upload-dropzone.js`: `sl-upload-dropzone`, a zone that takes files by drop or through its
+  picker button, and the app's uploads below it, each with its progress and a cancel control or
+  its finished state; it dispatches `files-select` with an array of the files, and
+  `upload-cancel` with an upload's id. It exports its upload type and binds no key.
 - `./*.css`: each component's sheet, which its module imports itself.
 
 `demo/components.html` is a page on all three, with its import map. Each component also has a
 specimen page, `demo/status-badge.html`, `demo/entry.html`, `demo/pagination.html`,
-`demo/artifact-viewer.html`, `demo/chat-thread.html`, and `demo/composer.html`, that shows every
-state of the component, labelled, then again in a section 20rem wide, and one instance reached by
-the keyboard to show its focus ring. The specimen pages link the foundation's `page-full.css` and
-import its `register-full.js`, so a profile applies by its attribute on the root.
+`demo/artifact-viewer.html`, `demo/chat-thread.html`, `demo/composer.html`, and
+`demo/upload-dropzone.html`, that shows every state of the component, labelled, then again in a
+section 20rem wide, and one instance reached by the keyboard to show its focus ring. The specimen
+pages link the foundation's `page-full.css` and import its `register-full.js`, so a profile applies
+by its attribute on the root.
 `mise run screenshots` captures each specimen page light and dark, each page in vertical tiles at
 most 1200px tall: by default in flexoki, regular, and mono; with `--palette`, `--space`, or
-`--type`, combined, in the facet's profile named, checked against the pages' registry; with
-`--all`, in each of the four colors, and in compact and in sans. `--page`, repeatable, with a page's name, `status-badge`,
-`entry`, `pagination`, `artifact-viewer`, `chat-thread`, or `composer`, captures only the pages
-named, and `--scheme light` or `--scheme dark` only that scheme; both combine with the profile flags
-and `--all`.
+`--type`, combined, in the facet's profile named, checked against the pages' registry; with `--all`,
+in each of the four colors, and in compact and in sans. `--page`, repeatable, with a page's name,
+`status-badge`, `entry`, `pagination`, `artifact-viewer`, `chat-thread`, `composer`, or
+`upload-dropzone`, captures only the pages named, and `--scheme light` or `--scheme dark` only that
+scheme; both combine with the profile flags and `--all`.
 
 ## Development
 
