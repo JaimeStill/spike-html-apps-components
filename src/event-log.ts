@@ -65,10 +65,11 @@ function pretty(data: unknown): string {
 /**
  * Shows events as a log, in the order given, oldest first: each its type and its time, formatted
  * by the foundation's formatDateTime, absolute and to the second; under them its source, subject,
- * and id, each labelled; and its data pretty-printed in a native details, collapsed until opened.
- * An event without data says so in the details' place. Each event is keyed by its source and id,
- * the pair CloudEvents makes unique, so events appended to the list leave those shown in their own
- * nodes and places, and a details the reader opened stays open.
+ * and id, each labelled, a subject or an id longer than its line cut with an ellipsis, its whole
+ * text kept and shown in its title; and its data pretty-printed in a native details, collapsed
+ * until opened. An event without data says so in the details' place. Each event is keyed by its
+ * source and id, the pair CloudEvents makes unique, so events appended to the list leave those
+ * shown in their own nodes and places, and a details the reader opened stays open.
  *
  * The frame is a log, a live region: polite, so an arrival never interrupts, and additions only,
  * so a new event is read once and a re-render or a removal is not. Events are discrete and arrive
@@ -115,10 +116,12 @@ export class EventLog extends LitElement {
     if (frame) frame.scrollTop = frame.scrollHeight;
   }
 
-  #pair(label: string, value: string) {
+  // A label and its value. An identifier's value is cut: one line, an ellipsis where it is longer
+  // than the line, its whole text in its title.
+  #pair(label: string, value: string, cut = false) {
     return html`<div class="pair">
       <dt>${label}</dt>
-      <dd>${value}</dd>
+      <dd class=${cut ? "cut" : nothing} title=${cut ? value : nothing}>${value}</dd>
     </div>`;
   }
 
@@ -138,8 +141,8 @@ export class EventLog extends LitElement {
       </div>
       <dl class="meta">
         ${this.#pair("source", event.source)}
-        ${subject === undefined || subject === "" ? nothing : this.#pair("subject", subject)}
-        ${this.#pair("id", event.id)}
+        ${subject === undefined || subject === "" ? nothing : this.#pair("subject", subject, true)}
+        ${this.#pair("id", event.id, true)}
       </dl>
       ${
         event.data === undefined

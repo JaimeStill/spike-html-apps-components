@@ -15,10 +15,11 @@
  * Each event is three lines, divided from the next by a rule: its type, with its time at the
  * line's end; its source, subject, and id, each labelled, small and muted; and its data's details.
  * A line wraps between its parts, never inside one, so a type, a time, an id, or a source stays
- * whole; an opened data's pre keeps its whole lines and scrolls sideways. The frame is a grid of
- * one column, minmax(0, 1fr), so in a shrink-to-fit parent the log takes its content's width, up
- * to the parent's: its widest type and time, since the metadata line is contained across, and
- * wraps at the width the rest give it.
+ * whole; a subject or an id longer than its line ends in an ellipsis, never broken; an opened
+ * data's pre keeps its whole lines and scrolls sideways. The frame is a grid of one column,
+ * minmax(0, 1fr), so in a shrink-to-fit parent the log takes its content's width, up to the
+ * parent's: its widest type and time, since the metadata line is contained across, and wraps at
+ * the width the rest give it.
  */
 
 :host {
@@ -38,8 +39,8 @@
 }
 /* The list, padded across, and each event padded above and below, so the padding scrolls with
    them and shows after the last event at the scroll's end. The inline padding is the small step,
-   so an id of a run's UUID and its stage's position, as the emulator writes one, fits whole on its
-   line in a log 20rem wide, the frame's scrollbar beside it. */
+   so an id of a run's UUID and its stage's position, as the emulator writes one, has the most of
+   its line in a log 20rem wide, the frame's scrollbar beside it. */
 .events {
   margin: 0;
   padding: 0 var(--space-2xs);
@@ -114,12 +115,22 @@
   white-space: nowrap;
 }
 /* A value keeps whole: it moves to the next line rather than break, and breaks only when it is
-   longer than the line itself. */
+   longer than the line itself. It may shrink below its content, so a cut value fits its line. */
 .meta dd {
   max-inline-size: 100%;
+  min-inline-size: 0;
   margin: 0;
   font-family: var(--font-code);
   overflow-wrap: anywhere;
+}
+/* An identifier, the subject or the id, never breaks: longer than its line, it is cut with an
+   ellipsis inside its own value, which neither scrolls nor takes focus. Its whole text stays in the
+   DOM, for selection, copying, and a screen reader, and its title shows it on hover. Where it fits,
+   it shows whole as before. */
+.meta dd.cut {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 /* The data's toggle in the label's type, and its JSON, which keeps whole lines and scrolls
    sideways in its pre. */
