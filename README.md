@@ -73,21 +73,24 @@ foundation's `page.css`:
   labelled, and a streaming reply re-rendered in place; with `verbose`, reasoning, function calls,
   and their outputs too, each collapsed in a native details. It exports its item types and sends
   no event. It imports `./markdown.js`, so its page maps marked too.
+- `./composer.js`: `sl-composer`, a multi-line text field that grows to eight lines, and its
+  send control, which a stop control replaces while `busy`; it dispatches `send` with the text,
+  then clears the field, and `stop`. It binds no key.
 - `./*.css`: each component's sheet, which its module imports itself.
 
 `demo/components.html` is a page on all three, with its import map. Each component also has a
 specimen page, `demo/status-badge.html`, `demo/entry.html`, `demo/pagination.html`,
-`demo/artifact-viewer.html`, and `demo/chat-thread.html`, that shows every state of the
-component, labelled, then again in a section 20rem wide, and one instance reached by the keyboard
-to show its focus ring. The specimen pages link the foundation's `page-full.css` and import its
-`register-full.js`, so a profile applies by its attribute on the root. `mise run screenshots`
-captures each specimen page light and dark, each page in vertical tiles at most 1200px tall: by
-default in flexoki, regular, and mono; with `--palette`, `--space`, or `--type`, combined, in the
-facet's profile named, checked against the pages' registry; with `--all`, in each of the four
-colors, and in compact and in sans. `--page`, repeatable, with a page's name, `status-badge`,
-`entry`, `pagination`, `artifact-viewer`, or `chat-thread`, captures only the pages named, and
-`--scheme light` or `--scheme dark` only that scheme; both combine with the profile flags and
-`--all`.
+`demo/artifact-viewer.html`, `demo/chat-thread.html`, and `demo/composer.html`, that shows every
+state of the component, labelled, then again in a section 20rem wide, and one instance reached by
+the keyboard to show its focus ring. The specimen pages link the foundation's `page-full.css` and
+import its `register-full.js`, so a profile applies by its attribute on the root.
+`mise run screenshots` captures each specimen page light and dark, each page in vertical tiles at
+most 1200px tall: by default in flexoki, regular, and mono; with `--palette`, `--space`, or
+`--type`, combined, in the facet's profile named, checked against the pages' registry; with
+`--all`, in each of the four colors, and in compact and in sans. `--page`, repeatable, with a page's name, `status-badge`,
+`entry`, `pagination`, `artifact-viewer`, `chat-thread`, or `composer`, captures only the pages
+named, and `--scheme light` or `--scheme dark` only that scheme; both combine with the profile flags
+and `--all`.
 
 ## Development
 

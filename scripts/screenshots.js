@@ -103,6 +103,7 @@ const PAGES = [
   ["3-pagination", "the pagination", "pagination"],
   ["4-artifact-viewer", "the artifact viewer", "artifact-viewer"],
   ["5-chat-thread", "the chat thread", "chat-thread"],
+  ["6-composer", "the composer", "composer"],
 ];
 
 /** The run's pages: those `--page` names, each once, in PAGES' order, or every page when none is

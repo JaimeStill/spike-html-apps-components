@@ -1,9 +1,10 @@
 // The components from this repository's dist/: conventions' 27 probe cases, the restyle case, the
 // adopted sheets, and the entry's formatting, on test/fixtures/components.html, on the lean entry
 // and in every profile on the full entry; each component in every profile, on
-// test/fixtures/profiles.html; and the entry's, the pagination's, the artifact viewer's, and the
-// chat thread's geometry on their specimen pages under demo/, in every profile, the entry's, the
-// viewer's, and the thread's in parents that size them to their content too.
+// test/fixtures/profiles.html; and the entry's, the pagination's, the artifact viewer's, the chat
+// thread's, and the composer's geometry on their specimen pages under demo/, in every profile, the
+// entry's, the viewer's, the thread's, and the composer's in parents that size them to their
+// content too.
 // Adapted from spike-html-packages-components (4c0a5d8): test/browser/components.test.js, renamed,
 // with the formatting, profile, and specimen geometry cases added.
 
@@ -106,6 +107,7 @@ describe("components", { timeout: 60_000 }, () => {
         const reset = await sheet(foundation + "/baseline/reset.css");
         const elements = await sheet(foundation + "/baseline/elements.css");
         const components = [
+          ["sl-composer", "composer", "composer.css"],
           ["sl-chat-thread", "chat-thread", "chat-thread.css"],
           ["sl-artifact-viewer", "artifact-viewer", "artifact-viewer.css"],
           ["sl-pagination", "pagination", "pagination.css"],
@@ -127,6 +129,7 @@ describe("components", { timeout: 60_000 }, () => {
         return { adopted, label: badge.shadowRoot.querySelector("button").textContent };
       })()`);
         for (const tag of [
+          "sl-composer",
           "sl-chat-thread",
           "sl-artifact-viewer",
           "sl-pagination",
@@ -177,12 +180,14 @@ describe("components", { timeout: 60_000 }, () => {
       const { registered, rendered, errors } = await page.evaluate(`(async () => {
         const registry = await import("@jaimestill/spike-html-apps-foundation/registry.js");
         const { directories, files } = await import("/demo/documents.js");
-        await Promise.all(["chat-thread", "artifact-viewer", "pagination", "entry", "status-badge"].map(
+        await Promise.all(["composer", "chat-thread", "artifact-viewer", "pagination", "entry", "status-badge"].map(
           (module) => import("/dist/" + module + ".js")));
-        // Each component as a host composes it: a chat thread of a user's message and the
-        // assistant's Markdown reply, an artifact viewer of a Markdown document, the pagination
+        // Each component as a host composes it: a composer holding a draft, a chat thread of a
+        // user's message and the assistant's Markdown reply, an artifact viewer of a Markdown document, the pagination
         // holding one entry per item, a lone entry, and a labelled badge.
         const components = {
+          "sl-composer": () =>
+            Object.assign(document.createElement("sl-composer"), { value: "Status?" }),
           "sl-chat-thread": () =>
             Object.assign(document.createElement("sl-chat-thread"), {
               items: [
@@ -221,7 +226,8 @@ describe("components", { timeout: 60_000 }, () => {
             const element = document.querySelector("main").appendChild(make());
             await element.updateComplete;
             const { width, height } = element.getBoundingClientRect();
-            // The look the profile gives the component's first button, inside its shadow root;
+            // The look the profile gives the component's first button, inside its shadow root, the
+            // composer's its send control, enabled by the draft;
             // the artifact viewer, which holds no button, the color and padding of what its region
             // scrolls, and its Markdown heading's font, since the region's text is the body font,
             // which the type facet's profiles share; the chat thread, which holds none either, the
@@ -254,7 +260,7 @@ describe("components", { timeout: 60_000 }, () => {
         space: ["regular", "compact"],
         type: ["mono", "sans"],
       });
-      assert.equal(rendered.length, profiles.length * 5);
+      assert.equal(rendered.length, profiles.length * 6);
       for (const { profile, tag, width, height } of rendered) {
         assert.ok(width > 0 && height > 0, `${tag} under ${profile}: a ${width} × ${height} box`);
       }
@@ -264,6 +270,7 @@ describe("components", { timeout: 60_000 }, () => {
       const looks = (tag, where) =>
         rendered.filter((shown) => shown.tag === tag && where(shown)).map((shown) => shown.look);
       for (const tag of [
+        "sl-composer",
         "sl-chat-thread",
         "sl-artifact-viewer",
         "sl-pagination",
@@ -313,7 +320,7 @@ describe("components", { timeout: 60_000 }, () => {
     const page = await browser.open(`${server.origin}/demo/${specimen}.html`);
     try {
       return await page.evaluate(`(async () => {
-        const tags = ["sl-entry", "sl-pagination", "sl-artifact-viewer", "sl-chat-thread"]
+        const tags = ["sl-entry", "sl-pagination", "sl-artifact-viewer", "sl-chat-thread", "sl-composer"]
           .filter((tag) => document.querySelector(tag));
         await Promise.all(tags.map((tag) => customElements.whenDefined(tag)));
         await Promise.all([...document.querySelectorAll(tags.join(","))].map((el) => el.updateComplete));
@@ -857,6 +864,116 @@ describe("components", { timeout: 60_000 }, () => {
       for (const { parent, sideways, width, column } of fits) {
         const where = `${parent} under ${profile}`;
         assert.ok(sideways <= 0, `${where}: the frame scrolls sideways by ${sideways}`);
+        assert.ok(width > 0 && width < column / 2, `${where}: ${width} wide in a ${column} column`);
+      }
+    }
+  });
+  // In-page helper the composer's measures share, as source: each composer in a section of its
+  // specimen page.
+  const COMPOSERS = `(section) => [...document.querySelectorAll(section + " sl-composer")]`;
+
+  test("the composer's specimen renders every state within 20rem, its field grown to its text up to eight lines, in every profile", async () => {
+    // Every composer shows its field and one control, send or stop by busy, at the field's block
+    // end. The field is one line tall, the control's height, when its text fits one line, and
+    // grows to its text; only the fourteen lines' field is held, at eight, and scrolls. At 20rem
+    // the states keep within the column, every part of each composer inside its box.
+    const measure = `() => {
+      const list = document.querySelector(".narrow .states");
+      const shown = (${COMPOSERS})("main").map((composer) => {
+        const root = composer.shadowRoot;
+        const box = composer.getBoundingClientRect();
+        const field = root.querySelector("textarea");
+        const action = root.querySelector(".action");
+        const rect = field.getBoundingClientRect();
+        const button = action.getBoundingClientRect();
+        const style = getComputedStyle(field);
+        const line = parseFloat(style.lineHeight);
+        const chrome =
+          parseFloat(style.paddingBlockStart) + parseFloat(style.paddingBlockEnd) +
+          parseFloat(style.borderBlockStartWidth) + parseFloat(style.borderBlockEndWidth);
+        return {
+          narrow: composer.closest(".narrow") !== null,
+          busy: composer.busy,
+          action: action.classList.contains("stop") ? "stop" : "send",
+          lines: Math.round((rect.height - chrome) / line),
+          oneLine: Math.abs(rect.height - button.height) < 0.5,
+          bottoms: Math.abs(rect.bottom - button.bottom),
+          outside: [field, action]
+            .filter((part) => {
+              const r = part.getBoundingClientRect();
+              return r.left < box.left - 0.5 || r.right > box.right + 0.5 ||
+                r.top < box.top - 0.5 || r.bottom > box.bottom + 0.5;
+            })
+            .map((part) => part.localName),
+          scrolls: field.scrollHeight > field.clientHeight,
+          sideways: field.scrollWidth > field.clientWidth,
+        };
+      });
+      return { overflow: list.scrollWidth - list.clientWidth, shown };
+    }`;
+    for (const { profile, overflow, shown } of await measureSpecimen("composer", measure)) {
+      assert.ok(overflow <= 0, `${profile}: the states overflow the column by ${overflow}`);
+      assert.equal(
+        shown.length,
+        20,
+        `${profile}: eight states twice, the three fits, and the focus state`,
+      );
+      assert.equal(
+        shown.filter(({ scrolls }) => scrolls).length,
+        2,
+        `${profile}: the fourteen lines' field scrolls, in the states and at 20rem`,
+      );
+      for (const [
+        index,
+        { narrow, busy, action, lines, oneLine, bottoms, outside, scrolls, sideways },
+      ] of shown.entries()) {
+        const where = `${profile}, composer ${index}${narrow ? " at 20rem" : ""}`;
+        assert.equal(action, busy ? "stop" : "send", `${where}: busy ${busy} shows ${action}`);
+        assert.ok(lines >= 1 && lines <= 8, `${where}: the field is ${lines} lines tall`);
+        if (scrolls)
+          assert.equal(lines, 8, `${where}: scrolls at ${lines} lines, short of the bound`);
+        assert.equal(oneLine, lines === 1, `${where}: one line is the control's height`);
+        assert.ok(bottoms < 0.5, `${where}: the control sits at the field's block end`);
+        assert.ok(!sideways, `${where}: the field scrolls sideways`);
+        assert.deepEqual(outside, [], `${where}: parts outside the composer`);
+      }
+    }
+  });
+
+  test("in a parent that sizes it to its content, the composer takes its draft's width, in every profile", async () => {
+    // The fit section's composers, a short draft each: each takes its draft's width, so its field
+    // needs no sideways scroll and holds the draft on one line, and is no wider than half the
+    // column.
+    const results = await measureSpecimen(
+      "composer",
+      `() => {
+        const column = document.querySelector("#fit .fits").getBoundingClientRect().width;
+        return { fits: (${COMPOSERS})("#fit").map((composer) => {
+          const root = composer.shadowRoot;
+          const field = root.querySelector("textarea");
+          return {
+            parent: composer.parentElement.className,
+            sideways: field.scrollWidth - field.clientWidth,
+            oneLine: Math.abs(
+              field.getBoundingClientRect().height -
+                root.querySelector(".action").getBoundingClientRect().height,
+            ) < 0.5,
+            width: composer.getBoundingClientRect().width,
+            column,
+          };
+        }) };
+      }`,
+    );
+    for (const { profile, fits } of results) {
+      assert.deepEqual(
+        fits.map(({ parent }) => parent),
+        ["fit-inline-block", "fit-flex", "fit-grid"],
+        `${profile}: the fit section's composers`,
+      );
+      for (const { parent, sideways, oneLine, width, column } of fits) {
+        const where = `${parent} under ${profile}`;
+        assert.ok(sideways <= 0, `${where}: the field scrolls sideways by ${sideways}`);
+        assert.ok(oneLine, `${where}: the draft wraps`);
         assert.ok(width > 0 && width < column / 2, `${where}: ${width} wide in a ${column} column`);
       }
     }

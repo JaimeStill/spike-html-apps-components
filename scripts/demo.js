@@ -14,6 +14,7 @@ for (const page of [
   "pagination",
   "artifact-viewer",
   "chat-thread",
+  "composer",
 ]) {
   console.log(`${server.origin}/demo/${page}.html`);
 }

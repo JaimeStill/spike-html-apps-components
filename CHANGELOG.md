@@ -8,6 +8,18 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 
 ### Added
 
+- `./composer.js` defines `sl-composer`, a multi-line text field and its send control. Activating
+  send sends `send`, its detail `{ text }`, the field's text as typed, and clears the field first,
+  so a listener that sets `value` keeps what it set; focus returns to the field. Send is disabled
+  while the text is empty or whitespace. `busy`, reflected, puts a stop control in send's place, in
+  the same footprint, which sends `stop` with `{}`; the field still takes typing, and nothing is
+  sent. `disabled`, reflected, disables the field and the control. `value` is the field's text,
+  kept in step with typing, which sends no event; `placeholder` is the field's, and `label`
+  ("Message" by default) names it in a visually hidden label. The field grows with its text by
+  `field-sizing: content` from one line, the control's height, to eight, then scrolls with the
+  browser's own scrollbar; without `field-sizing` it keeps one row. It binds no key: Enter,
+  Shift+Enter, and Escape do what a native textarea does. Its specimen page is
+  `demo/composer.html`, and `mise run screenshots --page composer` captures it.
 - `./chat-thread.js` defines `sl-chat-thread`, which shows a conversation's `items` in order, a
   structural subset of Open Responses 2026-04-24 by its JSON field names, its types exported:
   `message` items, the user's or the assistant's, their `input_text` parts as plain text,
