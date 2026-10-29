@@ -4,7 +4,7 @@
 
 import { continued, directories, files, pageSizes } from "../../../demo/documents.js";
 
-/** @import { EntryItem } from "../../../dist/entry-lit-shadow.js" */
+/** @import { EntryItem } from "../../../dist/entry.js" */
 /** @import { Page } from "../../../demo/documents.js" */
 
 /**
@@ -37,13 +37,10 @@ import { continued, directories, files, pageSizes } from "../../../demo/document
 
 /** The composition's two tags, and the import that defines them from dist/. */
 export const version = {
-  pagination: "sl-pagination-lit-shadow",
-  entry: "sl-entry-lit-shadow",
+  pagination: "sl-pagination",
+  entry: "sl-entry",
   load: () =>
-    Promise.all([
-      import("../../../dist/pagination-lit-shadow.js"),
-      import("../../../dist/entry-lit-shadow.js"),
-    ]),
+    Promise.all([import("../../../dist/pagination.js"), import("../../../dist/entry.js")]),
 };
 
 /** The events the probe hears, as they bubble to the document. */

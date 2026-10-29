@@ -6,10 +6,10 @@ import { html, LitElement, nothing, type PropertyDeclarations } from "lit";
 import elements from "@jaimestill/spike-html-apps-foundation/baseline/elements.css" with { type: "css" };
 import reset from "@jaimestill/spike-html-apps-foundation/baseline/reset.css" with { type: "css" };
 import { define, emit } from "@jaimestill/spike-html-apps-foundation/dom.js";
-import styles from "./pagination-shadow.css" with { type: "css" };
+import styles from "./pagination.css" with { type: "css" };
 
-/** The tag this version defines. */
-export const tagName = "sl-pagination-lit-shadow";
+/** The tag the element defines. */
+export const tagName = "sl-pagination";
 
 /**
  * `page-change`'s detail: the page asked for. It is null when Next is pressed on a page continued
@@ -31,7 +31,7 @@ export interface PageSizeChangeDetail {
  * page count. The properties are the envelope's fields; the element never changes its own page,
  * it sends `page-change` and `page-size-change` and the host sets the next page's fields.
  */
-export class PaginationLitShadow extends LitElement {
+export class Pagination extends LitElement {
   static styles = [reset, elements, styles];
 
   // Lit reads the reactive properties from this static map, in place of decorators. Each field is
@@ -187,10 +187,10 @@ export class PaginationLitShadow extends LitElement {
   }
 }
 
-define(tagName, PaginationLitShadow);
+define(tagName, Pagination);
 
 declare global {
   interface HTMLElementTagNameMap {
-    "sl-pagination-lit-shadow": PaginationLitShadow;
+    "sl-pagination": Pagination;
   }
 }

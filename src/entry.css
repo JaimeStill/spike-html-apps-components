@@ -4,9 +4,9 @@
    spaces. */
 
 /*
- * The entry's layout in a shadow root: entry-lit-shadow.ts adopts this sheet into its root after
- * the foundation's reset and elements sheets (baseline/reset.css and elements.css), which give
- * the bare button its look. It holds the button's layout and its parts' type, and no look of its
+ * The entry's layout in a shadow root: entry.ts adopts this sheet into its root after the
+ * foundation's reset and elements sheets (baseline/reset.css and elements.css), which give the
+ * bare button its look. It holds the button's layout and its parts' type, and no look of its
  * own for the button. It reads only the foundation's baseline tokens, which a shadow root takes by
  * inheritance from the page's entry. Unlayered, it sits above the adopted layers in the root.
  *

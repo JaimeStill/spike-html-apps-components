@@ -105,8 +105,8 @@ describe("components", { timeout: 60_000 }, () => {
         const reset = await sheet(foundation + "/baseline/reset.css");
         const elements = await sheet(foundation + "/baseline/elements.css");
         const components = [
-          ["sl-pagination-lit-shadow", "pagination-lit-shadow", "pagination-shadow.css"],
-          ["sl-entry-lit-shadow", "entry-lit-shadow", "entry-shadow.css"],
+          ["sl-pagination", "pagination", "pagination.css"],
+          ["sl-entry", "entry", "entry.css"],
           ["sl-status-badge", "status-badge", "status-badge.css"],
         ];
         const adopted = {};
@@ -123,7 +123,7 @@ describe("components", { timeout: 60_000 }, () => {
         await badge.updateComplete;
         return { adopted, label: badge.shadowRoot.querySelector("button").textContent };
       })()`);
-        for (const tag of ["sl-pagination-lit-shadow", "sl-entry-lit-shadow", "sl-status-badge"]) {
+        for (const tag of ["sl-pagination", "sl-entry", "sl-status-badge"]) {
           assert.deepEqual(adopted[tag], ["reset", "elements", "own"], tag);
         }
         assert.equal(label, "Draft");
@@ -137,8 +137,8 @@ describe("components", { timeout: 60_000 }, () => {
       const page = await open(run);
       try {
         const shown = await page.evaluate(`(async () => {
-        await import("/dist/entry-lit-shadow.js");
-        const entry = document.createElement("sl-entry-lit-shadow");
+        await import("/dist/entry.js");
+        const entry = document.createElement("sl-entry");
         entry.item = {
           id: "f-1536",
           name: "sketch.txt",
@@ -168,21 +168,21 @@ describe("components", { timeout: 60_000 }, () => {
       const { registered, rendered, errors } = await page.evaluate(`(async () => {
         const registry = await import("@jaimestill/spike-html-apps-foundation/registry.js");
         const { directories, files } = await import("/demo/documents.js");
-        await Promise.all(["pagination-lit-shadow", "entry-lit-shadow", "status-badge"].map(
+        await Promise.all(["pagination", "entry", "status-badge"].map(
           (module) => import("/dist/" + module + ".js")));
         // Each component as a host composes it: the pagination holding one entry per item, a
         // lone entry, and a labelled badge.
         const components = {
-          "sl-pagination-lit-shadow": () => {
-            const pagination = document.createElement("sl-pagination-lit-shadow");
+          "sl-pagination": () => {
+            const pagination = document.createElement("sl-pagination");
             Object.assign(pagination, { page: 2, size: 3, total: 8, pageSizes: [3, 6, 12] });
             for (const item of directories.items) {
-              pagination.append(Object.assign(document.createElement("sl-entry-lit-shadow"), { item }));
+              pagination.append(Object.assign(document.createElement("sl-entry"), { item }));
             }
             return pagination;
           },
-          "sl-entry-lit-shadow": () =>
-            Object.assign(document.createElement("sl-entry-lit-shadow"), { item: files.items[0] }),
+          "sl-entry": () =>
+            Object.assign(document.createElement("sl-entry"), { item: files.items[0] }),
           "sl-status-badge": () =>
             Object.assign(document.createElement("sl-status-badge"), { label: "Draft" }),
         };
@@ -227,7 +227,7 @@ describe("components", { timeout: 60_000 }, () => {
       // sets another font than mono, and compact pads tighter than regular.
       const looks = (tag, where) =>
         rendered.filter((shown) => shown.tag === tag && where(shown)).map((shown) => shown.look);
-      for (const tag of ["sl-pagination-lit-shadow", "sl-entry-lit-shadow", "sl-status-badge"]) {
+      for (const tag of ["sl-pagination", "sl-entry", "sl-status-badge"]) {
         const colors = looks(tag, ({ space, type }) => space === "regular" && type === "mono");
         assert.equal(
           new Set(colors.map((look) => look.color)).size,
@@ -271,7 +271,7 @@ describe("components", { timeout: 60_000 }, () => {
     const page = await browser.open(`${server.origin}/demo/${specimen}.html`);
     try {
       return await page.evaluate(`(async () => {
-        const tags = ["sl-entry-lit-shadow", "sl-pagination-lit-shadow"]
+        const tags = ["sl-entry", "sl-pagination"]
           .filter((tag) => document.querySelector(tag));
         await Promise.all(tags.map((tag) => customElements.whenDefined(tag)));
         await Promise.all([...document.querySelectorAll(tags.join(","))].map((el) => el.updateComplete));
@@ -302,7 +302,7 @@ describe("components", { timeout: 60_000 }, () => {
     const rects = [...range.getClientRects()].filter((rect) => rect.width > 0);
     return new Set(rects.map((rect) => Math.round(rect.top))).size;
   }`;
-  const ENTRIES = `(section) => [...document.querySelectorAll(section + " sl-entry-lit-shadow")]
+  const ENTRIES = `(section) => [...document.querySelectorAll(section + " sl-entry")]
     .filter((entry) => entry.item !== null)`;
 
   test('the entry\'s kind, "directory" the longest, ends a column gap before the name, in every profile', async () => {
@@ -493,7 +493,7 @@ describe("components", { timeout: 60_000 }, () => {
   test("at 20rem, the pagination's label and page count keep to one line, and its steps to one control's height, in every profile", async () => {
     const results = await measureSpecimen(
       "pagination",
-      `() => ({ shown: [...document.querySelectorAll(".narrow sl-pagination-lit-shadow")].map((pagination) => {
+      `() => ({ shown: [...document.querySelectorAll(".narrow sl-pagination")].map((pagination) => {
         const root = pagination.shadowRoot;
         const lines = ${LINES};
         const count = root.querySelector(".page-indicator > span");

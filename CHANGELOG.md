@@ -6,6 +6,16 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 
 ## [Unreleased]
 
+### Changed
+
+- Breaking: the entry is `sl-entry` and the pagination `sl-pagination`, each a plain name, as
+  `sl-status-badge` is. Their modules are `./entry.js` and `./pagination.js`, their sheets
+  `./entry.css` and `./pagination.css`, and their classes `Entry` and `Pagination`. The old tags
+  `sl-entry-lit-shadow` and `sl-pagination-lit-shadow`, the modules `./entry-lit-shadow.js` and
+  `./pagination-lit-shadow.js`, the sheets `./entry-shadow.css` and `./pagination-shadow.css`, and
+  the classes `EntryLitShadow` and `PaginationLitShadow` no longer exist; a consumer renames its
+  imports and its tags.
+
 ## [0.2.0] - 2026-10-27
 
 ### Added

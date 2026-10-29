@@ -55,12 +55,12 @@ foundation's `page.css`:
 ```
 
 - `./status-badge.js`: `sl-status-badge`, a label; a click dispatches `badge-select`.
-- `./entry-lit-shadow.js`: `sl-entry-lit-shadow`, one directory or file of a document hierarchy,
-  as a button; it dispatches `open`. It formats a file's size and its updated time with the
-  foundation's `formatBytes` and `formatDateTime`. It sizes to its content in any parent, a
-  shrink-to-fit one too, and stays inside its box down to 16rem, its supported minimum width.
-- `./pagination-lit-shadow.js`: `sl-pagination-lit-shadow`, a page of entries between its summary
-  and its controls; it dispatches `page-change` and `page-size-change`.
+- `./entry.js`: `sl-entry`, one directory or file of a document hierarchy, as a button; it
+  dispatches `open`. It formats a file's size and its updated time with the foundation's
+  `formatBytes` and `formatDateTime`. It sizes to its content in any parent, a shrink-to-fit one
+  too, and stays inside its box down to 16rem, its supported minimum width.
+- `./pagination.js`: `sl-pagination`, a page of entries between its summary and its controls; it
+  dispatches `page-change` and `page-size-change`.
 - `./*.css`: each component's sheet, which its module imports itself.
 
 `demo/components.html` is a page on all three, with its import map. Each component also has a

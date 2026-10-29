@@ -1,7 +1,7 @@
 // Entry, Lit with a shadow root: one directory or file of a document hierarchy, as a button.
 // Adapted from spike-html-packages-components (4c0a5d8): src/entry-lit-shadow.ts, renamed, its
 // size and time formatted by the foundation's formatBytes and formatDateTime, and its name and
-// status in a head, the row entry-shadow.css wraps, and its time's date and clock in spans.
+// status in a head, the row entry.css wraps, and its time's date and clock in spans.
 
 import { html, LitElement, nothing, type PropertyDeclarations } from "lit";
 
@@ -13,10 +13,10 @@ import {
   formatDate,
   formatDateTime,
 } from "@jaimestill/spike-html-apps-foundation/format.js";
-import styles from "./entry-shadow.css" with { type: "css" };
+import styles from "./entry.css" with { type: "css" };
 
-/** The tag this version defines. */
-export const tagName = "sl-entry-lit-shadow";
+/** The tag the element defines. */
+export const tagName = "sl-entry";
 
 /** The fields of a directory the entry renders; a go-web-service Directory fits it. */
 export interface DirectoryItem {
@@ -51,9 +51,9 @@ function kindOf(item: EntryItem): OpenDetail["kind"] {
 
 /**
  * The entry's time, formatDateTime's text, as its date and its clock with the locale's text
- * between, each in a span: entry-shadow.css keeps the clock whole and breaks the date only at its
- * spaces, so a narrow line breaks between them and never inside "4:41 PM". A locale that doesn't write the date first and the clock last gets the
- * whole text, unsplit.
+ * between, each in a span: entry.css keeps the clock whole and breaks the date only at its spaces,
+ * so a narrow line breaks between them and never inside "4:41 PM". A locale that doesn't write the
+ * date first and the clock last gets the whole text, unsplit.
  */
 function renderTime(updatedAt: string) {
   const date = new Date(updatedAt);
@@ -76,7 +76,7 @@ function renderTime(updatedAt: string) {
  * Shows one entry: its kind, name, and status; a file's size, absent while it is pending, and
  * content type; and when it was last updated. Activating it sends `open` with its id and kind.
  */
-export class EntryLitShadow extends LitElement {
+export class Entry extends LitElement {
   static styles = [reset, elements, styles];
 
   static properties = {
@@ -122,10 +122,10 @@ export class EntryLitShadow extends LitElement {
   }
 }
 
-define(tagName, EntryLitShadow);
+define(tagName, Entry);
 
 declare global {
   interface HTMLElementTagNameMap {
-    "sl-entry-lit-shadow": EntryLitShadow;
+    "sl-entry": Entry;
   }
 }

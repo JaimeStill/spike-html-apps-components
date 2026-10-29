@@ -81,12 +81,12 @@ describe("release pack", () => {
       "src/status-badge.css has no built dist/status-badge.css",
     ],
     "a .ts module with no emitted .js": [
-      remove("dist/entry-lit-shadow.js"),
-      "src/entry-lit-shadow.ts has no built dist/entry-lit-shadow.js",
+      remove("dist/entry.js"),
+      "src/entry.ts has no built dist/entry.js",
     ],
     "a .ts module with no emitted .d.ts": [
-      remove("dist/pagination-lit-shadow.d.ts"),
-      "src/pagination-lit-shadow.ts has no built dist/pagination-lit-shadow.d.ts",
+      remove("dist/pagination.d.ts"),
+      "src/pagination.ts has no built dist/pagination.d.ts",
     ],
     "a stray built file": [
       (dir) => writeFileSync(join(dir, "dist/old.js"), ""),
@@ -124,7 +124,7 @@ describe("release pack", () => {
     ],
     "a build outside files": [
       (_, copy) => (copy.files = ["dist/status-badge.js"]),
-      "dist/entry-lit-shadow.js isn't under package.json's files",
+      "dist/entry.js isn't under package.json's files",
     ],
     "lit by a range": [
       (_, copy) => (copy.dependencies.lit = "^3.3.3"),

@@ -29,8 +29,8 @@
     </script>
     <script type="module">
       import "@jaimestill/spike-html-apps-foundation/register-full.js";
-      import "../dist/entry-lit-shadow.js";
-      import "../dist/pagination-lit-shadow.js";
+      import "../dist/entry.js";
+      import "../dist/pagination.js";
       import { continued, files, pageSizes } from "./documents.js";
       import { make, specimens } from "./specimen.js";
 
@@ -40,9 +40,9 @@
         (fields, items = files.items) =>
         () =>
           make(
-            "sl-pagination-lit-shadow",
+            "sl-pagination",
             { page: 1, size: 3, total: 9, more: false, pageSizes, ...fields },
-            items.map((item) => make("sl-entry-lit-shadow", { item })),
+            items.map((item) => make("sl-entry", { item })),
           );
       specimens(
         [
@@ -67,7 +67,7 @@
   <body>
     <main>
       <h1>Pagination</h1>
-      <p><code>sl-pagination-lit-shadow</code>, a page of entries between its summary and its controls, in each of its states.</p>
+      <p><code>sl-pagination</code>, a page of entries between its summary and its controls, in each of its states.</p>
 
       <section id="states">
         <h2>States</h2>
