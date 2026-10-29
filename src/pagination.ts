@@ -40,10 +40,10 @@ export function summaryRange(
 
 /**
  * Pages through a listing. The host's children, its entries, sit in the default slot between a
- * "Showing X–Y of N" summary and the controls; a child in the `status` slot follows the summary's
- * text on its line, shown only while the summary is (see `summaryRange`): a page size selector, labelled by the `label` slot
+ * "Showing X–Y of N" summary and the controls: a page size selector, labelled by the `label` slot
  * ("Page Size" by default), previous and next buttons, and an editable page number clamped to the
- * page count. The properties are the envelope's fields; the element never changes its own page,
+ * page count. A child in the `status` slot follows the summary's text on its line, shown only
+ * while the summary is (see `summaryRange`). The properties are the envelope's fields; the element never changes its own page,
  * it sends `page-change` and `page-size-change` and the host sets the next page's fields.
  */
 export class Pagination extends LitElement {

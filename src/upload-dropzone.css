@@ -137,7 +137,8 @@ progress {
   flex: 1 1 0;
   min-inline-size: 0;
 }
-/* A failed upload's size sits on its message's first line, however many lines the message wraps to. */
+/* A failed upload's size sits on its message's first line, however many lines the message wraps
+   to. */
 .failed .detail {
   align-items: baseline;
 }

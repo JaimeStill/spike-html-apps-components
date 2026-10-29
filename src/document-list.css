@@ -1,9 +1,9 @@
 /*
  * The document list's layout in a shadow root: document-list.ts adopts this sheet into its root
  * after the foundation's reset and elements sheets (baseline/reset.css and elements.css). It holds
- * the status line's type and the list's layout; the selected document's entry draws its own frame. The entries and
- * the pagination style themselves in their own shadow roots; the status line and the list are
- * this root's, slotted into the pagination, so this sheet styles them. It reads only the
+ * the status line's type and the list's layout; the selected document's entry draws its own frame.
+ * The entries and the pagination style themselves in their own shadow roots; the status line and
+ * the list are this root's, slotted into the pagination, so this sheet styles them. It reads only the
  * foundation's baseline tokens, which a shadow root takes by inheritance from the page's entry.
  * Unlayered, it sits above the adopted layers in the root.
  *

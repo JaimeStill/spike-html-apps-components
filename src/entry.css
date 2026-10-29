@@ -77,10 +77,10 @@
   color: var(--fg-2);
   white-space: nowrap;
 }
-/* The meta row sits under the head, smaller and muted: the kind, at the status's smallest size, then the size, the
-   content type, and the time. Its parts wrap between one another, each laid out whole when it fits
-   a line, and its wrapped lines step by the entry's row gap, the name-to-meta step. It may shrink
-   below its content. */
+/* The meta row sits under the head, smaller and muted: the kind, at the status's smallest size,
+   then the size, the content type, and the time. Its parts wrap between one another, each laid out
+   whole when it fits a line, and its wrapped lines step by the entry's row gap, the name-to-meta
+   step. It may shrink below its content. */
 .meta {
   display: flex;
   flex-wrap: wrap;

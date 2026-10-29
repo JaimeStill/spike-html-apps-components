@@ -48,7 +48,8 @@
 .matches > li {
   margin: 0;
 }
-/* A match: the button as wide as the list, its lines in one column, starting at its inline start. */
+/* A match: the button as wide as the list, its lines in one column, starting at its inline
+   start. */
 .match {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
