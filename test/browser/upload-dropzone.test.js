@@ -5,7 +5,8 @@
 // never left to the browser; disabled refusing both paths, and reflecting; accept the picker's
 // alone; the uploads listed, each its name, its formatted size, an uploading one's bar and bytes
 // sent and its cancel control, which sends upload-cancel with its id, a finished one's label; and
-// neither progress nor a change of state moving an upload's rows.
+// neither progress nor a change of state moving an upload's rows; and each upload's layout, its
+// detail under its name, a finished label centered on the item, an uploading bar across it.
 
 import assert from "node:assert/strict";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -462,6 +463,69 @@ describe("upload dropzone", { timeout: 60_000 }, () => {
       const finished = await measure({ ...long, sent: 27_300_000, state, message: "Refused." });
       assert.equal(finished.height, steps[0].height, `${state}: the item's height`);
       assert.deepEqual(finished.name, steps[0].name, `${state}: the name's place and height`);
+    }
+  });
+
+  test("an upload's detail sits under its name at its start; a label is centered on the item, a bar spans it", async () => {
+    // Every state at 20rem and at 40rem. Each item's detail line starts where its name does,
+    // below it; a finished item's label ends the item, centered on its two lines; an uploading
+    // item's cancel control ends the name's line, and under it the bar runs from the name's start
+    // to its bytes, which end the item.
+    await mount({ uploads });
+    for (const width of ["20rem", "40rem"]) {
+      const items = await page.evaluate(`(() => {
+        const dropzone = document.querySelector("sl-upload-dropzone");
+        dropzone.style.inlineSize = ${JSON.stringify(width)};
+        const edges = (element) => {
+          const { left, right, top, bottom } = element.getBoundingClientRect();
+          return { left, right, top, bottom };
+        };
+        return [...dropzone.shadowRoot.querySelectorAll(".upload")].map((item) => {
+          const style = getComputedStyle(item);
+          const outer = edges(item);
+          const progress = item.querySelector("progress");
+          return {
+            id: item.dataset.id,
+            item: {
+              ...outer,
+              top: outer.top + parseFloat(style.paddingTop),
+              bottom: outer.bottom - parseFloat(style.paddingBottom),
+            },
+            name: edges(item.querySelector(".name")),
+            detail: edges(item.querySelector(".detail")),
+            bytes: edges(item.querySelector(".bytes")),
+            bar: progress && edges(progress),
+            gap: parseFloat(getComputedStyle(item.querySelector(".detail")).columnGap),
+            end: edges(item.querySelector(".state, .cancel")),
+          };
+        });
+      })()`);
+      assert.equal(items.length, 4, `${width}: the items`);
+      for (const { id, item, name, detail, bytes, bar, gap, end } of items) {
+        const where = `${id} at ${width}`;
+        const near = (a, b, what) =>
+          assert.ok(Math.abs(a - b) <= 1, `${where}: ${what}, ${a} and ${b}`);
+        near(detail.left, name.left, "the detail line's start and the name's");
+        assert.ok(detail.top >= name.bottom - 0.5, `${where}: the detail line below the name`);
+        near(end.right, item.right, "the trailing cell's end and the item's");
+        if (bar) {
+          near(bar.left, name.left, "the bar's start and the name's");
+          near(bytes.right, item.right, "the bytes' end and the item's");
+          near(
+            bytes.left - bar.right,
+            gap,
+            "the gap between the bar and the bytes, and the line's",
+          );
+          assert.ok(end.bottom <= detail.top + 0.5, `${where}: the control on the name's line`);
+        } else {
+          near(bytes.left, name.left, "the size's start and the name's");
+          near(
+            (end.top + end.bottom) / 2,
+            (item.top + item.bottom) / 2,
+            "the label's middle and the item's",
+          );
+        }
+      }
     }
   });
 

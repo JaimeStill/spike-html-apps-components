@@ -9,13 +9,16 @@
  *
  * The zone is the component's one frame, dashed, around its prompt and its picker button. The
  * list sits below it, unframed, its uploads divided by rules, and is as tall as its uploads: no
- * cap, nothing scrolls. Each upload is two rows: its name, cut short with an ellipsis on one line,
- * and its trailing cell, the cancel control or the finished label, held to the control's height
- * either way; then its detail line, one line of the small step, the progress bar, the message, or
- * neither, and the bytes at its end, never broken. So neither progress nor a change of state moves
- * anything, but a failed upload's message, which wraps rather than hide why. In a shrink-to-fit
- * parent the component is as wide as its widest line, its prompt and button or a name, up to the
- * parent's width.
+ * cap, nothing scrolls. Each upload is two lines and a trailing cell. Its name, cut short with an
+ * ellipsis on one line, opens the first line, and its detail line, of the small step and muted,
+ * sits under it, at the start: a finished upload's size, after it a failed one's message. The
+ * trailing cell, the finished label, ends the item, centered on both lines. An uploading item's
+ * detail line spans the item instead, its progress bar as wide as the row and its bytes sent of
+ * its size after it, and its trailing cell, the cancel control, ends the first line. The first
+ * line is as tall as the control in every state, so the name keeps its place and the item its
+ * height: neither progress nor a change of state moves anything but a failed upload's message,
+ * which wraps rather than hide why. In a shrink-to-fit parent the component is as wide as its
+ * widest line, its prompt and button or a name, up to the parent's width.
  */
 
 :host {
@@ -64,11 +67,25 @@
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-areas:
     "name end"
-    "detail detail";
+    "detail end";
   align-items: center;
-  gap: var(--space-3xs) var(--space-xs);
+  gap: var(--space-3xs) var(--space-s);
   margin: 0;
   padding-block: var(--space-2xs);
+}
+/* A strut in the name's cell, in the controls' font, as tall as the cancel control, a line in its
+   padding and border: the first line keeps that height in every state, the control there or not. */
+.upload::before {
+  content: "";
+  grid-area: name;
+  min-block-size: calc(1lh + 2 * var(--space-3xs) + 2 * var(--line-s));
+  font-family: var(--font-ui);
+  line-height: var(--leading-ui);
+}
+.upload.uploading {
+  grid-template-areas:
+    "name end"
+    "detail detail";
 }
 .upload + .upload {
   border-block-start: var(--line-s) solid var(--border);
@@ -81,13 +98,13 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* The trailing cell, in the controls' font, is as tall as a button whether it holds one or a
-   label, so the row keeps its height when the cancel control goes. */
+/* The trailing cell, in the controls' font: a finished label centered on the item's two lines, the
+   cancel control on the first. */
 .end {
   grid-area: end;
   display: flex;
   align-items: center;
-  min-block-size: calc(1lh + 2 * var(--space-3xs) + 2 * var(--line-s));
+  justify-content: flex-end;
   font-family: var(--font-ui);
   line-height: var(--leading-ui);
 }
@@ -106,8 +123,7 @@
 .cancelled .name {
   color: var(--fg-3);
 }
-/* The detail line: at least one line tall, a bar or not, the bytes at its end, under the
-   trailing cell. */
+/* The detail line, under the name: at least one line tall, a bar or not. */
 .detail {
   grid-area: detail;
   display: flex;
@@ -121,6 +137,10 @@ progress {
   flex: 1 1 0;
   min-inline-size: 0;
 }
+/* A failed upload's size sits on its message's first line, however many lines the message wraps to. */
+.failed .detail {
+  align-items: baseline;
+}
 .message {
   flex: 1 1 0;
   min-inline-size: 0;
@@ -129,7 +149,7 @@ progress {
 /* A size never breaks, and its digits share one width; the bytes sent hold the width of the
    widest count, "999.9 kB", so the line keeps still as they climb. */
 .bytes {
-  margin-inline-start: auto;
+  flex: none;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }

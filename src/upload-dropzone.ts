@@ -151,9 +151,10 @@ export class UploadDropzone extends LitElement {
   #upload(upload: UploadItem) {
     const size = formatBytes(upload.size);
     const uploading = upload.state === "uploading";
-    // The trailing cell, at the name's end: an uploading item's cancel control, a finished one's
-    // label. The detail line below it spans the item: an uploading item's bar and bytes sent, a
-    // failed one's message and size, the others' size.
+    // The trailing cell, at the item's end: an uploading item's cancel control, beside its name,
+    // or a finished one's label, centered on its two lines. The detail line sits under the name:
+    // an uploading item's bar, as wide as the item, and its bytes sent of its size; a finished
+    // one's size, and a failed one's message after it.
     const end =
       upload.state === "uploading"
         ? html`<button
@@ -165,14 +166,14 @@ export class UploadDropzone extends LitElement {
           Cancel
         </button>`
         : html`<span class="state">${finished[upload.state]}</span>`;
-    // The bytes end the line, the sent count held to the widest count's width, so the bar before
-    // them keeps its length as they climb.
+    // The bytes follow the bar, the sent count held to the widest count's width, so the bar keeps
+    // its length as they climb.
     const sent = Math.min(Math.max(upload.sent, 0), upload.size);
     const detail = uploading
       ? html`<progress value=${sent} max=${upload.size} aria-label="Uploading ${upload.name}"></progress
           ><span class="bytes"><span class="sent">${formatBytes(sent)}</span> of ${size}</span>`
       : upload.state === "failed" && upload.message
-        ? html`<span class="message">${upload.message}</span><span class="bytes">${size}</span>`
+        ? html`<span class="bytes">${size}</span><span class="message">${upload.message}</span>`
         : html`<span class="bytes">${size}</span>`;
     return html`<li class="upload ${upload.state}" data-id=${upload.id}>
       <span class="name" title=${upload.name}>${upload.name}</span>
