@@ -250,13 +250,22 @@ try {
           for (let press = 0; press < presses; press++) await pressTab(page);
           await page.evaluate(SETTLED);
           const { cssContentSize } = await page.cdp("Page.getLayoutMetrics");
-          const cuts = tiles(Math.ceil(cssContentSize.height), await page.evaluate(BOUNDARIES));
+          const full = Math.ceil(cssContentSize.height);
+          const cuts = tiles(full, await page.evaluate(BOUNDARIES));
+          // The viewport as tall as the page, so every tile lies inside it: Chromium paints a
+          // scrolling region's scrollbars only inside the viewport, and a capture beyond it would
+          // drop them below the first screen. The width stays, so the layout doesn't change.
+          await page.cdp("Emulation.setDeviceMetricsOverride", {
+            ...SIZE,
+            height: Math.max(SIZE.height, full),
+            deviceScaleFactor: 1,
+            mobile: false,
+          });
+          await page.evaluate(SETTLED);
           for (const [index, [y, height]] of cuts.entries()) {
-            // Beyond the viewport, so a tile below the first screen renders without a scroll.
             const { data } = await page.cdp("Page.captureScreenshot", {
               format: "png",
               clip: { x: 0, y, width: SIZE.width, height, scale: 1 },
-              captureBeyondViewport: true,
             });
             const [suffix, count] =
               cuts.length > 1

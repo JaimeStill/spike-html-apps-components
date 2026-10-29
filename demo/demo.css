@@ -57,6 +57,11 @@
     border: 0;
   }
 
+  /* A component held to a block size by its page, so its content scrolls inside it. */
+  .held {
+    block-size: 16rem;
+  }
+
   /* The parents that size a component to its content: an inline-block; a flex container whose
      item is sized by its content alone, neither growing nor shrinking; and a grid whose auto
      track takes its content's width beside a 1fr track, which takes the rest. Each is outlined, so

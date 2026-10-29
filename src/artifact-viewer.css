@@ -9,9 +9,10 @@
  * layers in the root.
  *
  * The host is a flex column: the head, then the frame, itself a flex column of a note and the
- * region, the region shrinking to the host's max-block-size, so long content scrolls inside the
- * viewer. A consumer sets the host's block-size, or another max-block-size, and the region grows
- * or gives way to it.
+ * region. Unconstrained, the viewer is as tall as its content. A consumer that constrains its
+ * block size, by a block-size or max-block-size on the host or a sized flex or grid parent, holds
+ * it there: the region fills the frame's share and shrinks to it, and long content scrolls inside
+ * the one frame.
  *
  * The region is a grid of one column, minmax(0, 1fr), around its content: under a min-content
  * constraint the track is zero, and under a max-content one it is its content's widest line, so
@@ -22,7 +23,6 @@
 :host {
   display: flex;
   flex-direction: column;
-  max-block-size: 32rem;
 }
 /* The head: the name, then the content type at the line's end, in a row that wraps, as the
    entry's head does. Each breaks anywhere, having no space to break at, so a narrow viewer keeps
@@ -63,19 +63,12 @@
    padding, so the padding scrolls with it: at the end of either axis the content stops the
    padding short of the frame, as it does at the start.
 
-   The region's background is the scroll cue: a shade at each edge that more content lies past,
-   in both axes, by the background-attachment technique. Each shade, a half ellipse from a tint of
-   the text at the edge's middle to nothing, fading toward its corners, is attached to the region's box (scroll), so it stays at its edge; each cover,
-   a gradient from the page's background to nothing, twice the shade's reach and solid for its
-   first half, is attached to the content (local), so it sits at the content's own edge and moves
-   with it. While the content's edge is at the region's edge, its cover hides that edge's shade;
-   scrolled away, the cover goes with it and the shade shows. Content that doesn't overflow an
-   axis keeps both of that axis's covers over their shades, so no shade shows. Gradients have no
-   logical direction, so the inline edges are left and right. */
+   Overflow is auto, so the browser's own scrollbars show on an axis only when the content
+   overflows it, in the scheme's colors, color-scheme inheriting from the page. The gutter is not
+   reserved: the region's size is settled as it renders, by its content and the consumer's
+   constraint, so a scrollbar doesn't appear later over content already shown, and a gutter kept
+   on a region that fits would only narrow it. */
 .body {
-  --reach: var(--space-s);
-  --cover: var(--bg);
-  --shade: color-mix(in oklab, var(--fg) 28%, transparent);
   flex: 1 1 auto;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -85,24 +78,6 @@
   padding: 0;
   border: 0;
   border-radius: inherit;
-  background:
-    linear-gradient(to right, var(--cover) 50%, transparent) left / calc(2 * var(--reach)) 100%
-      no-repeat local,
-    linear-gradient(to left, var(--cover) 50%, transparent) right / calc(2 * var(--reach)) 100%
-      no-repeat local,
-    linear-gradient(to bottom, var(--cover) 50%, transparent) top / 100% calc(2 * var(--reach))
-      no-repeat local,
-    linear-gradient(to top, var(--cover) 50%, transparent) bottom / 100% calc(2 * var(--reach))
-      no-repeat local,
-    radial-gradient(farthest-side at 0 50%, var(--shade), transparent) left / var(--reach) 100%
-      no-repeat scroll,
-    radial-gradient(farthest-side at 100% 50%, var(--shade), transparent) right / var(--reach) 100%
-      no-repeat scroll,
-    radial-gradient(farthest-side at 50% 0, var(--shade), transparent) top / 100% var(--reach)
-      no-repeat scroll,
-    radial-gradient(farthest-side at 50% 100%, var(--shade), transparent) bottom / 100% var(--reach)
-      no-repeat scroll,
-    var(--cover);
 }
 /* The region's padded child, the pre's padding on the same tokens. The pre's text is as wide as
    its widest line, so the padding comes after that line, not at the region's edge. */

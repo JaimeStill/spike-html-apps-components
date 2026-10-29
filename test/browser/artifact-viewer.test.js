@@ -183,7 +183,7 @@ describe("artifact viewer", { timeout: 60_000 }, () => {
   });
 
   test("the scrolling region is reached by Tab and named for the artifact, and keys scroll it", async () => {
-    // The viewer's max-block-size, 32rem, holds 200 lines' region to it, so the region scrolls.
+    // A block-size of 16rem on the host holds 200 lines' region to it, so the region scrolls.
     await page.cdp("Emulation.setFocusEmulationEnabled", { enabled: true });
     const content = Array.from({ length: 200 }, (_, i) => `line ${i + 1}`).join("\n");
     const view = await shown({ name: "run.log", contentType: "text/plain", content });
@@ -193,6 +193,7 @@ describe("artifact viewer", { timeout: 60_000 }, () => {
         document.createElement("button"), document.querySelector("sl-artifact-viewer"));
       start.focus();
       const viewer = document.querySelector("sl-artifact-viewer");
+      viewer.style.blockSize = "16rem";
       const region = viewer.shadowRoot.querySelector(".body");
       return {
         host: viewer.getBoundingClientRect().height,
@@ -201,7 +202,7 @@ describe("artifact viewer", { timeout: 60_000 }, () => {
       };
     })()`);
     assert.ok(before.scrolls, "the region scrolls");
-    assert.ok(before.host <= 32 * before.rem + 0.5, `the viewer is ${before.host} tall`);
+    assert.ok(Math.abs(before.host - 16 * before.rem) <= 0.5, `the viewer is ${before.host} tall`);
     const press = async (key, code, windowsVirtualKeyCode) => {
       for (const type of ["keyDown", "keyUp"]) {
         await page.cdp("Input.dispatchKeyEvent", { type, key, code, windowsVirtualKeyCode });

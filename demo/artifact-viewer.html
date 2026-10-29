@@ -6,6 +6,8 @@
     <title>artifact viewer specimen</title>
     <!-- The artifact viewer's specimen page, from dist/: a Markdown document, JSON, invalid JSON,
          plain text, content long enough to scroll, a type that isn't text, loading, and an error.
+         The viewer is as tall as its content, so each shows at full size but the long content,
+         which the page holds to 16rem by demo.css's held class, so it scrolls.
          Every state is labelled, then shown again in a section 20rem wide; the fit section holds
          the JSON viewer in three parents that size it to its content, an inline-block, a
          content-sized flex item, and a grid's auto track; and the focus section holds one
@@ -110,8 +112,8 @@
             build: viewer({ name: "stages.csv", contentType: "text/csv", content: text }),
           },
           {
-            label: "Long content: 80 lines, scrolling inside the viewer",
-            build: viewer({ name: "run.log", contentType: "text/plain", content: long }),
+            label: "Long content: 80 lines, held to 16rem by the page, scrolling inside the viewer",
+            build: viewer({ name: "run.log", contentType: "text/plain", content: long, className: "held" }),
           },
           {
             label: "Unsupported: image/png, a note in place of its bytes",
@@ -126,7 +128,10 @@
             build: viewer({ name: "summary.md", contentType: "text/markdown", state: "error", message: "The pipeline returned 404 Not Found." }),
           },
         ],
-        { label: "Focused by Tab: the scrolling region", build: viewer({ name: "run.log", contentType: "text/plain", content: long }) },
+        {
+          label: "Focused by Tab: the scrolling region",
+          build: viewer({ name: "run.log", contentType: "text/plain", content: long, className: "held" }),
+        },
       );
       // The JSON viewer in each parent that sizes it to its content, by the parent's class in demo.css.
       const fit = (label, parent) => ({

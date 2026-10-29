@@ -14,11 +14,11 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
   two-space indents; any other text/ type as preformatted text. Parameters and case don't count, so
   `Text/Markdown; charset=utf-8` is Markdown. JSON that doesn't parse shows its raw text under a
   labelled note, and a type that isn't text shows a labelled note in place of its content. Its
-  `state`, reflected, is `ready` by default, `loading`, or `error` with its `message`. Long content
-  scrolls inside the viewer, held to a max-block-size of 32rem that a consumer may override, in a
-  region Tab reaches; its lines never wrap, so a narrow viewer scrolls them sideways. The name and
-  type head one frame, which holds the content or a note; a shade at each edge that content runs
-  past cues the scroll, and the padding shows at the scroll's far end. It sizes to its content in
+  `state`, reflected, is `ready` by default, `loading`, or `error` with its `message`. The viewer
+  is as tall as its content; a consumer that constrains its block size, on the host or by a sized
+  parent, holds it there, and long content scrolls inside the viewer, in a region Tab reaches; its lines never wrap, so a narrow viewer scrolls them sideways. The name and
+  type head one frame, which holds the content or a note; the browser's own scrollbars show on an
+  axis the content overflows, and the padding shows at the scroll's far end. It sizes to its content in
   any parent, a shrink-to-fit one too, and sends no event. It imports marked through
   `./markdown.js`, so a page that uses it maps `marked` in its import map. `viewOf(contentType)`
   exports the choice of view. Its specimen page is `demo/artifact-viewer.html`, and
