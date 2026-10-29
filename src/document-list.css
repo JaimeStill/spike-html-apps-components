@@ -1,7 +1,7 @@
 /*
  * The document list's layout in a shadow root: document-list.ts adopts this sheet into its root
  * after the foundation's reset and elements sheets (baseline/reset.css and elements.css). It holds
- * the status line's type, the list's layout, and the selected document's mark. The entries and
+ * the status line's type and the list's layout; the selected document's entry draws its own frame. The entries and
  * the pagination style themselves in their own shadow roots; the status line and the list are
  * this root's, slotted into the pagination, so this sheet styles them. It reads only the
  * foundation's baseline tokens, which a shadow root takes by inheritance from the page's entry.
@@ -16,16 +16,35 @@
 :host {
   display: block;
 }
-/* The status line, in the interface font, small and muted, between the pagination's summary and
-   the entries: loading, the failure's label and its reason after it, or no documents. It is a
-   line tall when blank too, so its text, coming or going, moves nothing below it. */
+/* The status line: loading, the failure's label and its reason after it, or no documents. It
+   never breaks inside a word but one too long for its line. */
 .status {
-  min-block-size: 1lh;
   margin: 0;
-  font-family: var(--font-ui);
+  overflow-wrap: anywhere;
+}
+/* On the summary's line, in the pagination's status slot, it runs on after the summary's text, in
+   the summary's type and color, which it inherits through the slot: "Showing 1–3 of 8 · Loading
+   documents…". Its label opens with a middle dot, which the content's empty alternative keeps from
+   being read, and keeps whole, so a line too narrow for both wraps the label, dot and all, rather
+   than leaving the dot behind. Blank, it takes no space. */
+.status[slot="status"] {
+  display: inline;
+}
+.status[slot="status"] .label {
+  white-space: nowrap;
+}
+.status[slot="status"] .label::before {
+  content: "·" / "";
+  margin-inline: 0.5ch;
+}
+/* A line of its own between the pagination's summary, when it shows one, and the entries, with no
+   summary to join or for an error: in the summary's type, small and muted, in the font the
+   pagination inherits, so the status reads alike in either place; and a line tall when blank too,
+   so its text, coming or going, moves nothing below it. */
+.status:not([slot]) {
+  min-block-size: 1lh;
   font-size: var(--text-s);
   color: var(--fg-2);
-  overflow-wrap: anywhere;
 }
 .status .empty {
   color: var(--fg-3);
@@ -33,27 +52,13 @@
 .status.error .label {
   color: var(--red);
 }
-/* The entries, stacked under the status line; each entry's own block margin spaces them. */
+/* The entries, stacked under the status line; each entry's own block margin spaces them, and each
+   entry draws its own selected frame. */
 .documents {
   margin: 0;
   padding: 0;
   list-style: none;
 }
-/* Each document's item is two columns: a mark's, a small step wide, held clear on every item so
-   marking one moves no entry, and the entry's. The selected document's mark is a bar beside its
-   entry, as tall as its button, in the interaction color: a shape there, not a color alone, which
-   aria-current says to assistive technology. */
 .documents > li {
-  display: grid;
-  grid-template-columns: var(--space-3xs) minmax(0, 1fr);
-  column-gap: var(--space-3xs);
   margin: 0;
-}
-.documents > li::before {
-  content: "";
-  margin-block: var(--space-3xs);
-  border-radius: var(--radius-full);
-}
-.documents > li.selected::before {
-  background-color: var(--interaction-color, var(--blue));
 }

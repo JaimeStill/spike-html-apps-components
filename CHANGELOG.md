@@ -14,6 +14,9 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
   with focus shows both. It is a mark to the eye only: the consumer says it to assistive
   technology, as `sl-document-list` does with `aria-current`. The entry's specimen page shows it,
   and its focus state is selected.
+- `sl-pagination` has a `status` slot, after the summary's text on its line, shown while the
+  summary is, and `./pagination.js` exports `summaryRange(page, size, total)`, the summary's first
+  and last rows, or null when it shows none.
 - `./document-list.js` defines `sl-document-list`, a page of documents composed of the existing
   components: one `sl-pagination`, whose default slot holds the list's status line and an
   `sl-entry` per document. `items` takes each as a structural `DocumentItem`, exported,
@@ -22,11 +25,14 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
   pagination's properties, `page`, `size`, `total`, `more`, `pageSizes` (`page-sizes`), and
   `disabled`, reflected, are the list's under the same names, with the pagination's defaults, and
   pass through as given. `selected` takes a document's id: its list item is `aria-current="true"`
-  and shows a bar beside its entry, in a column every item holds, so marking one moves no entry.
-  `state`, reflected, `ready`, `loading`, or `error`, with `message`, as the search results'. The
-  status line, one polite live region a line tall in every state, says the list is loading, that it
-  failed with its message, or that there are no documents, and is blank over a ready page, so its
-  text moves nothing. While loading, documents already given stay listed, busy; an error lists
+  and its entry is `selected`, framed in the interaction color, so marking one moves no entry, and
+  every entry starts at the pagination's edge. `state`, reflected, `ready`, `loading`, or `error`,
+  with `message`, as the search results'. The status line, one polite live region, says the list
+  is loading, that it failed with its message, or that there are no documents, and is blank over a
+  ready page. While the pagination shows its summary, the status runs on after it in its `status`
+  slot, "Showing 1–3 of 8 · Loading documents…", taking no line of its own; with no summary, and
+  for an error, it is a line of its own above the entries, held a line tall when blank; either way
+  its text moves nothing. While loading, documents already given stay listed, busy; an error lists
   none. The entry's `open`, `{ id, kind }`, and the pagination's `page-change`, `{ page }`, and
   `page-size-change`, `{ size }`, bubble and are composed, so they reach the list's listener as
   their parts sent them; the list dispatches no event of its own. It binds no key. Its specimen

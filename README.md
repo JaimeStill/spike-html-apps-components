@@ -57,11 +57,13 @@ foundation's `page.css`:
 - `./status-badge.js`: `sl-status-badge`, a label; a click dispatches `badge-select`.
 - `./entry.js`: `sl-entry`, one directory or file of a document hierarchy, as a button, its name
   the primary text, its status and kind quiet labels; it dispatches `open`, and `selected`,
-  reflected, frames it in the interaction color, moving nothing. It formats a file's size and its updated time with the foundation's
-  `formatBytes` and `formatDateTime`. It sizes to its content in any parent, a shrink-to-fit one
-  too, and stays inside its box down to 16rem, its supported minimum width.
-- `./pagination.js`: `sl-pagination`, a page of entries between its summary and its controls; it
-  dispatches `page-change` and `page-size-change`.
+  reflected, frames it in the interaction color, moving nothing. It formats a file's size and its
+  updated time with the foundation's `formatBytes` and `formatDateTime`. It sizes to its content in
+  any parent, a shrink-to-fit one too, and stays inside its box down to 16rem, its supported
+  minimum width.
+- `./pagination.js`: `sl-pagination`, a page of entries between its summary and its controls, a
+  `status` slot running on after the summary's text; it dispatches `page-change` and
+  `page-size-change`.
 - `./markdown.js`: `markdown(source)`, a Markdown string as a Lit template of plain elements, by
   marked's lexer: raw HTML shows as text, an image as its alt text, and a link is an anchor only
   to an http, https, or mailto URL or a relative one. It is the one module that imports marked,
@@ -97,10 +99,10 @@ foundation's `page.css`:
   states. It exports its match type and binds no key.
 - `./document-list.js`: `sl-document-list`, a page of documents composed of the components above,
   an `sl-entry` per document inside one `sl-pagination`, whose properties it takes under the same
-  names and hands through; it marks the selected document, and has empty, loading, and error
-  states. The entry's `open` and the pagination's `page-change` and `page-size-change` reach its
-  listener as their parts sent them; it dispatches none of its own. It exports its document type
-  and binds no key.
+  names and hands through; it frames the selected document's entry, and has empty, loading, and
+  error states, said on the pagination's summary line when it shows one. The entry's `open` and
+  the pagination's `page-change` and `page-size-change` reach its listener as their parts sent
+  them; it dispatches none of its own. It exports its document type and binds no key.
 - `./*.css`: each component's sheet, which its module imports itself.
 
 `demo/components.html` is a page on all three, with its import map. Each component also has a

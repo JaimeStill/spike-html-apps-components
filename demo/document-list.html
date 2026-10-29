@@ -6,12 +6,14 @@
     <title>document list specimen</title>
     <!-- The document list's specimen page, from dist/: no documents; loading, a first load's and a
          page change's with the last page kept; a page of documents, as the emulator lists them with
-         each run's status beside them; one selected; a first load's error with its message; the
-         last page; and a long name, kept inside its entry. Every state is labelled, then shown
+         each run's status beside them; one selected, its entry framed; a first load's error with
+         its message; the last page; and a long name, kept inside its entry. Every state is
+         labelled, then shown
          again in a section 20rem wide; the fit section holds a short page in three parents that
          size the list to its content, an inline-block, a content-sized flex item, and a grid's auto
          track; and the focus section holds one instance, its first entry selected, which the
-         screenshot script reaches with a Tab press. Each entry is a native button, bordered, and
+         screenshot script reaches with a Tab press, so the focus ring and the selected frame show
+         together. Each entry is a native button, bordered, and
          the pagination rules its controls off, so main is unframed: no specimen frame around them.
          The page links the installed foundation's full entry, page-full.css, and imports
          register-full.js, so a profile applies by attribute on the root; its import map is
@@ -121,7 +123,7 @@
           },
           { label: "A page: 1 of 3", build: list({ items: first }) },
           {
-            label: "Selected: retainer.docx, marked by a rule and aria-current",
+            label: "Selected: retainer.docx, marked by its frame and aria-current",
             build: list({ items: first, selected: first[1].id }),
           },
           {
@@ -139,7 +141,7 @@
           },
           { label: "A long name, kept inside its entry, wrapping at 20rem", build: list({ items: long }) },
         ],
-        { label: "Focused by Tab: the first entry", build: list({ items: first, selected: first[0].id }) },
+        { label: "Selected and focused by Tab: the first entry, the ring outside the frame", build: list({ items: first, selected: first[0].id }) },
       );
       // A short page in each parent that sizes the list to its content, by the parent's class in
       // demo.css.
@@ -162,7 +164,7 @@
       <h1>Document list</h1>
       <p>
         <code>sl-document-list</code>, a page of documents, an <code>sl-entry</code> each, in an
-        <code>sl-pagination</code>, the selected one marked, in each of its states.
+        <code>sl-pagination</code>, the selected one framed, in each of its states.
       </p>
 
       <section id="states">

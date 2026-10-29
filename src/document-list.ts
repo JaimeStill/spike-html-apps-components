@@ -18,7 +18,7 @@ import reset from "@jaimestill/spike-html-apps-foundation/baseline/reset.css" wi
 import { define } from "@jaimestill/spike-html-apps-foundation/dom.js";
 import "./entry.ts";
 import type { FileItem } from "./entry.ts";
-import "./pagination.ts";
+import { summaryRange } from "./pagination.ts";
 import styles from "./document-list.css" with { type: "css" };
 
 /** The tag the element defines. */
@@ -69,12 +69,14 @@ function entryItem(item: DocumentItem): FileItem {
  * pagination's `page-change`, `{ page }`, and `page-size-change`, `{ size }`. The host sets
  * `selected` and the next page's fields.
  *
- * A status line, the list's one live region, polite, opens the page between the pagination's
- * summary and the entries, in every state, one line tall whether it says anything or not, so its
- * text never moves the entries or the controls: loading, a failure with `message` saying why, or
- * no documents. A ready page of documents leaves it blank. While loading, documents already given
- * stay listed, marked busy, so a page change doesn't empty and refill the list; an error lists
- * none.
+ * A status line, the list's one live region, polite, says the list is loading, that it failed with
+ * `message` saying why, or that there are no documents; a ready page of documents leaves it blank.
+ * While the pagination shows its summary, the status follows the summary's text on its line, in
+ * the pagination's `status` slot, "Showing 1–3 of 8 · Loading documents…", so it takes no line of
+ * its own and its text, coming and going, moves neither the entries nor the controls. With no
+ * summary to join, and in the error state, it is a line of its own above the entries, a line tall
+ * even when blank, for the same reason. While loading, documents already given stay listed, marked
+ * busy, so a page change doesn't empty and refill the list; an error lists none.
  */
 export class DocumentList extends LitElement {
   static styles = [reset, elements, styles];
@@ -142,19 +144,25 @@ export class DocumentList extends LitElement {
     return documents.length ? nothing : html`<span class="label empty">No documents.</span>`;
   }
 
-  // An entry per document, in a list item that carries the selected mark: the entry's button is
-  // inside its own shadow root, out of the list's reach, so the item holds aria-current.
+  // An entry per document, in a list item. The selected document's entry draws its own frame in
+  // the interaction color, by its selected property, and its item holds aria-current, which says
+  // it to assistive technology: the entry's button is inside its own shadow root, out of the
+  // list's reach.
   #entry(item: DocumentItem) {
     const selected = item.id === this.selected;
-    return html`<li class=${selected ? "selected" : nothing} aria-current=${selected ? "true" : nothing}>
-      <sl-entry .item=${entryItem(item)}></sl-entry>
+    return html`<li aria-current=${selected ? "true" : nothing}>
+      <sl-entry .item=${entryItem(item)} .selected=${selected}></sl-entry>
     </li>`;
   }
 
   render() {
     const documents = this.state === "error" ? [] : (this.items ?? []);
-    // The pagination takes its properties as the list was given them, and holds the status line
-    // and the entries in its default slot. Each entry is keyed by its document's id, so a focused
+    // The status joins the summary's line while the pagination shows one, but for an error, which
+    // reads as a line of its own. The same element moves between the slots, so the live region is
+    // never replaced.
+    const joins = this.state !== "error" && summaryRange(this.page, this.size, this.total) !== null;
+    // The pagination takes its properties as the list was given them, and holds the status line,
+    // in its summary's status slot or its default slot, and the entries, in its default slot. Each entry is keyed by its document's id, so a focused
     // entry stays with its document as the page changes around it.
     return html`<sl-pagination
       .page=${this.page}
@@ -164,7 +172,7 @@ export class DocumentList extends LitElement {
       .pageSizes=${this.pageSizes}
       .disabled=${this.disabled}
     >
-      <p class="status ${this.state}" role="status">${this.#status(documents)}</p>
+      <p class="status ${this.state}" role="status" slot=${joins ? "status" : nothing}>${this.#status(documents)}</p>
       ${
         documents.length
           ? html`<ul class="documents" aria-label="Documents" aria-busy=${this.state === "loading" ? "true" : nothing}>

@@ -1585,8 +1585,8 @@ describe("components", { timeout: 60_000 }, () => {
     // Every list shows its status line and one pagination. At 20rem the states keep within the
     // column, and every part of each list, its status line, its controls, and each entry's
     // button and parts, inside the list's box across; each entry's parts inside its button; a
-    // size and a clock each on one line; and every entry of a list at one inline start, the mark's
-    // column held clear on each, selected or not.
+    // size and a clock each on one line; and every entry of a list at the pagination's inline
+    // start, selected or not, no column held beside it.
     const measure = `() => {
       const list = document.querySelector(".narrow .states");
       const lines = ${LINES};
@@ -1615,7 +1615,8 @@ describe("components", { timeout: 60_000 }, () => {
               .filter((part) => part !== null && lines(part) > 1)
               .map((part) => part.textContent),
           ),
-          starts: new Set(entries.map((entry) => Math.round(entry.getBoundingClientRect().left))).size,
+          starts: [...new Set(entries.map((entry) => Math.round(entry.getBoundingClientRect().left)))],
+          edge: Math.round(root.querySelector("sl-pagination").getBoundingClientRect().left),
         };
       });
       return { overflow: list.scrollWidth - list.clientWidth, shown };
@@ -1629,7 +1630,7 @@ describe("components", { timeout: 60_000 }, () => {
       );
       for (const [
         index,
-        { narrow, status, paginations, outside, spills, broken, starts },
+        { narrow, status, paginations, outside, spills, broken, starts, edge },
       ] of shown.entries()) {
         const where = `${profile}, list ${index}${narrow ? " at 20rem" : ""}`;
         assert.ok(status, `${where}: a status line`);
@@ -1637,7 +1638,10 @@ describe("components", { timeout: 60_000 }, () => {
         assert.deepEqual(outside, [], `${where}: parts outside the list`);
         assert.deepEqual(spills, [], `${where}: parts outside their entry`);
         assert.deepEqual(broken, [], `${where}: a size or a clock broken across lines`);
-        assert.ok(starts <= 1, `${where}: entries at ${starts} inline starts`);
+        assert.ok(
+          starts.every((start) => start === edge),
+          `${where}: entries start at ${starts}, the pagination at ${edge}`,
+        );
       }
     }
   });

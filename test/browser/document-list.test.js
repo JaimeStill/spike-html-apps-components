@@ -1,9 +1,10 @@
 // The document list from this repository's dist/, on test/fixtures/components.html: its
 // composition, one sl-pagination around one sl-entry per document, the pagination's properties
 // handed through and its attributes converted as the pagination's are, each entry's item mapped
-// from its document; the selected document marked, for assistive technology and to the eye,
-// moving no entry; the status line, one polite region, in every state, empty, loading, error, and
-// ready, the state reflected, a page kept busy while loading and moving nowhere; the entry's open
+// from its document; the selected document marked, for assistive technology and to the eye by its
+// entry's frame, moving no entry; the status line, one polite region, in every state, empty,
+// loading, error, and ready, on the summary's line when there is one and a line of its own when
+// not, the state reflected, a page kept busy while loading and moving nowhere; the entry's open
 // and the pagination's page-change and page-size-change reaching a listener on the list once each,
 // the very events their parts sent, bubbling and composed; and no event as the properties change.
 
@@ -81,6 +82,8 @@ describe("document list", { timeout: 60_000 }, () => {
           slotted: [...pagination.children].map((child) => child.localName),
           status: [status.getAttribute("role"), status.textContent.replace(/\\s+/g, " ").trim(), status.className],
           statusHeight: status.getBoundingClientRect().height,
+          // The slot the status line is in: the summary's, "status", or the default, "".
+          statusSlot: status.assignedSlot?.name ?? null,
           list: ul && [ul.getAttribute("aria-label"), ul.getAttribute("aria-busy")],
           paging: {
             page: pagination.page,
@@ -91,14 +94,22 @@ describe("document list", { timeout: 60_000 }, () => {
             disabled: pagination.disabled,
           },
           summary: pagination.shadowRoot.querySelector(".summary")?.textContent ?? null,
+          summaryHeight: pagination.shadowRoot.querySelector(".summary")?.getBoundingClientRect().height ?? null,
+          // The space from the summary's line, or the pagination's top, to the first entry, and a
+          // line's height in the status line's type.
+          above: ul && ul.getBoundingClientRect().top -
+            (pagination.shadowRoot.querySelector(".summary")?.getBoundingClientRect().bottom ??
+              pagination.getBoundingClientRect().top),
+          line: parseFloat(getComputedStyle(status).lineHeight),
           entries: [...root.querySelectorAll("ul > li")].map((li) => {
             const entry = li.querySelector("sl-entry");
-            const mark = getComputedStyle(li, "::before");
+            const frame = getComputedStyle(entry.shadowRoot.querySelector("button")).boxShadow;
             const rect = entry.getBoundingClientRect();
             return {
               item: entry.item,
               current: li.getAttribute("aria-current"),
-              mark: mark.backgroundColor !== "rgba(0, 0, 0, 0)" && parseFloat(mark.width) > 0,
+              // The entry's selected frame: its property, reflected, and the inset shadow it draws.
+              mark: entry.selected && entry.hasAttribute("selected") && frame.includes("inset"),
               text: entry.shadowRoot.querySelector("button").textContent.replace(/\\s+/g, " ").trim(),
               box: [rect.left, rect.top, rect.width, rect.height],
             };
@@ -171,9 +182,10 @@ describe("document list", { timeout: 60_000 }, () => {
 
   test("one pagination holds the status line and the list, and an entry per document, its item mapped from it", async () => {
     await mount({ ...paging, items: documents });
-    const { paginations, slotted, list, entries, summary } = await read();
+    const { paginations, slotted, statusSlot, list, entries, summary } = await read();
     assert.equal(paginations, 1);
     assert.deepEqual(slotted, ["p", "ul"]);
+    assert.equal(statusSlot, "status", "the status line in the summary's slot");
     assert.deepEqual(list, ["Documents", null]);
     assert.equal(summary, "Showing 1–3 of 8");
     // The entry's file: the document's fields, its acceptance time as the entry's time, and
@@ -232,7 +244,7 @@ describe("document list", { timeout: 60_000 }, () => {
     assert.deepEqual(passed, [2, 6, 14, true, [6, 12], true]);
   });
 
-  test("the selected document's item is aria-current and shows its mark; the others neither", async () => {
+  test("the selected document's item is aria-current and its entry framed; the others neither", async () => {
     await mount({ ...paging, items: documents, selected: "doc-2" });
     const { entries } = await read();
     assert.deepEqual(
@@ -245,7 +257,7 @@ describe("document list", { timeout: 60_000 }, () => {
     );
   });
 
-  test("selecting another document moves the mark and no entry", async () => {
+  test("selecting another document moves the frame and no entry", async () => {
     await mount({ ...paging, items: documents });
     const before = await read();
     assert.ok(before.entries.every(({ current, mark }) => current === null && !mark));
@@ -263,20 +275,24 @@ describe("document list", { timeout: 60_000 }, () => {
     assert.ok((await read()).entries.every(({ current, mark }) => current === null && !mark));
   });
 
-  test("ready with no documents says so quietly, and lists none", async () => {
+  test("ready with no documents says so quietly, on a line of its own, and lists none", async () => {
     await mount({ total: 0 });
-    const { state, status, list, entries } = await read();
+    const { state, status, statusSlot, summary, list, entries } = await read();
     assert.equal(state, "ready");
     assert.deepEqual(status, ["status", "No documents.", "status ready"]);
+    assert.deepEqual([summary, statusSlot], [null, ""]);
     assert.equal(list, null);
     assert.deepEqual(entries, []);
   });
 
-  test("a ready page leaves the status line blank, a line tall", async () => {
+  test("a ready page leaves the status blank on the summary's line, and no line of its own", async () => {
     await mount({ ...paging, items: documents });
-    const { status, statusHeight } = await read();
+    const { status, statusSlot, summaryHeight, above, line } = await read();
     assert.deepEqual(status, ["status", "", "status ready"]);
-    assert.ok(statusHeight > 0, `the blank status line ${statusHeight} tall`);
+    assert.equal(statusSlot, "status");
+    // Less than a line between the summary and the first entry: no blank line held there.
+    assert.ok(above < line, `the first entry ${above} below the summary, a line ${line}`);
+    assert.ok(summaryHeight > 0 && summaryHeight < 2 * line, `the summary ${summaryHeight} tall`);
   });
 
   test("loading says so, reflected; a first load lists nothing, and a page change keeps its page busy", async () => {
@@ -284,6 +300,7 @@ describe("document list", { timeout: 60_000 }, () => {
     let shown = await read();
     assert.equal(shown.state, "loading");
     assert.deepEqual(shown.status, ["status", "Loading documents…", "status loading"]);
+    assert.equal(shown.statusSlot, "", "a first load has no summary to join");
     assert.equal(shown.list, null);
     await mount({ ...paging, items: documents });
     const ready = await read();
@@ -291,15 +308,35 @@ describe("document list", { timeout: 60_000 }, () => {
     shown = await read();
     assert.equal(shown.state, "loading");
     assert.deepEqual(shown.status, ["status", "Loading documents…", "status loading"]);
+    assert.equal(shown.statusSlot, "status");
     assert.deepEqual(shown.list, ["Documents", "true"]);
-    // The status line's text comes and goes in its own line: the entries stay where they were.
-    assert.equal(shown.statusHeight, ready.statusHeight);
+    // The status line's text comes and goes on the summary's line: the summary keeps its height,
+    // and the entries stay where they were.
+    assert.equal(shown.summaryHeight, ready.summaryHeight);
     assert.deepEqual(
       shown.entries.map(({ box }) => box),
       ready.entries.map(({ box }) => box),
     );
     await update({ state: "ready" });
     assert.deepEqual((await read()).list, ["Documents", null]);
+  });
+
+  test("with no summary to join, a page continued by cursor, the status is a line of its own, held blank, so loading moves no entry", async () => {
+    await mount({ ...paging, page: null, total: null, items: documents });
+    const ready = await read();
+    assert.deepEqual([ready.summary, ready.statusSlot, ready.status[1]], [null, "", ""]);
+    assert.ok(
+      ready.statusHeight >= ready.line - 0.5,
+      `the blank status line ${ready.statusHeight} tall`,
+    );
+    await update({ state: "loading" });
+    const loading = await read();
+    assert.deepEqual([loading.statusSlot, loading.status[1]], ["", "Loading documents…"]);
+    assert.equal(loading.statusHeight, ready.statusHeight);
+    assert.deepEqual(
+      loading.entries.map(({ box }) => box),
+      ready.entries.map(({ box }) => box),
+    );
   });
 
   test("an error shows its label and message, reflected, and lists no documents", async () => {
@@ -309,8 +346,9 @@ describe("document list", { timeout: 60_000 }, () => {
       state: "error",
       message: "503 Service Unavailable.",
     });
-    const { state, status, list, entries, paginations } = await read();
+    const { state, status, statusSlot, list, entries, paginations } = await read();
     assert.equal(state, "error");
+    assert.equal(statusSlot, "", "an error on a line of its own, though the summary shows");
     assert.deepEqual(status, [
       "status",
       "Couldn't load the documents. 503 Service Unavailable.",

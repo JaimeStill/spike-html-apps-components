@@ -25,8 +25,23 @@ export interface PageSizeChangeDetail {
 }
 
 /**
+ * The rows a page shows, `first` to `last`, from 1, of `total`: the summary's "Showing X–Y of N".
+ * Null when the pagination shows no summary: the total unknown or none, or the page continued by
+ * cursor, or no page size.
+ */
+export function summaryRange(
+  page: number | null,
+  size: number | null,
+  total: number | null,
+): { first: number; last: number } | null {
+  if (total === null || total <= 0 || page === null || !size) return null;
+  return { first: Math.min((page - 1) * size + 1, total), last: Math.min(page * size, total) };
+}
+
+/**
  * Pages through a listing. The host's children, its entries, sit in the default slot between a
- * "Showing X–Y of N" summary and the controls: a page size selector, labelled by the `label` slot
+ * "Showing X–Y of N" summary and the controls; a child in the `status` slot follows the summary's
+ * text on its line, shown only while the summary is (see `summaryRange`): a page size selector, labelled by the `label` slot
  * ("Page Size" by default), previous and next buttons, and an editable page number clamped to the
  * page count. The properties are the envelope's fields; the element never changes its own page,
  * it sends `page-change` and `page-size-change` and the host sets the next page's fields.
@@ -125,12 +140,13 @@ export class Pagination extends LitElement {
     (e.target as HTMLInputElement).select();
   }
 
+  // The summary's line, its text and then the status slot's content, as one run of text that
+  // wraps as a paragraph does.
   #renderSummary() {
-    const { page, size, total } = this;
-    if (total === null || total <= 0 || page === null || !size) return nothing;
-    const first = Math.min((page - 1) * size + 1, total);
-    const last = Math.min(page * size, total);
-    return html`<p class="summary">Showing ${first}–${last} of ${total}</p>`;
+    const range = summaryRange(this.page, this.size, this.total);
+    if (range === null) return nothing;
+    const { first, last } = range;
+    return html`<p class="summary">Showing ${first}–${last} of ${this.total}<slot name="status"></slot></p>`;
   }
 
   render() {
