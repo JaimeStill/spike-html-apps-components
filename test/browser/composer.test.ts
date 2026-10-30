@@ -97,8 +97,11 @@ describe("composer", { timeout: 60_000 }, () => {
       };
       window.focusField = () =>
         document.querySelector("sl-composer").shadowRoot.querySelector("textarea").focus();
+      // Focus moves to the control first, as a pointer or a key activating it moves it.
       window.clickAction = async () => {
-        document.querySelector("sl-composer").shadowRoot.querySelector(".action").click();
+        const action = document.querySelector("sl-composer").shadowRoot.querySelector(".action");
+        action.focus();
+        action.click();
         return window.read();
       };
       window.callSend = async () => {
