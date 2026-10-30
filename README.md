@@ -116,7 +116,7 @@ attribute on the root.
 
 `mise run screenshots` captures each specimen page light and dark, each page in vertical tiles at
 most 1200px tall, through spike-html-apps-tooling's `spike-html-apps-screenshots` on the
-description `scripts/screenshots.config.js`: by default in flexoki, regular, and mono; with
+description `scripts/screenshots.config.ts`: by default in flexoki, regular, and mono; with
 `--palette`, `--space`, or `--type`, combined, in the facet's profile named, checked against the
 pages' registry; with `--all`, in each of the four colors, and in compact and in sans.
 `--page <name>`, repeatable, captures only the specimen pages named, and `--scheme light` or

@@ -6,22 +6,29 @@
 // Adapted from spike-html-apps-components (2fded6d): scripts/screenshots.js, its pages, facets,
 // profiles, and registry read kept as a description of the tooling's command.
 
+import type {
+  DescribedPage,
+  Description,
+} from "@jaimestill/spike-html-apps-tooling/screenshots.js";
+
 import { served } from "../test/browser/support/served.ts";
 
 /** The specimen pages, in the order they're captured and numbered, each one full-page state. */
-const pages = [
-  ["status-badge", "the status badge"],
-  ["entry", "the entry"],
-  ["pagination", "the pagination"],
-  ["artifact-viewer", "the artifact viewer"],
-  ["chat-thread", "the chat thread"],
-  ["composer", "the composer"],
-  ["upload-dropzone", "the upload dropzone"],
-  ["stage-timeline", "the stage timeline"],
-  ["event-log", "the event log"],
-  ["search-results", "the search results"],
-  ["document-list", "the document list"],
-].map(([name, caption]) => ({ name, caption, path: `demo/${name}.html` }));
+const pages: DescribedPage[] = (
+  [
+    ["status-badge", "the status badge"],
+    ["entry", "the entry"],
+    ["pagination", "the pagination"],
+    ["artifact-viewer", "the artifact viewer"],
+    ["chat-thread", "the chat thread"],
+    ["composer", "the composer"],
+    ["upload-dropzone", "the upload dropzone"],
+    ["stage-timeline", "the stage timeline"],
+    ["event-log", "the event log"],
+    ["search-results", "the search results"],
+    ["document-list", "the document list"],
+  ] satisfies [name: string, caption: string][]
+).map(([name, caption]) => ({ name, caption, path: `demo/${name}.html` }));
 
 /** The page's registered names, by flag, read from the foundation's store at its well-known
  * global key, so a profile an extension page registers counts too; its color facet is palette's. */
@@ -30,8 +37,7 @@ const REGISTRY = `(() => {
   return { palette: store.color ?? [], space: store.space ?? [], type: store.type ?? [] };
 })()`;
 
-/** @type {import("@jaimestill/spike-html-apps-tooling/screenshots.js").Description} */
-export default {
+const description: Description = {
   pages,
   facets: [
     { flag: "palette", attribute: "data-palette", default: "flexoki" },
@@ -46,3 +52,5 @@ export default {
   profiles: (page) => page.evaluate(REGISTRY),
   server: served,
 };
+
+export default description;

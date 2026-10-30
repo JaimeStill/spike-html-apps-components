@@ -1,7 +1,8 @@
 // The Node-side tests and their helpers, run as TypeScript by node --test under Node's type
-// stripping, checked here and never emitted: the base's strictness and erasable syntax, on node's
-// module resolution and its types rather than the browser's. The modules the browser tier's pages
-// load stay .js, checked by test/browser/tsconfig.json.
+// stripping, and the scripts/ TypeScript, the screenshots description the tooling's bin loads under
+// the same stripping, checked here and never emitted: the base's strictness and erasable syntax, on
+// node's module resolution and its types rather than the browser's. The modules the browser tier's
+// pages load stay .js, checked by test/browser/tsconfig.json.
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
@@ -13,5 +14,5 @@
     "declaration": false,
     "rootDir": "."
   },
-  "include": ["test/**/*.ts"]
+  "include": ["test/**/*.ts", "scripts/**/*.ts"]
 }
