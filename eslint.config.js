@@ -86,11 +86,9 @@ export default defineConfig([
   { files: code, extends: [js.configs.recommended, tseslint.configs.recommended] },
   { files: code, languageOptions: { globals: globals.browser } },
   { files: code, rules: { "no-restricted-syntax": ["error", ...cssImports] } },
-  // The suite and the scripts run on node; the browser tier's support/ also holds in-page modules.
-  {
-    files: ["test/**/*.js", "test/**/*.ts", "scripts/**"],
-    languageOptions: { globals: globals.node },
-  },
+  // The suite and the scripts run on node; test/'s .js, the modules a test page loads, run in the
+  // browser.
+  { files: ["test/**/*.ts", "scripts/**"], languageOptions: { globals: globals.node } },
   {
     files: ["src/**"],
     plugins: { boundaries, "import-x": importX },
