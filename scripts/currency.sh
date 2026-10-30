@@ -23,7 +23,7 @@ pins=$(node -p '
 ')
 typescript_eslint=$(node -p 'require("./package.json").devDependencies["typescript-eslint"]')
 while read -r package pin; do
-  # A github: devDependency (the foundation) is pinned to its repository's release tag, which the
+  # A github: devDependency (the foundation, the tooling) is pinned to its repository's release tag, which the
   # registry doesn't hold: its tag against that repository's latest release.
   if [[ $pin == github:* ]]; then
     spec=${pin#github:}

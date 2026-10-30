@@ -11,15 +11,17 @@
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
 
-import { launch } from "./support/browser-pipe.js";
-import { serve } from "./support/server.js";
+import { launch } from "@jaimestill/spike-html-apps-tooling/browser.js";
+import { serve } from "@jaimestill/spike-html-apps-tooling/server.js";
+
+import { served } from "./support/served.js";
 
 describe("document list", { timeout: 60_000 }, () => {
   let server;
   let browser;
   let page;
   before(async () => {
-    server = await serve();
+    server = await serve(served);
     browser = await launch();
     page = await browser.open(`${server.origin}/test/fixtures/components.html`);
     // Keys go to the focused element as a user's would, though a headless page never has the

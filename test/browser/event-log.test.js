@@ -8,15 +8,17 @@
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
 
-import { launch } from "./support/browser-pipe.js";
-import { serve } from "./support/server.js";
+import { launch } from "@jaimestill/spike-html-apps-tooling/browser.js";
+import { serve } from "@jaimestill/spike-html-apps-tooling/server.js";
+
+import { served } from "./support/served.js";
 
 describe("event log", { timeout: 60_000 }, () => {
   let server;
   let browser;
   let page;
   before(async () => {
-    server = await serve();
+    server = await serve(served);
     browser = await launch();
     page = await browser.open(`${server.origin}/test/fixtures/components.html`);
     // Keys go to the focused element as a user's would, though a headless page never has the
@@ -104,7 +106,7 @@ describe("event log", { timeout: 60_000 }, () => {
     const { frame, list, events } = await read();
     assert.deepEqual(frame, ["log", "polite", "additions", "Events", null]);
     assert.equal(list, "ol");
-    // The browser runs in en-US at UTC, as support/browser-pipe.js launches it.
+    // The browser runs in en-US at UTC, as the tooling's launch() starts it.
     assert.deepEqual(events[0], {
       type: "emulator.run.stage",
       time: "Oct 29, 2026, 3:42:00 PM",

@@ -8,15 +8,17 @@ import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import { after, before, describe, test } from "node:test";
 
-import { launch } from "./support/browser-pipe.js";
-import { root, serve } from "./support/server.js";
+import { launch } from "@jaimestill/spike-html-apps-tooling/browser.js";
+import { serve } from "@jaimestill/spike-html-apps-tooling/server.js";
+
+import { root, served } from "./support/served.js";
 
 describe("markdown", { timeout: 60_000 }, () => {
   let server;
   let browser;
   let page;
   before(async () => {
-    server = await serve();
+    server = await serve(served);
     browser = await launch();
     page = await browser.open(`${server.origin}/test/fixtures/components.html`);
     // window.rendered(source) renders the source into a new container, resolving to its HTML

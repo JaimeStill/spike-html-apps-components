@@ -6,6 +6,15 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 
 ## [Unreleased]
 
+### Changed
+
+- The browser tier, `mise run demo`, and `mise run screenshots` run on
+  `@jaimestill/spike-html-apps-tooling` v0.1.0, a devDependency installed by its tag: its driver,
+  its static server, and its `spike-html-apps-screenshots` command, which captures the specimen
+  pages from the description `scripts/screenshots.config.js`. The repository's own copies of the
+  driver, the server, and the screenshot scripts are gone. `mise run screenshots` takes the
+  command's flags, `--output terminal|directory|browser` and `--dir <path>` among them.
+
 ## [0.3.0] - 2026-10-29
 
 ### Added

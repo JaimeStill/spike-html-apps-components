@@ -12,14 +12,16 @@
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
 
-import { launch } from "./support/browser-pipe.js";
-import { serve } from "./support/server.js";
+import { launch } from "@jaimestill/spike-html-apps-tooling/browser.js";
+import { serve } from "@jaimestill/spike-html-apps-tooling/server.js";
+
+import { served } from "./support/served.js";
 
 describe("components", { timeout: 60_000 }, () => {
   let server;
   let browser;
   before(async () => {
-    server = await serve();
+    server = await serve(served);
     browser = await launch();
   });
   after(async () => {
@@ -156,7 +158,7 @@ describe("components", { timeout: 60_000 }, () => {
     });
 
     test(`the entry shows a file's size and modified time in the page's locale and time zone, ${run.name}`, async () => {
-      // The browser runs in en-US at UTC, as support/browser-pipe.js launches it.
+      // The browser runs in en-US at UTC, as the tooling's launch() starts it.
       const page = await open(run);
       try {
         const shown = await page.evaluate(`(async () => {
