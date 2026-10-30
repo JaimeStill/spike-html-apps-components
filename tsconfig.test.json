@@ -1,0 +1,17 @@
+// The Node-side tests and their helpers, run as TypeScript by node --test under Node's type
+// stripping, checked here and never emitted: the base's strictness and erasable syntax, on node's
+// module resolution and its types rather than the browser's. The modules the browser tier's pages
+// load stay .js, checked by test/browser/tsconfig.json.
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["es2024"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "types": ["node"],
+    "noEmit": true,
+    "declaration": false,
+    "rootDir": "."
+  },
+  "include": ["test/**/*.ts"]
+}

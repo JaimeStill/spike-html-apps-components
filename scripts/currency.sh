@@ -35,7 +35,7 @@ while read -r package pin; do
     # consumer can declare it beside the components: by the release test's own rule.
     range=$(node -p 'require("./package.json").peerDependencies?.[process.argv[1]] ?? ""' "$package")
     if [[ -n $range ]] && ! node --input-type=module -e '
-      import { caretAdmits } from "./test/unit/release.js";
+      import { caretAdmits } from "./test/unit/release.ts";
       process.exit(caretAdmits(...process.argv.slice(1)) ? 0 : 1);
     ' "$range" "$latest"; then
       trailing+=$'\n'"package.json: peer $package $range -> ^${latest#v}"

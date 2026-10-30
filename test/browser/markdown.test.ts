@@ -9,14 +9,16 @@ import { join } from "node:path";
 import { after, before, describe, test } from "node:test";
 
 import { launch } from "@jaimestill/spike-html-apps-tooling/browser.js";
+import type { Browser, Page } from "@jaimestill/spike-html-apps-tooling/browser.js";
 import { serve } from "@jaimestill/spike-html-apps-tooling/server.js";
+import type { Server } from "@jaimestill/spike-html-apps-tooling/server.js";
 
-import { root, served } from "./support/served.js";
+import { root, served } from "./support/served.ts";
 
 describe("markdown", { timeout: 60_000 }, () => {
-  let server;
-  let browser;
-  let page;
+  let server: Server;
+  let browser: Browser;
+  let page: Page;
   before(async () => {
     server = await serve(served);
     browser = await launch();
@@ -41,7 +43,8 @@ describe("markdown", { timeout: 60_000 }, () => {
   });
 
   /** The HTML the source renders to. */
-  const rendered = (source) => page.evaluate(`window.rendered(${JSON.stringify(source)})`);
+  const rendered = (source: string): Promise<string> =>
+    page.evaluate(`window.rendered(${JSON.stringify(source)})`);
 
   const kinds = {
     "an ATX heading at each depth": [
@@ -130,7 +133,7 @@ describe("markdown", { timeout: 60_000 }, () => {
   for (const [kind, [source, expected]] of Object.entries(raw)) {
     test(`renders ${kind} as its literal text`, async () => {
       assert.equal(await rendered(source), expected);
-      const elements = await page.evaluate(`(() => {
+      const elements: number = await page.evaluate(`(() => {
         const container = document.createElement("div");
         container.innerHTML = window.rendered(${JSON.stringify(source)});
         return container.querySelectorAll("div, script, img, b").length;
@@ -230,7 +233,7 @@ describe("markdown", { timeout: 60_000 }, () => {
     const source =
       "# Title\n\nSome *em* and **strong** with `code` and [a link](https://example.com).\n\n" +
       "- one\n  1. two\n> quote\n\n| a | b |\n|:-|-:|\n| 1 | 2 |\n\n```js\nlet x = '<b>';\n```\n";
-    const failures = await page.evaluate(`(() => {
+    const failures: string[] = await page.evaluate(`(() => {
       const source = ${JSON.stringify(source)};
       const failures = [];
       for (let end = 0; end <= source.length; end++) {
@@ -246,7 +249,14 @@ describe("markdown", { timeout: 60_000 }, () => {
   });
 
   test("re-rendering a growing source into the same container updates its DOM in place", async () => {
-    const kept = await page.evaluate(`(async () => {
+    const kept: {
+      heading: boolean;
+      paragraph: boolean;
+      text: string;
+      items: number;
+      list: boolean;
+      last: number;
+    } = await page.evaluate(`(async () => {
       const { render } = await import("lit");
       const { markdown } = await import("/dist/markdown.js");
       const container = document.createElement("div");
@@ -288,7 +298,8 @@ describe("markdown", { timeout: 60_000 }, () => {
     assert.ok(modules.length > 0, "mise run build wrote no dist/");
     const other = await browser.open(`${server.origin}/test/fixtures/components.html`);
     try {
-      const requests = await other.evaluate(`window.verdict.then(async () => {
+      const requests: { before: string[]; after: string[] } =
+        await other.evaluate(`window.verdict.then(async () => {
         const marked = () => performance.getEntriesByType("resource")
           .map((entry) => new URL(entry.name).pathname)
           .filter((path) => path.startsWith("/deps/marked/"));

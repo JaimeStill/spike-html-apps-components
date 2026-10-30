@@ -6,7 +6,7 @@
 
 import { serve } from "@jaimestill/spike-html-apps-tooling/server.js";
 
-import { served } from "../test/browser/support/served.js";
+import { served } from "../test/browser/support/served.ts";
 
 const server = await serve(served);
 for (const page of [

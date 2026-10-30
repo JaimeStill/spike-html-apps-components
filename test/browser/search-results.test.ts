@@ -11,14 +11,34 @@ import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
 
 import { launch } from "@jaimestill/spike-html-apps-tooling/browser.js";
+import type { Browser, Page } from "@jaimestill/spike-html-apps-tooling/browser.js";
 import { serve } from "@jaimestill/spike-html-apps-tooling/server.js";
+import type { Server } from "@jaimestill/spike-html-apps-tooling/server.js";
 
-import { served } from "./support/served.js";
+import { served } from "./support/served.ts";
+
+/** What window.read reads from the results: the state, the status line's role and text, the
+ * list's label and busy, each match's parts, and the events sent and heard. */
+interface Shown {
+  state: string | null;
+  status: [string | null, string];
+  list: [string | null, string | null] | null;
+  matches: {
+    type: string;
+    field: string;
+    name: string | null;
+    snippet: string | null;
+    text: string;
+    elements: string[];
+  }[];
+  sent: string[];
+  heard: { type: string; detail: unknown; bubbles: boolean; composed: boolean }[];
+}
 
 describe("search results", { timeout: 60_000 }, () => {
-  let server;
-  let browser;
-  let page;
+  let server: Server;
+  let browser: Browser;
+  let page: Page;
   before(async () => {
     server = await serve(served);
     browser = await launch();
@@ -86,11 +106,11 @@ describe("search results", { timeout: 60_000 }, () => {
     await server?.stop();
   });
 
-  const mount = (fields = {}) =>
+  const mount = (fields: Record<string, unknown> = {}) =>
     page.evaluate(`window.mount(${JSON.stringify(fields)}).then(() => {})`);
-  const read = () => page.evaluate("window.read()");
+  const read = (): Promise<Shown> => page.evaluate("window.read()");
   // A key pressed and released on the focused element, with the text it types, if any.
-  const press = async (key, keyCode, text) => {
+  const press = async (key: string, keyCode: number, text?: string) => {
     const event = { key, code: key === " " ? "Space" : key, windowsVirtualKeyCode: keyCode };
     await page.cdp("Input.dispatchKeyEvent", {
       type: "keyDown",
@@ -162,7 +182,7 @@ describe("search results", { timeout: 60_000 }, () => {
 
   test("state reflects to its attribute as it changes, through the same status line", async () => {
     await mount({ query: "report" });
-    const reflected = await page.evaluate(`(async () => {
+    const reflected: (string | boolean | null)[][] = await page.evaluate(`(async () => {
       const results = document.querySelector("sl-search-results");
       const status = results.shadowRoot.querySelector(".status");
       const seen = [];
@@ -297,7 +317,7 @@ describe("search results", { timeout: 60_000 }, () => {
     );
     // Held to a column narrower than the URL, the leading ellipsis shares its line with the URL's
     // start.
-    const lines = await page.evaluate(`(async () => {
+    const lines: number = await page.evaluate(`(async () => {
       const results = document.querySelector("sl-search-results");
       results.style.inlineSize = "12rem";
       await results.updateComplete;
@@ -353,7 +373,7 @@ describe("search results", { timeout: 60_000 }, () => {
       document.querySelector("main").prepend(before);
       before.focus();
     })()`);
-    const focused = () =>
+    const focused = (): Promise<number> =>
       page.evaluate(`(() => {
         const root = document.querySelector("sl-search-results").shadowRoot;
         return [...root.querySelectorAll("button")].indexOf(root.activeElement);
@@ -377,7 +397,7 @@ describe("search results", { timeout: 60_000 }, () => {
 
   test("a focused match keeps its node and focus as matches are added before it", async () => {
     await mount({ query: "report", items: matches });
-    const kept = await page.evaluate(`(async () => {
+    const kept: boolean[] = await page.evaluate(`(async () => {
       const results = document.querySelector("sl-search-results");
       const root = results.shadowRoot;
       const button = root.querySelectorAll("button")[2];

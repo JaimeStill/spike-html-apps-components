@@ -6,7 +6,7 @@
 // Adapted from spike-html-apps-components (2fded6d): scripts/screenshots.js, its pages, facets,
 // profiles, and registry read kept as a description of the tooling's command.
 
-import { served } from "../test/browser/support/served.js";
+import { served } from "../test/browser/support/served.ts";
 
 /** The specimen pages, in the order they're captured and numbered, each one full-page state. */
 const pages = [

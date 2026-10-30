@@ -5,6 +5,8 @@
 
 import { join } from "node:path";
 
+import type { ServeOptions } from "@jaimestill/spike-html-apps-tooling/server.js";
+
 /** The repository root, the served tree. */
 export const root = join(import.meta.dirname, "../../..");
 
@@ -17,4 +19,4 @@ export const root = join(import.meta.dirname, "../../..");
 export const deps = ["lit", "marked", "@jaimestill/spike-html-apps-foundation"];
 
 /** The serve options for the repository: the root and its deps. */
-export const served = { root, deps };
+export const served: ServeOptions = { root, deps };

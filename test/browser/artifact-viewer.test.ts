@@ -8,14 +8,31 @@ import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
 
 import { launch } from "@jaimestill/spike-html-apps-tooling/browser.js";
+import type { Browser, Page } from "@jaimestill/spike-html-apps-tooling/browser.js";
 import { serve } from "@jaimestill/spike-html-apps-tooling/server.js";
+import type { Server } from "@jaimestill/spike-html-apps-tooling/server.js";
 
-import { served } from "./support/served.js";
+import { served } from "./support/served.ts";
+
+/** What window.shown reads from a viewer's shadow root. */
+interface View {
+  name: string | null;
+  type: string | null;
+  notes: { kind: string; label: string; detail: string | null }[];
+  region: {
+    element: string;
+    markdown: boolean;
+    text: string;
+    tabindex: string | null;
+    label: string | null;
+  } | null;
+  rendered: string[];
+}
 
 describe("artifact viewer", { timeout: 60_000 }, () => {
-  let server;
-  let browser;
-  let page;
+  let server: Server;
+  let browser: Browser;
+  let page: Page;
   before(async () => {
     server = await serve(served);
     browser = await launch();
@@ -58,7 +75,8 @@ describe("artifact viewer", { timeout: 60_000 }, () => {
     await server?.stop();
   });
 
-  const shown = (fields) => page.evaluate(`window.shown(${JSON.stringify(fields)})`);
+  const shown = (fields: Record<string, unknown>): Promise<View> =>
+    page.evaluate(`window.shown(${JSON.stringify(fields)})`);
 
   const source =
     "# Notes\n\n- one\n- two\n\n| a | b |\n| - | - |\n| 1 | 2 |\n\n[site](https://example.com)";
@@ -71,7 +89,7 @@ describe("artifact viewer", { timeout: 60_000 }, () => {
   ]) {
     test(`${JSON.stringify(contentType)} renders as Markdown`, async () => {
       const view = await shown({ name: "notes.md", contentType, content: source });
-      assert.equal(view.region.markdown, true);
+      assert.equal(view.region?.markdown, true);
       assert.deepEqual(view.rendered, ["h1", "ul", "table", "a"]);
       assert.deepEqual(view.notes, []);
     });
@@ -90,8 +108,8 @@ describe("artifact viewer", { timeout: 60_000 }, () => {
   ]) {
     test(`${JSON.stringify(contentType)} parses and prints as JSON, two spaces an indent`, async () => {
       const view = await shown({ name: "run.json", contentType, content: JSON.stringify(value) });
-      assert.equal(view.region.element, "pre");
-      assert.equal(view.region.text, printed);
+      assert.equal(view.region?.element, "pre");
+      assert.equal(view.region?.text, printed);
       assert.deepEqual(view.notes, []);
     });
   }
@@ -100,8 +118,8 @@ describe("artifact viewer", { timeout: 60_000 }, () => {
     test(`${JSON.stringify(contentType)} shows as preformatted text, as it is`, async () => {
       const content = "<b>bold?</b>\n  indented,  spaced\n# not a heading";
       const view = await shown({ name: "a.txt", contentType, content });
-      assert.equal(view.region.element, "pre");
-      assert.equal(view.region.text, content);
+      assert.equal(view.region?.element, "pre");
+      assert.equal(view.region?.text, content);
       assert.deepEqual(view.rendered, []);
       assert.deepEqual(view.notes, []);
     });
@@ -113,9 +131,9 @@ describe("artifact viewer", { timeout: 60_000 }, () => {
     assert.equal(view.notes.length, 1);
     assert.equal(view.notes[0].kind, "invalid");
     assert.equal(view.notes[0].label, "Invalid JSON, shown as text.");
-    assert.match(view.notes[0].detail, /JSON/);
-    assert.equal(view.region.element, "pre");
-    assert.equal(view.region.text, content);
+    assert.match(view.notes[0].detail ?? "", /JSON/);
+    assert.equal(view.region?.element, "pre");
+    assert.equal(view.region?.text, content);
   });
 
   for (const [contentType, detail] of [
@@ -188,8 +206,8 @@ describe("artifact viewer", { timeout: 60_000 }, () => {
     await page.cdp("Emulation.setFocusEmulationEnabled", { enabled: true });
     const content = Array.from({ length: 200 }, (_, i) => `line ${i + 1}`).join("\n");
     const view = await shown({ name: "run.log", contentType: "text/plain", content });
-    assert.deepEqual([view.region.tabindex, view.region.label], ["0", "run.log content"]);
-    const before = await page.evaluate(`(() => {
+    assert.deepEqual([view.region?.tabindex, view.region?.label], ["0", "run.log content"]);
+    const before: { host: number; rem: number; scrolls: boolean } = await page.evaluate(`(() => {
       const start = document.querySelector("main").insertBefore(
         document.createElement("button"), document.querySelector("sl-artifact-viewer"));
       start.focus();
@@ -204,7 +222,7 @@ describe("artifact viewer", { timeout: 60_000 }, () => {
     })()`);
     assert.ok(before.scrolls, "the region scrolls");
     assert.ok(Math.abs(before.host - 16 * before.rem) <= 0.5, `the viewer is ${before.host} tall`);
-    const press = async (key, code, windowsVirtualKeyCode) => {
+    const press = async (key: string, code: string, windowsVirtualKeyCode: number) => {
       for (const type of ["keyDown", "keyUp"]) {
         await page.cdp("Input.dispatchKeyEvent", { type, key, code, windowsVirtualKeyCode });
       }
@@ -212,7 +230,8 @@ describe("artifact viewer", { timeout: 60_000 }, () => {
     await press("Tab", "Tab", 9);
     await press("PageDown", "PageDown", 34);
     await press("ArrowDown", "ArrowDown", 40);
-    const after = await page.evaluate(`new Promise((resolve) => setTimeout(() => {
+    const after: { focused: boolean; scrollTop: number } =
+      await page.evaluate(`new Promise((resolve) => setTimeout(() => {
       const viewer = document.querySelector("sl-artifact-viewer");
       const region = viewer.shadowRoot.querySelector(".body");
       resolve({
@@ -238,7 +257,8 @@ describe("artifact viewer", { timeout: 60_000 }, () => {
     ];
     for (const fields of cases) {
       await shown({ name: "wide", ...fields });
-      const gaps = await page.evaluate(`(() => {
+      const gaps: { scrolled: boolean; inline: number; block: number } =
+        await page.evaluate(`(() => {
         const viewer = document.querySelector("sl-artifact-viewer");
         viewer.style.inlineSize = "12rem";
         viewer.style.maxBlockSize = "10rem";
@@ -276,7 +296,7 @@ describe("artifact viewer", { timeout: 60_000 }, () => {
   });
 
   test("the viewer sends no event as its properties change", async () => {
-    const sent = await page.evaluate(`(async () => {
+    const sent: string[] = await page.evaluate(`(async () => {
       const viewer = document.querySelector("main").appendChild(
         document.createElement("sl-artifact-viewer"));
       const sent = [];

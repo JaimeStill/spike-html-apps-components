@@ -9,14 +9,44 @@ import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
 
 import { launch } from "@jaimestill/spike-html-apps-tooling/browser.js";
+import type { Browser, Page } from "@jaimestill/spike-html-apps-tooling/browser.js";
 import { serve } from "@jaimestill/spike-html-apps-tooling/server.js";
+import type { Server } from "@jaimestill/spike-html-apps-tooling/server.js";
 
-import { served } from "./support/served.js";
+import { served } from "./support/served.ts";
+
+/** What window.read shows of one event: its type, time, labelled pairs, and data or note. */
+interface Shown {
+  type: string;
+  time: string | null;
+  datetime: string | null;
+  meta: [string, string][];
+  summary: string | null;
+  open: boolean | null;
+  data: string | null;
+  note: string | null;
+}
+
+/** What window.read resolves to: the frame's attributes, the list, and each event, and what the
+ * host sent. */
+interface Read {
+  frame: (string | null)[];
+  list: string | null;
+  empty: string | null;
+  events: Shown[];
+  sent: string[];
+}
+
+/** A frame's scroll position: its scrollTop and the most it scrolls, rounded. */
+interface Where {
+  top: number;
+  end: number;
+}
 
 describe("event log", { timeout: 60_000 }, () => {
-  let server;
-  let browser;
-  let page;
+  let server: Server;
+  let browser: Browser;
+  let page: Page;
   before(async () => {
     server = await serve(served);
     browser = await launch();
@@ -76,13 +106,14 @@ describe("event log", { timeout: 60_000 }, () => {
     await server?.stop();
   });
 
-  const mount = (events) => page.evaluate(`window.mount(${JSON.stringify(events)}).then(() => {})`);
-  const read = () => page.evaluate("window.read()");
+  const mount = (events: unknown[]) =>
+    page.evaluate(`window.mount(${JSON.stringify(events)}).then(() => {})`);
+  const read = (): Promise<Read> => page.evaluate("window.read()");
 
   const run = "0193a5c2-7e4b-7c1d-9f2a-3b4c5d6e7f80";
   const names = ["upload", "metadata", "extraction", "chunks", "embeddings"];
   // The emulator's stage event for the stage at the index, as its stream carries it.
-  const stage = (index) => ({
+  const stage = (index: number) => ({
     id: `${run}.${index + 1}`,
     type: "emulator.run.stage",
     source: "/emulator/lab-a",
@@ -90,7 +121,7 @@ describe("event log", { timeout: 60_000 }, () => {
     time: `2026-10-29T15:42:0${index}Z`,
     data: { stage: names[index], position: index + 1, stage_count: 5, document_id: "doc-1" },
   });
-  const stages = (count) => Array.from({ length: count }, (_, index) => stage(index));
+  const stages = (count: number) => Array.from({ length: count }, (_, index) => stage(index));
 
   test("an empty log says so, in its frame, a polite log of additions", async () => {
     await mount([]);
@@ -128,7 +159,7 @@ describe("event log", { timeout: 60_000 }, () => {
     const given = [stage(3), stage(0), stage(4), stage(1)];
     await mount(given);
     assert.deepEqual(
-      (await read()).events.map(({ meta }) => meta.at(-1)[1]),
+      (await read()).events.map(({ meta }) => meta.at(-1)?.[1]),
       given.map(({ id }) => id),
     );
   });
@@ -225,7 +256,7 @@ describe("event log", { timeout: 60_000 }, () => {
     // and the second's details is still open.
     for (const width of ["20rem", "40rem"]) {
       await mount(stages(2));
-      const measured = [];
+      const measured: { count: number; same: boolean; boxes: number[][]; open: boolean[] }[] = [];
       for (const count of [2, 3, 4, 5]) {
         measured.push(
           await page.evaluate(`(async () => {
@@ -264,7 +295,8 @@ describe("event log", { timeout: 60_000 }, () => {
 
   test("held, the frame follows the newest event only when at its end, and the first events open at the top", async () => {
     await mount(stages(3));
-    const scrolled = await page.evaluate(`(async () => {
+    const scrolled: { first: Where; followed: Where; kept: Where } =
+      await page.evaluate(`(async () => {
       const log = document.querySelector("sl-event-log");
       log.style.blockSize = "10rem";
       const frame = log.shadowRoot.querySelector(".frame");
@@ -300,7 +332,7 @@ describe("event log", { timeout: 60_000 }, () => {
 
   test("the keyboard reaches each event's data toggle by Tab, and Enter and Space open and close it", async () => {
     await mount(stages(2));
-    const key = async (name, code, text) => {
+    const key = async (name: string, code: string, text?: string) => {
       const event = {
         key: name,
         code,
@@ -318,7 +350,7 @@ describe("event log", { timeout: 60_000 }, () => {
       document.querySelector("main").prepend(before);
       before.focus();
     })()`);
-    const state = () =>
+    const state = (): Promise<{ focused: string | null; index: number; open: boolean[] }> =>
       page.evaluate(`(() => {
         const root = document.querySelector("sl-event-log").shadowRoot;
         return {

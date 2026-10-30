@@ -1,8 +1,9 @@
 // A release's shape: a pack of the build checked against the sources, package.json's files and
 // exports, which Node itself resolves, the Apache 2.0 LICENSE its manifest declares, and its
-// dependencies, lit and marked pinned exactly and the foundation a peer. test/unit/release.test.js
+// dependencies, lit and marked pinned exactly and the foundation a peer. test/unit/release.test.ts
 // runs it on a pnpm pack.
-// Adapted from spike-html-packages-components (4c0a5d8): test/unit/release.js, renamed.
+// Adapted from spike-html-packages-components (4c0a5d8): test/unit/release.js, renamed, in
+// TypeScript.
 
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
@@ -10,16 +11,16 @@ import { join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /** Every file below `dir`, relative to it with / separators, sorted. */
-export function listFiles(dir) {
+export function listFiles(dir: string): string[] {
   if (!existsSync(dir)) return [];
-  return readdirSync(dir, { recursive: true })
+  return readdirSync(dir, { recursive: true, encoding: "utf8" })
     .filter((path) => statSync(join(dir, path)).isFile())
     .map((path) => path.split(sep).join("/"))
     .sort();
 }
 
 /** A key's or target's parts around its one *, or undefined when it holds none. */
-function star(pattern) {
+function star(pattern: string): { prefix: string; suffix: string } | undefined {
   const at = pattern.indexOf("*");
   return at < 0 ? undefined : { prefix: pattern.slice(0, at), suffix: pattern.slice(at + 1) };
 }
@@ -33,12 +34,18 @@ const resolveArgs = `console.log(JSON.stringify(process.argv.slice(1).map((speci
 
 /** The paths, relative to root, that Node resolves each subpath of the package at root to under
  * any condition set, by self-reference, as { subpath: Set }; none where Node refuses it. */
-function resolveSubpaths(root, name, subpaths) {
+function resolveSubpaths(
+  root: string,
+  name: string,
+  subpaths: string[],
+): Record<string, Set<string>> {
   const specifiers = subpaths.map((subpath) => name + subpath.slice(1));
-  const resolved = Object.fromEntries(subpaths.map((subpath) => [subpath, new Set()]));
+  const resolved = Object.fromEntries(subpaths.map((subpath) => [subpath, new Set<string>()]));
   for (const conditions of conditionSets) {
     const args = [...conditions, "--input-type=module", "-e", resolveArgs, ...specifiers];
-    const urls = JSON.parse(execFileSync(process.execPath, args, { cwd: root, encoding: "utf8" }));
+    const urls: (string | null)[] = JSON.parse(
+      execFileSync(process.execPath, args, { cwd: root, encoding: "utf8" }),
+    );
     urls.forEach((url, i) => {
       if (url === null) return;
       resolved[subpaths[i]].add(relative(root, fileURLToPath(url)).split(sep).join("/"));
@@ -48,13 +55,30 @@ function resolveSubpaths(root, name, subpaths) {
 }
 
 /** The dist/ paths a source in src/ ships as. */
-export function builtFrom(source) {
+export function builtFrom(source: string): string[] {
   if (source.endsWith(".d.ts") || source.endsWith(".css")) return [`dist/${source}`];
   if (source.endsWith(".ts")) {
     const base = source.slice(0, -".ts".length);
     return [`dist/${base}.js`, `dist/${base}.d.ts`];
   }
   return [];
+}
+
+/** The fields of a pack's package.json the checks read, as JSON gives them: an exports entry is
+ * judged for its shape, so its condition targets are unknown until it is. */
+interface Manifest {
+  name: string;
+  license?: string;
+  files?: string[];
+  exports?: Record<string, string | Record<string, unknown> | null>;
+  dependencies?: Record<string, string>;
+  peerDependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
+}
+
+/** root's package.json. */
+function readManifest(root: string): Manifest {
+  return JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
 }
 
 /** The files every pack carries whatever package.json's files lists. */
@@ -66,9 +90,9 @@ const licenseHeading = /^\s*Apache License\s+Version 2\.0, January 2004\s/;
 
 /** What keeps root, a pack's package/, from carrying the license its package.json declares, one
  * line each: the declaration and the LICENSE beside package.json. */
-export function licenseProblems(root) {
-  const problems = [];
-  const manifest = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+export function licenseProblems(root: string): string[] {
+  const problems: string[] = [];
+  const manifest = readManifest(root);
   if (manifest.license !== license) {
     problems.push(`package.json declares license ${manifest.license}, not ${license}`);
   }
@@ -98,7 +122,7 @@ const foundationTag = /^github:JaimeStill\/spike-html-apps-foundation#(v\d+\.\d+
 /** Whether the caret range, ^x.y.z, admits the version, x.y.z or its tag vx.y.z: the same
  * leftmost nonzero part and no lower, so ^0.1.0 admits 0.1.x only. mise run currency asks it
  * too. */
-export function caretAdmits(range, version) {
+export function caretAdmits(range: string, version: string): boolean {
   const [major, minor, patch] = range.slice(1).split(".").map(Number);
   const [vMajor, vMinor, vPatch] = version.replace(/^v/, "").split(".").map(Number);
   const atLeast =
@@ -112,9 +136,9 @@ export function caretAdmits(range, version) {
 
 /** What keeps root, a pack's package/, from declaring exactly the dependencies a release needs,
  * in the form each takes, one line each. */
-export function dependencyProblems(root) {
-  const problems = [];
-  const manifest = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+export function dependencyProblems(root: string): string[] {
+  const problems: string[] = [];
+  const manifest = readManifest(root);
   const declared = manifest.dependencies ?? {};
   const peers = manifest.peerDependencies ?? {};
   const dev = manifest.devDependencies ?? {};
@@ -160,9 +184,9 @@ export function dependencyProblems(root) {
 
 /** What keeps root, a pack's package/, from being the release its package.json declares for the
  * sources in `src`, one line each. */
-export function releaseProblems(root, src) {
+export function releaseProblems(root: string, src: string): string[] {
   const problems = [...licenseProblems(root), ...dependencyProblems(root)];
-  const manifest = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+  const manifest = readManifest(root);
   const { exports = {}, files = [] } = manifest;
   const packed = listFiles(root);
   const built = packed.filter((path) => path.startsWith("dist/"));
@@ -177,7 +201,7 @@ export function releaseProblems(root, src) {
   }
 
   // The build against the sources: each source's emit or copy is there, and nothing else is.
-  const expected = new Set();
+  const expected = new Set<string>();
   for (const source of listFiles(src)) {
     const outputs = builtFrom(source);
     if (outputs.length === 0) problems.push(`src/${source} isn't a .ts, .d.ts, or .css source`);
@@ -191,7 +215,7 @@ export function releaseProblems(root, src) {
   }
 
   // files ships the build: each built file lies under an entry of files.
-  const shipped = (path) =>
+  const shipped = (path: string) =>
     files.some(
       (entry) =>
         path === entry.replace(/\/$/, "") || path.startsWith(`${entry.replace(/\/$/, "")}/`),
@@ -204,12 +228,16 @@ export function releaseProblems(root, src) {
   // its subpath; every built file reached through an export as Node resolves it; every pattern key
   // reaching a built file; and every target Node resolves an export to built. The subpaths judged
   // are the exact keys and each built file's subpath through a pattern target that matches it.
-  const subpaths = new Set();
-  const origins = [];
+  const subpaths = new Set<string>();
+  const origins: { key: string; subpath: string; path: string }[] = [];
   for (const [key, entry] of Object.entries(exports)) {
     if (entry === null) continue;
-    const targets = typeof entry === "string" ? [entry] : Object.values(entry);
-    if (targets.length === 0 || targets.some((target) => typeof target !== "string")) {
+    const targets: unknown[] = typeof entry === "string" ? [entry] : Object.values(entry);
+    // every's predicate narrows targets to strings past the check.
+    if (
+      targets.length === 0 ||
+      !targets.every((target): target is string => typeof target === "string")
+    ) {
       problems.push(`exports["${key}"] isn't a target or a flat object of condition targets`);
       continue;
     }
@@ -219,7 +247,7 @@ export function releaseProblems(root, src) {
       const parts = star(target);
       for (const path of built) {
         const file = `./${path}`;
-        let subpath;
+        let subpath: string | undefined;
         if (parts === undefined) {
           if (target === file && keyParts === undefined) subpath = key;
         } else if (

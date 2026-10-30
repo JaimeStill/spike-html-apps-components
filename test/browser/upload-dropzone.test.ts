@@ -15,15 +15,66 @@ import { join } from "node:path";
 import { after, before, beforeEach, describe, test } from "node:test";
 
 import { launch } from "@jaimestill/spike-html-apps-tooling/browser.js";
+import type { Browser, Page } from "@jaimestill/spike-html-apps-tooling/browser.js";
 import { serve } from "@jaimestill/spike-html-apps-tooling/server.js";
+import type { Server } from "@jaimestill/spike-html-apps-tooling/server.js";
 
-import { served } from "./support/served.js";
+import { served } from "./support/served.ts";
+
+/** An event the document heard: a files-select's detail as whether its files are an array and
+ * each file's name and size, an upload-cancel's as it was sent, its id. */
+interface Heard {
+  type: string;
+  detail: { array?: boolean; files?: [string, number][]; id?: string };
+  bubbles: boolean;
+  composed: boolean;
+}
+
+/** A drag event as the document heard it, after the zone: its default prevented, and its drop
+ * effect. */
+interface Drag {
+  type: string;
+  prevented: boolean;
+  effect: string;
+}
+
+/** What window.read resolves to: the zone's mark, its controls, the uploads listed, and the
+ * events sent and heard. */
+interface Read {
+  over: boolean;
+  disabled: boolean;
+  pickDisabled: boolean;
+  inputDisabled: boolean;
+  multiple: boolean;
+  accept: string | null;
+  focused: string | null;
+  uploads: {
+    id: string;
+    name: string;
+    title: string;
+    state: string | null;
+    bytes: string;
+    message: string | null;
+    progress: [number, number, string | null] | null;
+    cancel: string | null;
+  }[];
+  sent: string[];
+  heard: Heard[];
+}
+
+/** A box's edges, as getBoundingClientRect gives them. */
+interface Edges {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+}
 
 describe("upload dropzone", { timeout: 60_000 }, () => {
-  let server;
-  let browser;
-  let page;
-  let files;
+  let server: Server;
+  let browser: Browser;
+  let page: Page;
+  let files: string;
   before(async () => {
     // Two files on disk for the picker, as a user's file system holds them.
     files = mkdtempSync(join(tmpdir(), "upload-dropzone."));
@@ -129,18 +180,25 @@ describe("upload dropzone", { timeout: 60_000 }, () => {
     rmSync(files, { recursive: true, force: true });
   });
 
-  const mount = (fields = {}) =>
+  const mount = (fields: Record<string, unknown> = {}) =>
     page.evaluate(`window.mount(${JSON.stringify(fields)}).then(() => {})`);
-  const read = () => page.evaluate("window.read()");
-  const drag = (type, names, target) =>
+  const read = (): Promise<Read> => page.evaluate("window.read()");
+  const drag = (
+    type: string,
+    names: string[] | null,
+    target?: string,
+  ): Promise<{ prevented: boolean; effect: string }> =>
     page.evaluate(
       `window.drag(${JSON.stringify(type)}, ${JSON.stringify(names)}, ${JSON.stringify(target)})`,
     );
   // A user's drag of the files on disk named onto the zone's center, through the browser's own
   // drag path: entered, moved over, then dropped, or left when drop is false. Resolves to what the
   // document heard of the dragover and the drop.
-  const dragFiles = async (names, { drop = true } = {}) => {
-    const { x, y } = await page.evaluate(`(() => {
+  const dragFiles = async (
+    names: string[],
+    { drop = true }: { drop?: boolean } = {},
+  ): Promise<Drag[]> => {
+    const { x, y }: { x: number; y: number } = await page.evaluate(`(() => {
       const rect = window.part(".zone").getBoundingClientRect();
       return { x: rect.left + rect.width / 2, y: rect.top + 8 };
     })()`);
@@ -155,7 +213,7 @@ describe("upload dropzone", { timeout: 60_000 }, () => {
     return page.evaluate("window.drags");
   };
   // A key pressed and released on the focused element.
-  const press = async (key, keyCode, text) => {
+  const press = async (key: string, keyCode: number, text?: string) => {
     const event = { key, code: key, windowsVirtualKeyCode: keyCode };
     await page.cdp("Input.dispatchKeyEvent", {
       type: "keyDown",
@@ -167,10 +225,16 @@ describe("upload dropzone", { timeout: 60_000 }, () => {
   // Focuses the picker button, then presses Enter, as the keyboard opens the picker; resolves to
   // the picker's event, or null when none opens within the wait.
   const openPicker = async () => {
-    const opened = new Promise((resolve) => page.on("Page.fileChooserOpened", resolve));
+    // Page.fileChooserOpened's parameters, the two the cases read.
+    const opened = new Promise<{ mode: string; backendNodeId: number }>((resolve) =>
+      page.on("Page.fileChooserOpened", resolve),
+    );
     await page.evaluate("window.part('.pick').focus()");
     await press("Enter", 13, "\r");
-    return Promise.race([opened, new Promise((resolve) => setTimeout(() => resolve(null), 500))]);
+    return Promise.race([
+      opened,
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 500)),
+    ]);
   };
 
   const uploads = [
@@ -254,7 +318,7 @@ describe("upload dropzone", { timeout: 60_000 }, () => {
   test("a user's drag of files marks the zone until it moves off it", async () => {
     // Entered and moved over, the drag still on the zone; then moved off it, below the dropzone,
     // and ended there without a drop.
-    const { x, y } = await page.evaluate(`(() => {
+    const { x, y }: { x: number; y: number } = await page.evaluate(`(() => {
       const rect = window.part(".zone").getBoundingClientRect();
       return { x: rect.left + rect.width / 2, y: rect.top + 8 };
     })()`);
@@ -262,7 +326,7 @@ describe("upload dropzone", { timeout: 60_000 }, () => {
     await page.cdp("Input.dispatchDragEvent", { type: "dragEnter", x, y, data });
     await page.cdp("Input.dispatchDragEvent", { type: "dragOver", x, y, data });
     assert.equal((await read()).over, true, "over the zone");
-    const below = await page.evaluate(
+    const below: number = await page.evaluate(
       `document.querySelector("sl-upload-dropzone").getBoundingClientRect().bottom + 40`,
     );
     await page.cdp("Input.dispatchDragEvent", { type: "dragOver", x, y: below, data });
@@ -391,10 +455,10 @@ describe("upload dropzone", { timeout: 60_000 }, () => {
   });
 
   test("progress follows sent, held between 0 and the size", async () => {
-    const at = async (sent) => {
+    const at = async (sent: number) => {
       await mount({ uploads: [{ ...uploads[0], size: 18_400, sent }] });
       const [shown] = (await read()).uploads;
-      return [shown.progress[0], shown.progress[1], shown.bytes];
+      return [shown.progress?.[0], shown.progress?.[1], shown.bytes];
     };
     assert.deepEqual(await at(0), [0, 18_400, "0 byte of 18.4 kB"]);
     assert.deepEqual(await at(6_300), [6_300, 18_400, "6.3 kB of 18.4 kB"]);
@@ -405,7 +469,7 @@ describe("upload dropzone", { timeout: 60_000 }, () => {
 
   test("an uploading item's cancel control sends upload-cancel with its id, bubbling and composed; no other item has one", async () => {
     await mount({ uploads });
-    const buttons = await page.evaluate(
+    const buttons: string[] = await page.evaluate(
       `[...document.querySelector("sl-upload-dropzone").shadowRoot.querySelectorAll(".upload button")]
         .map((button) => button.closest(".upload").dataset.id)`,
     );
@@ -433,7 +497,10 @@ describe("upload dropzone", { timeout: 60_000 }, () => {
   test("neither progress nor a change of state moves an upload's rows", async () => {
     // One upload at 20rem, its name long enough to be cut short, measured as it advances and then
     // as it finishes each way: the item's height, the name's box, and the bar's.
-    const measure = async (upload) => {
+    // A missing bar's box is undefined, which JSON leaves out.
+    const measure = async (
+      upload: Record<string, unknown>,
+    ): Promise<{ height: number; name: number[]; bar?: number[]; cut: boolean }> => {
       await mount({ uploads: [upload] });
       return page.evaluate(`(() => {
         const dropzone = document.querySelector("sl-upload-dropzone");
@@ -457,7 +524,7 @@ describe("upload dropzone", { timeout: 60_000 }, () => {
       size: 27_300_000,
       state: "uploading",
     };
-    const steps = [];
+    const steps: Awaited<ReturnType<typeof measure>>[] = [];
     for (const sent of [0, 950, 9_100, 910_000, 9_100_000, 27_300_000]) {
       steps.push(await measure({ ...long, sent }));
     }
@@ -479,7 +546,16 @@ describe("upload dropzone", { timeout: 60_000 }, () => {
     // to its bytes, which end the item.
     await mount({ uploads });
     for (const width of ["20rem", "40rem"]) {
-      const items = await page.evaluate(`(() => {
+      const items: {
+        id: string;
+        item: Edges;
+        name: Edges;
+        detail: Edges;
+        bytes: Edges;
+        bar: Edges | null;
+        gap: number;
+        end: Edges;
+      }[] = await page.evaluate(`(() => {
         const dropzone = document.querySelector("sl-upload-dropzone");
         dropzone.style.inlineSize = ${JSON.stringify(width)};
         const edges = (element) => {
@@ -509,7 +585,7 @@ describe("upload dropzone", { timeout: 60_000 }, () => {
       assert.equal(items.length, 4, `${width}: the items`);
       for (const { id, item, name, detail, bytes, bar, gap, end } of items) {
         const where = `${id} at ${width}`;
-        const near = (a, b, what) =>
+        const near = (a: number, b: number, what: string) =>
           assert.ok(Math.abs(a - b) <= 1, `${where}: ${what}, ${a} and ${b}`);
         near(detail.left, name.left, "the detail line's start and the name's");
         assert.ok(detail.top >= name.bottom - 0.5, `${where}: the detail line below the name`);

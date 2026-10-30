@@ -9,14 +9,40 @@ import assert from "node:assert/strict";
 import { after, before, beforeEach, describe, test } from "node:test";
 
 import { launch } from "@jaimestill/spike-html-apps-tooling/browser.js";
+import type { Browser, Page } from "@jaimestill/spike-html-apps-tooling/browser.js";
 import { serve } from "@jaimestill/spike-html-apps-tooling/server.js";
+import type { Server } from "@jaimestill/spike-html-apps-tooling/server.js";
 
-import { served } from "./support/served.js";
+import { served } from "./support/served.ts";
+
+/** What window.read reads from the composer: its value and field, its action, its attributes,
+ * its focus, and the events it sent and the document heard. */
+interface Shown {
+  value: string;
+  field: string;
+  fieldDisabled: boolean;
+  action: "send" | "stop";
+  name: string[];
+  actionDisabled: boolean;
+  busy: boolean;
+  disabled: boolean;
+  focused: string | null;
+  sent: string[];
+  heard: { type: string; detail: unknown; bubbles: boolean; composed: boolean }[];
+}
+
+/** An element's box, as the footprint case measures it. */
+interface Box {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
 
 describe("composer", { timeout: 60_000 }, () => {
-  let server;
-  let browser;
-  let page;
+  let server: Server;
+  let browser: Browser;
+  let page: Page;
   before(async () => {
     server = await serve(served);
     browser = await launch();
@@ -82,15 +108,23 @@ describe("composer", { timeout: 60_000 }, () => {
     await server?.stop();
   });
 
-  const mount = (fields = {}) =>
+  const mount = (fields: Record<string, unknown> = {}) =>
     page.evaluate(`window.mount(${JSON.stringify(fields)}).then(() => {})`);
-  const read = () => page.evaluate("window.read()");
-  const clickAction = () => page.evaluate("window.clickAction()");
+  const read = (): Promise<Shown> => page.evaluate("window.read()");
+  const clickAction = (): Promise<Shown> => page.evaluate("window.clickAction()");
   const focusField = () => page.evaluate("window.focusField()");
   // Text typed into the focused element, as an input method commits it.
-  const type = (text) => page.cdp("Input.insertText", { text });
+  const type = (text: string) => page.cdp("Input.insertText", { text });
   // A key pressed and released on the focused element, with the text it types, if any.
-  const press = async (key, { code = key, keyCode, text, modifiers = 0 } = {}) => {
+  const press = async (
+    key: string,
+    {
+      code = key,
+      keyCode,
+      text,
+      modifiers = 0,
+    }: { code?: string; keyCode?: number; text?: string; modifiers?: number } = {},
+  ) => {
     await page.cdp("Input.dispatchKeyEvent", {
       type: "keyDown",
       key,
@@ -141,7 +175,7 @@ describe("composer", { timeout: 60_000 }, () => {
 
   test("a listener that restores the text on send keeps it", async () => {
     await mount({ value: "draft" });
-    const after = await page.evaluate(`(() => {
+    const after: Shown = await page.evaluate(`(() => {
       const composer = document.querySelector("sl-composer");
       composer.addEventListener("send", (event) => (composer.value = event.detail.text), { once: true });
       return window.clickAction();
@@ -185,7 +219,7 @@ describe("composer", { timeout: 60_000 }, () => {
       ["drafted while busy\n", false, "stop", []],
     );
     // Once the app clears busy, send returns, enabled for the draft.
-    const after = await page.evaluate(`(() => {
+    const after: Shown = await page.evaluate(`(() => {
       document.querySelector("sl-composer").busy = false;
       return window.read();
     })()`);
@@ -207,13 +241,13 @@ describe("composer", { timeout: 60_000 }, () => {
     assert.equal(shown.actionDisabled, true, "send is disabled, though the field holds text");
     const sent = await clickAction();
     assert.deepEqual(sent.heard, []);
-    const busy = await page.evaluate(`(() => {
+    const busy: Shown = await page.evaluate(`(() => {
       document.querySelector("sl-composer").busy = true;
       return window.clickAction();
     })()`);
     assert.deepEqual([busy.action, busy.actionDisabled, busy.heard], ["stop", true, []]);
     // The attribute sets it too, and its removal enables the field again.
-    const enabled = await page.evaluate(`(() => {
+    const enabled: Shown = await page.evaluate(`(() => {
       document.querySelector("sl-composer").removeAttribute("disabled");
       return window.read();
     })()`);
@@ -237,7 +271,13 @@ describe("composer", { timeout: 60_000 }, () => {
   });
 
   test("the field starts at one line, the control's height, grows with its text to eight lines, then scrolls", async () => {
-    const sizes = await page.evaluate(`(async () => {
+    const sizes: {
+      lines: number;
+      height: number;
+      scrolls: boolean;
+      bottoms: number;
+      button: number;
+    }[] = await page.evaluate(`(async () => {
       const composer = await window.mount({});
       composer.style.inlineSize = "20rem";
       const field = composer.shadowRoot.querySelector("textarea");
@@ -273,7 +313,7 @@ describe("composer", { timeout: 60_000 }, () => {
   });
 
   test("value sets the field and typing sets value; the attributes set value, placeholder, and label", async () => {
-    const shown = await page.evaluate(`(async () => {
+    const shown: { first: string } = await page.evaluate(`(async () => {
       const composer = await window.mount({ value: "restored draft" });
       const root = composer.shadowRoot;
       const field = root.querySelector("textarea");
@@ -288,7 +328,12 @@ describe("composer", { timeout: 60_000 }, () => {
       [typed.value, typed.field],
       ["restored draft plus more", "restored draft plus more"],
     );
-    const replaced = await page.evaluate(`(async () => {
+    const replaced: {
+      set: string;
+      markup: string[];
+      label: { text: string; area: number };
+      defaultLabel: { text: string; area: number };
+    } = await page.evaluate(`(async () => {
       const composer = document.querySelector("sl-composer");
       composer.value = "set again";
       await composer.updateComplete;
@@ -320,7 +365,11 @@ describe("composer", { timeout: 60_000 }, () => {
   });
 
   test("send and stop share one footprint: the swap moves nothing, in a font where their labels differ", async () => {
-    const result = await page.evaluate(`(async () => {
+    const result: {
+      send: Record<string, Box>;
+      stop: Record<string, Box>;
+      labels: number[];
+    } = await page.evaluate(`(async () => {
       const composer = await window.mount({ value: "a draft" });
       // A serif interface font, so the two labels differ in width.
       composer.style.setProperty("--font-ui", "serif");
@@ -352,7 +401,7 @@ describe("composer", { timeout: 60_000 }, () => {
   });
 
   test("the composer sends no event as its properties change", async () => {
-    const sent = await page.evaluate(`(async () => {
+    const sent: string[] = await page.evaluate(`(async () => {
       const composer = await window.mount({});
       for (const fields of [
         { value: "draft" },
