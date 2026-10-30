@@ -3,7 +3,7 @@
 # Actions pin, and github: devDependency's tag behind its latest, and each peer range that doesn't
 # admit its package's latest release, and exits 1 if any; prints nothing when all are current.
 # Reads the network.
-# From spike-html-packages-components (4c0a5d8): scripts/currency.sh.
+# Adapted from spike-html-packages-components (4c0a5d8): scripts/currency.sh, naming the tooling.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -23,8 +23,8 @@ pins=$(node -p '
 ')
 typescript_eslint=$(node -p 'require("./package.json").devDependencies["typescript-eslint"]')
 while read -r package pin; do
-  # A github: devDependency (the foundation) is pinned to its repository's release tag, which the
-  # registry doesn't hold: its tag against that repository's latest release.
+  # A github: devDependency (the foundation, the tooling) is pinned to its repository's release
+  # tag, which the registry doesn't hold: its tag against that repository's latest release.
   if [[ $pin == github:* ]]; then
     spec=${pin#github:}
     latest=$(gh api "repos/${spec%%#*}/releases/latest" --jq .tag_name)
@@ -35,7 +35,7 @@ while read -r package pin; do
     # consumer can declare it beside the components: by the release test's own rule.
     range=$(node -p 'require("./package.json").peerDependencies?.[process.argv[1]] ?? ""' "$package")
     if [[ -n $range ]] && ! node --input-type=module -e '
-      import { caretAdmits } from "./test/unit/release.js";
+      import { caretAdmits } from "./test/unit/release.ts";
       process.exit(caretAdmits(...process.argv.slice(1)) ? 0 : 1);
     ' "$range" "$latest"; then
       trailing+=$'\n'"package.json: peer $package $range -> ^${latest#v}"

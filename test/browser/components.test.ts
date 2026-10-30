@@ -7,19 +7,62 @@
 // profile, the entry's, the viewer's, the thread's, the composer's, the dropzone's, the timeline's,
 // the log's, the results', and the list's in parents that size them to their content too.
 // Adapted from spike-html-packages-components (4c0a5d8): test/browser/components.test.js, renamed,
-// with the formatting, profile, and specimen geometry cases added.
+// with the formatting, profile, and specimen geometry cases added, in TypeScript.
 
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
 
-import { launch } from "./support/browser-pipe.js";
-import { serve } from "./support/server.js";
+import { launch } from "@jaimestill/spike-html-apps-tooling/browser.js";
+import type { Browser, Page } from "@jaimestill/spike-html-apps-tooling/browser.js";
+import { serve } from "@jaimestill/spike-html-apps-tooling/server.js";
+import type { Server } from "@jaimestill/spike-html-apps-tooling/server.js";
+
+import { served } from "./support/served.ts";
+
+/** A profile combination: the facets it sets, the rest at their defaults, and its scheme. */
+interface Profile {
+  color?: string;
+  space?: string;
+  type?: string;
+  scheme: string;
+}
+
+/** A run of the components page's cases: its name, its page's query, and the root's dataset. */
+interface Run {
+  name: string;
+  query: string;
+  dataset: Record<string, string>;
+}
+
+/** A specimen measure's result in one profile, which it names by its facets as JSON. */
+type Measured<T> = T & { profile: string };
+
+/** A states measure: how far the states overflow the column, and each component they show. */
+interface States<T> {
+  overflow: number;
+  shown: T[];
+}
+
+/** A fits measure: each component in the fit section. */
+interface Fits<T> {
+  fits: T[];
+}
+
+/** A component in the fit section: its parent's class, its width, and the column's. */
+interface Fit {
+  parent: string;
+  width: number;
+  column: number;
+}
+
+/** A line's text and the number of lines it renders on. */
+type Lines = [string, number];
 
 describe("components", { timeout: 60_000 }, () => {
-  let server;
-  let browser;
+  let server: Server;
+  let browser: Browser;
   before(async () => {
-    server = await serve();
+    server = await serve(served);
     browser = await launch();
   });
   after(async () => {
@@ -30,7 +73,7 @@ describe("components", { timeout: 60_000 }, () => {
   // The profiles the foundation's full entry carries: each color at the other facets' defaults,
   // then compact and sans each at the rest's, and each of those light and dark.
   const schemes = ["light", "dark"];
-  const profiles = [
+  const profiles: Profile[] = [
     ...["flexoki", "primer", "catppuccin", "everforest"].map((color) => ({ color })),
     { space: "compact" },
     { type: "sans" },
@@ -39,7 +82,7 @@ describe("components", { timeout: 60_000 }, () => {
   // Each case on the components page runs once on the lean entry, page.css, with no profile set,
   // and once in each profile combination on the full entry, page-full.css with register-full.js.
   const defaults = { color: "flexoki", space: "regular", type: "mono" };
-  const runs = [
+  const runs: Run[] = [
     { name: "on the lean page.css", query: "", dataset: {} },
     ...profiles.map((profile) => {
       const { color, space, type, scheme } = { ...defaults, ...profile };
@@ -54,15 +97,18 @@ describe("components", { timeout: 60_000 }, () => {
    * given, resolving to the page once its run settles, its entry's sheet linked and its profile
    * set on the root.
    */
-  async function open(run, module) {
+  async function open(run: Run, module?: string): Promise<Page> {
     const query = new URLSearchParams(run.query);
     if (module !== undefined) query.set("module", module);
     const page = await browser.open(`${server.origin}/test/fixtures/components.html?${query}`);
     try {
-      const { sheets, dataset } = await page.evaluate(`window.verdict.then(() => ({
+      const { sheets, dataset }: { sheets: (string | null)[]; dataset: Record<string, string> } =
+        await page.evaluate(
+          `window.verdict.then(() => ({
         sheets: [...document.styleSheets].map((sheet) => sheet.href?.split("/").at(-1)),
         dataset: { ...document.documentElement.dataset },
-      }))`);
+      }))`,
+        );
       const entry = run.query === "" ? "page.css" : "page-full.css";
       assert.deepEqual({ sheets, dataset }, { sheets: [entry], dataset: run.dataset }, run.name);
     } catch (error) {
@@ -73,7 +119,7 @@ describe("components", { timeout: 60_000 }, () => {
   }
 
   /** Runs one case module on the components page, resolving to its verdict and report. */
-  async function verdictOf(run, module) {
+  async function verdictOf(run: Run, module: string): Promise<{ verdict: string; report: string }> {
     const page = await open(run, module);
     try {
       return await page.evaluate(`window.verdict.then(() => ({
@@ -99,7 +145,8 @@ describe("components", { timeout: 60_000 }, () => {
     test(`each component adopts the foundation's reset and elements sheets, then its own, ${run.name}`, async () => {
       const page = await open(run);
       try {
-        const { adopted, label } = await page.evaluate(`(async () => {
+        const { adopted, label }: { adopted: Record<string, string[]>; label: string } =
+          await page.evaluate(`(async () => {
         // A CSS module script is one sheet per URL: the foundation's by the page's import map, the
         // URL its bare specifier in dist/ resolves to, and each component's own beside its module.
         const sheet = async (specifier) =>
@@ -156,10 +203,10 @@ describe("components", { timeout: 60_000 }, () => {
     });
 
     test(`the entry shows a file's size and modified time in the page's locale and time zone, ${run.name}`, async () => {
-      // The browser runs in en-US at UTC, as support/browser-pipe.js launches it.
+      // The browser runs in en-US at UTC, as the tooling's launch() starts it.
       const page = await open(run);
       try {
-        const shown = await page.evaluate(`(async () => {
+        const shown: { size: string; time: string } = await page.evaluate(`(async () => {
         await import("/dist/entry.js");
         const entry = document.createElement("sl-entry");
         entry.item = {
@@ -185,10 +232,29 @@ describe("components", { timeout: 60_000 }, () => {
     });
   }
 
+  /** A component as the profiles case renders it in one profile: the profile's every facet, the
+   * component's tag and box, and its look, the color, font, and padding it shows. */
+  interface Rendered {
+    color: string;
+    space: string;
+    type: string;
+    scheme: string;
+    profile: string;
+    tag: string;
+    width: number;
+    height: number;
+    look: { color: string; font: string; padding: number };
+  }
+
   test(`each component renders under each of the ${profiles.length} profile combinations`, async () => {
     const page = await browser.open(`${server.origin}/test/fixtures/profiles.html`);
     try {
-      const { registered, rendered, errors } = await page.evaluate(`(async () => {
+      const {
+        registered,
+        rendered,
+        errors,
+      }: { registered: Record<string, string[]>; rendered: Rendered[]; errors: unknown[] } =
+        await page.evaluate(`(async () => {
         const registry = await import("@jaimestill/spike-html-apps-foundation/registry.js");
         const { directories, files } = await import("/demo/documents.js");
         await Promise.all(["document-list", "search-results", "event-log", "stage-timeline", "upload-dropzone", "composer", "chat-thread", "artifact-viewer", "pagination", "entry", "status-badge"].map(
@@ -328,7 +394,7 @@ describe("components", { timeout: 60_000 }, () => {
       assert.deepEqual(errors, []);
       // Each facet reaches every shadow root: the four colors light and dark are eight looks, sans
       // sets another font than mono, and compact pads tighter than regular.
-      const looks = (tag, where) =>
+      const looks = (tag: string, where: (shown: Rendered) => boolean) =>
         rendered.filter((shown) => shown.tag === tag && where(shown)).map((shown) => shown.look);
       for (const tag of [
         "sl-document-list",
@@ -382,7 +448,11 @@ describe("components", { timeout: 60_000 }, () => {
    * case's page, and the measure runs once the profile's fonts are ready and a frame has passed.
    * The profiles are the full entry's unless others are given.
    */
-  async function measureSpecimen(specimen, measure, over = profiles) {
+  async function measureSpecimen<T>(
+    specimen: string,
+    measure: string,
+    over: Profile[] = profiles,
+  ): Promise<Measured<T>[]> {
     const page = await browser.open(`${server.origin}/demo/${specimen}.html`);
     try {
       return await page.evaluate(`(async () => {
@@ -427,7 +497,15 @@ describe("components", { timeout: 60_000 }, () => {
     // The name is set larger than the status and the kind, and every entry, a directory's or a
     // file's, at full width and at 20rem, puts its name and its meta line, which the kind opens,
     // at one inline start, the kind under the name: no column of its own beside it.
-    const results = await measureSpecimen(
+    const results = await measureSpecimen<{
+      shown: {
+        name: string;
+        sizes: { name: number; status: number; kind: number };
+        first: string;
+        starts: number[];
+        under: boolean;
+      }[];
+    }>(
       "entry",
       `() => ({ shown: (${ENTRIES})("main").map((entry) => {
         const root = entry.shadowRoot;
@@ -501,7 +579,9 @@ describe("components", { timeout: 60_000 }, () => {
       }];
     }) })`;
     for (const specimen of ["entry", "pagination"]) {
-      for (const { profile, wrapped } of await measureSpecimen(specimen, measure)) {
+      for (const { profile, wrapped } of await measureSpecimen<{
+        wrapped: { name: string; rowGap: number; steps: number[] }[];
+      }>(specimen, measure)) {
         assert.ok(wrapped.length > 0, `${specimen} under ${profile}: a meta row wraps at 20rem`);
         for (const { name, rowGap, steps } of wrapped) {
           for (const step of steps) {
@@ -520,7 +600,10 @@ describe("components", { timeout: 60_000 }, () => {
       .filter((entry) => entry.item.name === "brand-guide.pdf")
       .map((entry) => (${LINES})(entry.shadowRoot.querySelector(".name"))) })`;
     for (const specimen of ["entry", "pagination"]) {
-      for (const { profile, lines } of await measureSpecimen(specimen, measure)) {
+      for (const { profile, lines } of await measureSpecimen<{ lines: number[] }>(
+        specimen,
+        measure,
+      )) {
         assert.ok(lines.length > 0, `${specimen} under ${profile}: brand-guide.pdf at 20rem`);
         for (const count of lines) {
           assert.equal(count, 1, `${specimen} under ${profile}: brand-guide.pdf on ${count} lines`);
@@ -545,7 +628,9 @@ describe("components", { timeout: 60_000 }, () => {
       };
     }) })`;
     for (const specimen of ["entry", "pagination"]) {
-      for (const { profile, shown } of await measureSpecimen(specimen, measure)) {
+      for (const { profile, shown } of await measureSpecimen<{
+        shown: { name: string; parts: string[]; lines: Lines[] }[];
+      }>(specimen, measure)) {
         assert.ok(shown.length > 0, `${specimen} under ${profile}: an entry at 20rem`);
         for (const { name, parts, lines } of shown) {
           const where = `${specimen} under ${profile}, ${name}`;
@@ -607,7 +692,18 @@ describe("components", { timeout: 60_000 }, () => {
       section.style.maxInlineSize = "";
       return { widths };
     }`;
-    for (const { profile, widths } of await measureSpecimen("entry", measure, over)) {
+    for (const { profile, widths } of await measureSpecimen<{
+      widths: {
+        width: string;
+        shown: {
+          name: string;
+          overflow: number;
+          outside: [string, string, number][];
+          whole: Lines[];
+          words: Lines[];
+        }[];
+      }[];
+    }>("entry", measure, over)) {
       for (const { width, shown } of widths) {
         assert.ok(shown.length > 0, `${profile} at ${width}: an entry`);
         for (const { name, overflow, outside, whole, words } of shown) {
@@ -624,7 +720,9 @@ describe("components", { timeout: 60_000 }, () => {
   });
 
   test("at 20rem, the pagination's label and page count keep to one line, and its steps to one control's height, in every profile", async () => {
-    const results = await measureSpecimen(
+    const results = await measureSpecimen<{
+      shown: { label: number; count: number | null; steps: number[]; control: number }[];
+    }>(
       "pagination",
       `() => ({ shown: [...document.querySelectorAll(".narrow sl-pagination")].map((pagination) => {
         const root = pagination.shadowRoot;
@@ -678,7 +776,14 @@ describe("components", { timeout: 60_000 }, () => {
       };
     }`;
     for (const specimen of ["entry", "pagination"]) {
-      for (const { profile, overflow, spills } of await measureSpecimen(specimen, measure)) {
+      for (const { profile, overflow, spills } of await measureSpecimen<{
+        overflow: number;
+        spills: {
+          name: string;
+          by: number;
+          status: { shown: boolean; inside: boolean; clear: boolean };
+        }[];
+      }>(specimen, measure)) {
         assert.ok(
           overflow <= 0,
           `${specimen} under ${profile}: the states overflow the column by ${overflow}`,
@@ -704,7 +809,18 @@ describe("components", { timeout: 60_000 }, () => {
     // item, and in a grid's auto track. Each entry is at least as wide as its first line laid out
     // whole, the name on one line and the status, with the head's column gap between, and every
     // part keeps inside its button.
-    const results = await measureSpecimen(
+    const results = await measureSpecimen<
+      Fits<{
+        parent: string;
+        name: string;
+        width: number;
+        natural: number;
+        lines: number;
+        status: boolean;
+        overflow: number;
+        outside: string[];
+      }>
+    >(
       "entry",
       `() => ({ fits: (${ENTRIES})("#fit").map((entry) => {
         const root = entry.shadowRoot;
@@ -760,7 +876,19 @@ describe("components", { timeout: 60_000 }, () => {
     // the button and every part keep their boxes across the change.
     const page = await browser.open(`${server.origin}/demo/entry.html`);
     try {
-      const { before, selected, after } = await page.evaluate(`(async () => {
+      // The entry's frame as it shows, and the boxes of its button and parts.
+      interface Look {
+        attribute: boolean;
+        property: boolean;
+        border: boolean;
+        shadow: boolean;
+      }
+      interface Shown {
+        look: Look;
+        boxes: number[][];
+      }
+      const { before, selected, after }: { before: Shown; selected: Shown; after: Look } =
+        await page.evaluate(`(async () => {
         await customElements.whenDefined("sl-entry");
         const entry = (${ENTRIES})("#states").find((entry) => !entry.selected && "size" in entry.item);
         await entry.updateComplete;
@@ -841,7 +969,16 @@ describe("components", { timeout: 60_000 }, () => {
           width: style.borderTopWidth,
         };
       })()`;
-      const focused = await page.evaluate(look);
+      /** The focus section's entry as it shows. */
+      interface Focus {
+        selected: boolean;
+        focused: boolean;
+        ring: boolean;
+        border: boolean;
+        shadow: boolean;
+        width: string;
+      }
+      const focused: Focus = await page.evaluate(look);
       assert.deepEqual(
         { ...focused, width: undefined },
         {
@@ -857,7 +994,7 @@ describe("components", { timeout: 60_000 }, () => {
       await page.evaluate(
         `(${ENTRIES})("#states").find((entry) => entry.item).shadowRoot.querySelector(".entry").focus()`,
       );
-      const left = await page.evaluate(look);
+      const left: Focus = await page.evaluate(look);
       assert.deepEqual(
         left,
         {
@@ -912,7 +1049,19 @@ describe("components", { timeout: 60_000 }, () => {
       });
       return { overflow: list.scrollWidth - list.clientWidth, shown };
     }`;
-    for (const { profile, overflow, shown } of await measureSpecimen("artifact-viewer", measure)) {
+    for (const { profile, overflow, shown } of await measureSpecimen<
+      States<{
+        name: string;
+        narrow: boolean;
+        head: boolean;
+        shown: boolean;
+        held: boolean;
+        height: number;
+        outside: string[];
+        sideways: boolean;
+        scrolls: boolean;
+      }>
+    >("artifact-viewer", measure)) {
       assert.ok(overflow <= 0, `${profile}: the states overflow the column by ${overflow}`);
       assert.equal(
         shown.length,
@@ -944,7 +1093,7 @@ describe("components", { timeout: 60_000 }, () => {
   test("in a parent that sizes it to its content, the artifact viewer takes its content's width, in every profile", async () => {
     // The fit section's viewers: each is as wide as its widest line, so its region needs no
     // sideways scroll, and no wider than the column.
-    const results = await measureSpecimen(
+    const results = await measureSpecimen<Fits<Fit & { sideways: number }>>(
       "artifact-viewer",
       `() => {
         const column = document.querySelector("#fit .fits").getBoundingClientRect().width;
@@ -1013,7 +1162,18 @@ describe("components", { timeout: 60_000 }, () => {
       });
       return { overflow: list.scrollWidth - list.clientWidth, shown };
     }`;
-    for (const { profile, overflow, shown } of await measureSpecimen("chat-thread", measure)) {
+    for (const { profile, overflow, shown } of await measureSpecimen<
+      States<{
+        narrow: boolean;
+        items: number;
+        frame: boolean;
+        held: boolean;
+        height: number;
+        outside: string[];
+        broken: string[];
+        scrolls: boolean;
+      }>
+    >("chat-thread", measure)) {
       assert.ok(overflow <= 0, `${profile}: the states overflow the column by ${overflow}`);
       assert.equal(
         shown.length,
@@ -1046,7 +1206,7 @@ describe("components", { timeout: 60_000 }, () => {
   test("in a parent that sizes it to its content, the chat thread takes its content's width, in every profile", async () => {
     // The fit section's threads, a short exchange each: each takes its content's width, so its
     // frame needs no sideways scroll, and is no wider than half the column.
-    const results = await measureSpecimen(
+    const results = await measureSpecimen<Fits<Fit & { sideways: number }>>(
       "chat-thread",
       `() => {
         const column = document.querySelector("#fit .fits").getBoundingClientRect().width;
@@ -1117,7 +1277,19 @@ describe("components", { timeout: 60_000 }, () => {
       });
       return { overflow: list.scrollWidth - list.clientWidth, shown };
     }`;
-    for (const { profile, overflow, shown } of await measureSpecimen("composer", measure)) {
+    for (const { profile, overflow, shown } of await measureSpecimen<
+      States<{
+        narrow: boolean;
+        busy: boolean;
+        action: string;
+        lines: number;
+        oneLine: boolean;
+        bottoms: number;
+        outside: string[];
+        scrolls: boolean;
+        sideways: boolean;
+      }>
+    >("composer", measure)) {
       assert.ok(overflow <= 0, `${profile}: the states overflow the column by ${overflow}`);
       assert.equal(
         shown.length,
@@ -1150,7 +1322,7 @@ describe("components", { timeout: 60_000 }, () => {
     // The fit section's composers, a short draft each: each takes its draft's width, so its field
     // needs no sideways scroll and holds the draft on one line, and is no wider than half the
     // column.
-    const results = await measureSpecimen(
+    const results = await measureSpecimen<Fits<Fit & { sideways: number; oneLine: boolean }>>(
       "composer",
       `() => {
         const column = document.querySelector("#fit .fits").getBoundingClientRect().width;
@@ -1227,7 +1399,16 @@ describe("components", { timeout: 60_000 }, () => {
       });
       return { overflow: list.scrollWidth - list.clientWidth, shown };
     }`;
-    for (const { profile, overflow, shown } of await measureSpecimen("upload-dropzone", measure)) {
+    for (const { profile, overflow, shown } of await measureSpecimen<
+      States<{
+        narrow: boolean;
+        zone: boolean;
+        over: boolean;
+        outside: string[];
+        broken: string[];
+        heights: number[];
+      }>
+    >("upload-dropzone", measure)) {
       assert.ok(overflow <= 0, `${profile}: the states overflow the column by ${overflow}`);
       assert.equal(
         shown.length,
@@ -1257,7 +1438,7 @@ describe("components", { timeout: 60_000 }, () => {
     // The fit section's dropzones, one short upload each: each takes its content's width, so its
     // prompt and button share one line and its upload's name shows whole, and is no wider than
     // half the column.
-    const results = await measureSpecimen(
+    const results = await measureSpecimen<Fits<Fit & { oneLine: boolean; cut: boolean }>>(
       "upload-dropzone",
       `() => {
         const column = document.querySelector("#fit .fits").getBoundingClientRect().width;
@@ -1325,7 +1506,16 @@ describe("components", { timeout: 60_000 }, () => {
       });
       return { overflow: list.scrollWidth - list.clientWidth, shown };
     }`;
-    for (const { profile, overflow, shown } of await measureSpecimen("stage-timeline", measure)) {
+    for (const { profile, overflow, shown } of await measureSpecimen<
+      States<{
+        narrow: boolean;
+        steps: number;
+        outside: string[];
+        broken: string[];
+        heights: number[];
+        details: number[];
+      }>
+    >("stage-timeline", measure)) {
       assert.ok(overflow <= 0, `${profile}: the states overflow the column by ${overflow}`);
       assert.equal(shown.length, 11, `${profile}: four states twice, and the three fits`);
       for (const [index, { narrow, steps, outside, broken, heights, details }] of shown.entries()) {
@@ -1342,7 +1532,7 @@ describe("components", { timeout: 60_000 }, () => {
   test("in a parent that sizes it to its content, the stage timeline takes its content's width, in every profile", async () => {
     // The fit section's timelines, part way through a run: each takes its content's width, so
     // each complete stage's label and time share one line, and is no wider than half the column.
-    const results = await measureSpecimen(
+    const results = await measureSpecimen<Fits<Fit & { complete: number; oneLine: boolean }>>(
       "stage-timeline",
       `() => {
         const column = document.querySelector("#fit .fits").getBoundingClientRect().width;
@@ -1423,7 +1613,19 @@ describe("components", { timeout: 60_000 }, () => {
       });
       return { overflow: list.scrollWidth - list.clientWidth, shown };
     }`;
-    for (const { profile, overflow, shown } of await measureSpecimen("event-log", measure)) {
+    for (const { profile, overflow, shown } of await measureSpecimen<
+      States<{
+        narrow: boolean;
+        events: number;
+        frame: boolean;
+        held: boolean;
+        height: number;
+        outside: string[];
+        broken: string[];
+        identifiers: { texts: string[]; titles: string[]; expected: string[] }[];
+        scrolls: boolean;
+      }>
+    >("event-log", measure)) {
       assert.ok(overflow <= 0, `${profile}: the states overflow the column by ${overflow}`);
       assert.equal(
         shown.length,
@@ -1502,10 +1704,20 @@ describe("components", { timeout: 60_000 }, () => {
         sideways: frame.scrollWidth - frame.clientWidth,
       };
     }`;
-    for (const { profile, width, events, values, sideways } of await measureSpecimen(
-      "event-log",
-      measure,
-    )) {
+    for (const { profile, width, events, values, sideways } of await measureSpecimen<{
+      width: number;
+      events: number;
+      values: {
+        expected: string;
+        text: string;
+        title: string;
+        lines: number;
+        cut: boolean;
+        ellipsis: string;
+        inside: boolean;
+      }[];
+      sideways: number;
+    }>("event-log", measure)) {
       assert.ok(Math.abs(width - 12) < 0.01, `${profile}: the log ${width}rem wide, not 12rem`);
       assert.equal(values.length, events * 2, `${profile}: each event's subject and id`);
       for (const { expected, text, title, lines, cut, ellipsis, inside } of values) {
@@ -1525,7 +1737,17 @@ describe("components", { timeout: 60_000 }, () => {
     // The fit section's logs, a run's first two events each: each takes its content's width, so
     // each event's type and time share one line and its frame needs no sideways scroll, and is no
     // wider than half the column; its metadata wraps within that width, every part inside it.
-    const results = await measureSpecimen(
+    const results = await measureSpecimen<
+      Fits<
+        Fit & {
+          events: number;
+          metadata: number;
+          oneLine: boolean;
+          outside: number;
+          sideways: number;
+        }
+      >
+    >(
       "event-log",
       `() => {
         const column = document.querySelector("#fit .fits").getBoundingClientRect().width;
@@ -1613,7 +1835,16 @@ describe("components", { timeout: 60_000 }, () => {
       });
       return { overflow: list.scrollWidth - list.clientWidth, shown };
     }`;
-    for (const { profile, overflow, shown } of await measureSpecimen("search-results", measure)) {
+    for (const { profile, overflow, shown } of await measureSpecimen<
+      States<{
+        narrow: boolean;
+        fit: boolean;
+        status: boolean;
+        outside: string[];
+        broken: string[];
+        beside: boolean[];
+      }>
+    >("search-results", measure)) {
       assert.ok(overflow <= 0, `${profile}: the states overflow the column by ${overflow}`);
       assert.equal(
         shown.length,
@@ -1640,7 +1871,9 @@ describe("components", { timeout: 60_000 }, () => {
     // The fit section's results, two short matches each: each takes its content's width, so each
     // name shares its line with its field label and each snippet keeps one line, every part
     // inside, and is no wider than half the column.
-    const results = await measureSpecimen(
+    const results = await measureSpecimen<
+      Fits<Fit & { matches: number; oneLine: boolean; outside: number }>
+    >(
       "search-results",
       `() => {
         const column = document.querySelector("#fit .fits").getBoundingClientRect().width;
@@ -1745,7 +1978,18 @@ describe("components", { timeout: 60_000 }, () => {
       });
       return { overflow: list.scrollWidth - list.clientWidth, shown };
     }`;
-    for (const { profile, overflow, shown } of await measureSpecimen("document-list", measure)) {
+    for (const { profile, overflow, shown } of await measureSpecimen<
+      States<{
+        narrow: boolean;
+        status: boolean;
+        paginations: number;
+        outside: string[];
+        spills: string[];
+        broken: string[];
+        starts: number[];
+        edge: number;
+      }>
+    >("document-list", measure)) {
       assert.ok(overflow <= 0, `${profile}: the states overflow the column by ${overflow}`);
       assert.equal(
         shown.length,
@@ -1778,7 +2022,11 @@ describe("components", { timeout: 60_000 }, () => {
     // The fit section's lists, one short document each: each takes its content's width, so the
     // entry's name shares its line with its status, its meta keeps one line, and the controls
     // keep one row, every part inside, and is narrower than the column.
-    const results = await measureSpecimen(
+    const results = await measureSpecimen<
+      Fits<
+        Fit & { head: boolean; meta: boolean; controls: boolean; entries: number; outside: number }
+      >
+    >(
       "document-list",
       `() => {
         const column = document.querySelector("#fit .fits").getBoundingClientRect().width;

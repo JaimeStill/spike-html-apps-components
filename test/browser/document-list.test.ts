@@ -11,15 +11,63 @@
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
 
-import { launch } from "./support/browser-pipe.js";
-import { serve } from "./support/server.js";
+import { launch } from "@jaimestill/spike-html-apps-tooling/browser.js";
+import type { Browser, Page } from "@jaimestill/spike-html-apps-tooling/browser.js";
+import { serve } from "@jaimestill/spike-html-apps-tooling/server.js";
+import type { Server } from "@jaimestill/spike-html-apps-tooling/server.js";
+
+import { served } from "./support/served.ts";
+
+/** An event the list's listener heard, and whether it is the one its part sent. */
+interface Heard {
+  type: string;
+  detail: unknown;
+  bubbles: boolean;
+  composed: boolean;
+  target: boolean;
+  same: boolean;
+}
+
+/** What window.read resolves to: the list's state, status line, pagination, entries, and events.
+ * The list's own measures are null when it shows no list or no summary. */
+interface Read {
+  state: string | null;
+  disabled: boolean;
+  paginations: number;
+  slotted: string[];
+  status: [string | null, string, string];
+  statusHeight: number;
+  statusSlot: string | null;
+  list: [string | null, string | null] | null;
+  paging: {
+    page: number | null;
+    size: number | null;
+    total: number | null;
+    more: boolean;
+    pageSizes: number[] | null;
+    disabled: boolean;
+  };
+  summary: string | null;
+  summaryHeight: number | null;
+  above: number | null;
+  line: number;
+  entries: {
+    item: unknown;
+    current: string | null;
+    mark: boolean;
+    text: string;
+    box: number[];
+  }[];
+  heard: Heard[];
+  reached: string[];
+}
 
 describe("document list", { timeout: 60_000 }, () => {
-  let server;
-  let browser;
-  let page;
+  let server: Server;
+  let browser: Browser;
+  let page: Page;
   before(async () => {
-    server = await serve();
+    server = await serve(served);
     browser = await launch();
     page = await browser.open(`${server.origin}/test/fixtures/components.html`);
     // Keys go to the focused element as a user's would, though a headless page never has the
@@ -126,18 +174,18 @@ describe("document list", { timeout: 60_000 }, () => {
     await server?.stop();
   });
 
-  const mount = (fields = {}) =>
+  const mount = (fields: Record<string, unknown> = {}) =>
     page.evaluate(`window.mount(${JSON.stringify(fields)}).then(() => {})`);
-  const read = () => page.evaluate("window.read()");
+  const read = (): Promise<Read> => page.evaluate("window.read()");
   // Sets the fields on the mounted list and waits for it and its parts to render.
-  const update = (fields) =>
+  const update = (fields: Record<string, unknown>) =>
     page.evaluate(`(async () => {
       const list = document.querySelector("sl-document-list");
       Object.assign(list, ${JSON.stringify(fields)});
       await window.settled(list);
     })()`);
   // A key pressed and released on the focused element, with the text it types, if any.
-  const press = async (key, keyCode, text) => {
+  const press = async (key: string, keyCode: number, text?: string) => {
     const event = { key, code: key, windowsVirtualKeyCode: keyCode };
     await page.cdp("Input.dispatchKeyEvent", {
       type: "keyDown",
@@ -233,7 +281,7 @@ describe("document list", { timeout: 60_000 }, () => {
   });
 
   test("the paging attributes convert as the pagination's do", async () => {
-    const passed = await page.evaluate(`(async () => {
+    const passed: unknown[] = await page.evaluate(`(async () => {
       const holder = document.querySelector("main");
       holder.innerHTML = '<sl-document-list page="2" size="6" total="14" more page-sizes="[6,12]" disabled></sl-document-list>';
       const list = holder.firstElementChild;
@@ -291,8 +339,14 @@ describe("document list", { timeout: 60_000 }, () => {
     assert.deepEqual(status, ["status", "", "status ready"]);
     assert.equal(statusSlot, "status");
     // Less than a line between the summary and the first entry: no blank line held there.
-    assert.ok(above < line, `the first entry ${above} below the summary, a line ${line}`);
-    assert.ok(summaryHeight > 0 && summaryHeight < 2 * line, `the summary ${summaryHeight} tall`);
+    assert.ok(
+      above !== null && above < line,
+      `the first entry ${above} below the summary, a line ${line}`,
+    );
+    assert.ok(
+      summaryHeight !== null && summaryHeight > 0 && summaryHeight < 2 * line,
+      `the summary ${summaryHeight} tall`,
+    );
   });
 
   test("loading says so, reflected; a first load lists nothing, and a page change keeps its page busy", async () => {

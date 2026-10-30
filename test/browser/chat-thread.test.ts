@@ -7,15 +7,43 @@
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
 
-import { launch } from "./support/browser-pipe.js";
-import { serve } from "./support/server.js";
+import { launch } from "@jaimestill/spike-html-apps-tooling/browser.js";
+import type { Browser, Page } from "@jaimestill/spike-html-apps-tooling/browser.js";
+import { serve } from "@jaimestill/spike-html-apps-tooling/server.js";
+import type { Server } from "@jaimestill/spike-html-apps-tooling/server.js";
+
+import { served } from "./support/served.ts";
+
+/** What window.read reads from a list item of a thread's shadow root. */
+interface Item {
+  kind: string;
+  element: string;
+  label: string | null;
+  status: string | null;
+  busy: string | null;
+  names: string[];
+  open: boolean | null;
+  plain: string[];
+  markdown: string | null;
+  refusal: string | null;
+  pre: string | null;
+  empty: string | null;
+}
+
+/** What window.read reads from a thread's shadow root. */
+interface View {
+  frame: { tabindex: string | null; role: string | null; label: string | null };
+  list: string | null;
+  empty: string | null;
+  items: Item[];
+}
 
 describe("chat thread", { timeout: 60_000 }, () => {
-  let server;
-  let browser;
-  let page;
+  let server: Server;
+  let browser: Browser;
+  let page: Page;
   before(async () => {
-    server = await serve();
+    server = await serve(served);
     browser = await launch();
     page = await browser.open(`${server.origin}/test/fixtures/components.html`);
     // window.shown(fields) renders a thread of the fields into main, resolving to what its shadow
@@ -69,14 +97,15 @@ describe("chat thread", { timeout: 60_000 }, () => {
     await server?.stop();
   });
 
-  const shown = (fields) => page.evaluate(`window.shown(${JSON.stringify(fields)})`);
+  const shown = (fields: Record<string, unknown>): Promise<View> =>
+    page.evaluate(`window.shown(${JSON.stringify(fields)})`);
 
-  const user = (text) => ({
+  const user = (text: string) => ({
     type: "message",
     role: "user",
     content: [{ type: "input_text", text }],
   });
-  const assistant = (id, text, status = "completed") => ({
+  const assistant = (id: string, text: string, status = "completed") => ({
     type: "message",
     id,
     role: "assistant",
@@ -125,14 +154,15 @@ describe("chat thread", { timeout: 60_000 }, () => {
     });
     const [item] = view.items;
     assert.deepEqual([item.kind, item.label], ["assistant", "Assistant"]);
-    assert.match(item.markdown, /<h1>Title<\/h1>/);
-    assert.match(item.markdown, /<li><strong>one<\/strong><\/li>/);
-    assert.match(item.markdown, /<a rel="noreferrer" href="https:\/\/example.com">two<\/a>/);
+    assert.match(item.markdown ?? "", /<h1>Title<\/h1>/);
+    assert.match(item.markdown ?? "", /<li><strong>one<\/strong><\/li>/);
+    assert.match(item.markdown ?? "", /<a rel="noreferrer" href="https:\/\/example.com">two<\/a>/);
     assert.deepEqual(item.plain, []);
   });
 
   test("raw HTML in output_text shows as its text, never as elements", async () => {
-    const view = await page.evaluate(`(async () => {
+    const view: { elements: number; text: string; pwned: number | null } =
+      await page.evaluate(`(async () => {
       const thread = document.createElement("sl-chat-thread");
       thread.items = [{ type: "message", id: "m", role: "assistant", status: "completed",
         content: [{ type: "output_text", text: '<img src=x onerror="window.pwned=1"><b>bold</b>\\n\\n<script>window.pwned=1</script>' }] }];
@@ -251,7 +281,7 @@ describe("chat thread", { timeout: 60_000 }, () => {
   });
 
   test("unknown item types, unknown roles, and unknown part types are skipped, with no error", async () => {
-    const view = await page.evaluate(`(async () => {
+    const view: { errors: string[]; view: View } = await page.evaluate(`(async () => {
       const errors = [];
       const onError = (event) => errors.push(String(event.message));
       window.addEventListener("error", onError);
@@ -290,7 +320,14 @@ describe("chat thread", { timeout: 60_000 }, () => {
   });
 
   test("a streaming message re-renders in place as its text grows, the items above it the same nodes", async () => {
-    const result = await page.evaluate(`(async () => {
+    const result: {
+      same: boolean[];
+      paragraphKept: boolean;
+      topsKept: boolean;
+      finished: boolean;
+      code: string;
+      status: string | null;
+    } = await page.evaluate(`(async () => {
       const thread = document.createElement("sl-chat-thread");
       const question = { type: "message", role: "user", content: [{ type: "input_text", text: "Go" }] };
       const first = { type: "message", id: "msg_a", role: "assistant", status: "completed",
@@ -340,7 +377,13 @@ describe("chat thread", { timeout: 60_000 }, () => {
   });
 
   test("verbose turning keeps each message's nodes, and the attribute sets and reflects it", async () => {
-    const result = await page.evaluate(`(async () => {
+    const result: {
+      initial: number;
+      reflected: boolean;
+      hidden: number;
+      articles: number[];
+      kept: boolean;
+    } = await page.evaluate(`(async () => {
       const main = document.querySelector("main");
       main.innerHTML = "<sl-chat-thread verbose></sl-chat-thread>";
       const thread = main.firstElementChild;
@@ -371,7 +414,7 @@ describe("chat thread", { timeout: 60_000 }, () => {
   });
 
   test("the thread sends no event as its items and verbose change", async () => {
-    const sent = await page.evaluate(`(async () => {
+    const sent: string[] = await page.evaluate(`(async () => {
       const thread = document.querySelector("main").appendChild(
         document.createElement("sl-chat-thread"));
       const sent = [];

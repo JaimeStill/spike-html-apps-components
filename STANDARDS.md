@@ -57,4 +57,6 @@ The architecture pages that apply, in the architecture repository:
   keeps the earlier lines.
 - Sources use `.ts` relative specifiers, which tsc rewrites.
 - The browser tier tests `dist/`, and no server transforms what it serves.
+- Tests are TypeScript run under Node's type stripping, erasable syntax only, type-checked by
+  `tsconfig.test.json`; browser-served fixtures stay `.js`.
 - A mise task runs one script or one command, and `check` is a depends list.

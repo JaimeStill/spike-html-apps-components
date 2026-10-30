@@ -7,15 +7,43 @@
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
 
-import { launch } from "./support/browser-pipe.js";
-import { serve } from "./support/server.js";
+import { launch } from "@jaimestill/spike-html-apps-tooling/browser.js";
+import type { Browser, Page } from "@jaimestill/spike-html-apps-tooling/browser.js";
+import { serve } from "@jaimestill/spike-html-apps-tooling/server.js";
+import type { Server } from "@jaimestill/spike-html-apps-tooling/server.js";
+
+import { served } from "./support/served.ts";
+
+/** A stage as the cases give the timeline one, in the emulator's shape. */
+interface Stage {
+  name: string;
+  position: number;
+  state: "pending" | "active" | "complete" | "failed";
+  completedAt: string | null;
+}
+
+/** What window.read resolves to: the list's element and label, each step as it shows, and the
+ * events the host sent. */
+interface Shown {
+  list: [string, string | null];
+  stages: {
+    name: string;
+    label: string;
+    time: string | null;
+    datetime: string | null;
+    marker: string;
+    markerHidden: string | null;
+    current: string | null;
+  }[];
+  sent: string[];
+}
 
 describe("stage timeline", { timeout: 60_000 }, () => {
-  let server;
-  let browser;
-  let page;
+  let server: Server;
+  let browser: Browser;
+  let page: Page;
   before(async () => {
-    server = await serve();
+    server = await serve(served);
     browser = await launch();
     page = await browser.open(`${server.origin}/test/fixtures/components.html`);
     // Keys go to the focused element as a user's would, though a headless page never has the
@@ -65,12 +93,13 @@ describe("stage timeline", { timeout: 60_000 }, () => {
     await server?.stop();
   });
 
-  const mount = (stages) => page.evaluate(`window.mount(${JSON.stringify(stages)}).then(() => {})`);
-  const read = () => page.evaluate("window.read()");
+  const mount = (stages: Stage[]) =>
+    page.evaluate(`window.mount(${JSON.stringify(stages)}).then(() => {})`);
+  const read = (): Promise<Shown> => page.evaluate("window.read()");
 
   const names = ["upload", "metadata", "extraction", "chunks", "embeddings"];
   // The emulator's five stages in the states given, by position; a complete one with its time.
-  const run = (...states) =>
+  const run = (...states: Stage["state"][]): Stage[] =>
     names.map((name, index) => ({
       name,
       position: index + 1,
@@ -82,7 +111,7 @@ describe("stage timeline", { timeout: 60_000 }, () => {
     await mount(run("complete", "complete", "active", "pending", "pending"));
     const { list, stages } = await read();
     assert.deepEqual(list, ["ol", "Stages"]);
-    // The browser runs in en-US at UTC, as support/browser-pipe.js launches it.
+    // The browser runs in en-US at UTC, as the tooling's launch() starts it.
     assert.deepEqual(stages, [
       {
         name: "upload",
@@ -183,7 +212,7 @@ describe("stage timeline", { timeout: 60_000 }, () => {
     ];
     for (const width of ["20rem", "40rem"]) {
       await mount(steps[0]);
-      const measured = [];
+      const measured: { same: boolean; boxes: number[][][]; host: number[] }[] = [];
       for (const stages of steps) {
         measured.push(
           await page.evaluate(`(async () => {
@@ -217,7 +246,7 @@ describe("stage timeline", { timeout: 60_000 }, () => {
 
   test("in a parent that sizes it to its content, the timeline keeps its width as stages advance", async () => {
     await mount(run("pending", "pending", "pending", "pending", "pending"));
-    const widths = await page.evaluate(`(async () => {
+    const widths: number[] = await page.evaluate(`(async () => {
       const timeline = document.querySelector("sl-stage-timeline");
       const parent = document.createElement("div");
       parent.style.display = "inline-block";
@@ -245,7 +274,7 @@ describe("stage timeline", { timeout: 60_000 }, () => {
 
   test("the timeline holds nothing focusable: Tab passes over it", async () => {
     await mount(run("complete", "active", "pending", "pending", "pending"));
-    const reached = await page.evaluate(`(() => {
+    const reached: number = await page.evaluate(`(() => {
       const main = document.querySelector("main");
       const before = Object.assign(document.createElement("button"), { textContent: "before" });
       const next = Object.assign(document.createElement("button"), { textContent: "after" });

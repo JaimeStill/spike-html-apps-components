@@ -114,19 +114,19 @@ control, one instance reached by the keyboard to show its focus ring. The specim
 foundation's `page-full.css` and import its `register-full.js`, so a profile applies by its
 attribute on the root.
 
-`mise run screenshots` captures each specimen page light and dark, each page in vertical tiles at
-most 1200px tall: by default in flexoki, regular, and mono; with `--palette`, `--space`, or
-`--type`, combined, in the facet's profile named, checked against the pages' registry; with
-`--all`, in each of the four colors, and in compact and in sans. `--page <name>`, repeatable,
-captures only the specimen pages named, and `--scheme light` or `--scheme dark` only that scheme;
-both combine with the profile flags and `--all`.
+`mise run screenshots` captures each specimen page light and dark, in vertical tiles at most
+1200px tall. It runs the `spike-html-apps-screenshots` bin of
+[spike-html-apps-tooling](https://github.com/JaimeStill/spike-html-apps-tooling) over the capture
+description `scripts/screenshots.config.ts`, and checks a named profile against the pages'
+registry. [Development](#development) lists the task's flags, and the tooling's README documents
+them.
 
 ## Development
 
 Tasks run through [mise](https://mise.jdx.dev):
 
 ```
-mise run install                      # the pinned tools, and node_modules with the foundation at its tag; reads the network
+mise run install                      # the pinned tools, and node_modules with the foundation and the tooling at their tags; reads the network
 mise run check                        # lint, types, build, and the unit and browser tiers; reads no network
 mise run build                        # src/ into dist/
 mise run demo                         # serve the components demo page and the specimen pages on dist/
@@ -137,13 +137,16 @@ mise run screenshots --type sans      # the same, in the type named
 mise run screenshots --all            # the full matrix: the four colors at the defaults, then compact and sans at flexoki; no facet flag joins it
 mise run screenshots --page entry     # only the page named; repeatable, and with any of the above
 mise run screenshots --scheme dark    # only the scheme named, light or dark; with any of the above
-mise run screenshots --keep           # keep the captures, with any of the above
-mise run currency                     # report every tool, package, and action pin, and the foundation's tag and peer range, behind its latest
+mise run screenshots --output browser # a gallery of the captures, opened in the browser; directory keeps the files; with any of the above
+mise run screenshots --dir <path>     # write the captures into the directory named, with any of the above
+mise run screenshots --keep           # keep the terminal output's captures, with any of the above
+mise run currency                     # report every tool, package, and action pin, the foundation's and the tooling's tags, and the foundation's peer range, behind its latest
 ```
 
 The task's arguments follow its name, as above; `mise run screenshots -- --space compact` passes
-them the same. An unknown profile name exits 2, listing the facet's registered names; an unknown
-page name exits 2, listing the pages' names; any other argument exits 2 with the usage.
+them the same, and `mise run screenshots -- --help` lists the flags with the pages and profiles.
+A usage error, an unknown page name, or a profile a page hasn't registered exits 2 before any
+capture, an unknown name listing the valid ones.
 
 A push to main whose `package.json` version has no tag yet releases it: the check, then the pack
 committed and tagged, and a GitHub release from `CHANGELOG.md`.
