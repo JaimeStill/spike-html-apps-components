@@ -6,6 +6,13 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 
 ## [Unreleased]
 
+### Added
+
+- `sl-composer`'s `send()` does what activating its send control does, which now calls it: while
+  the text is empty or whitespace, or the composer is `busy` or `disabled`, nothing; otherwise it
+  clears the field, sends `send` with the text, and focuses the field. An app that sends on a key
+  calls it rather than repeating the rules; the composer still binds no key.
+
 ## [0.3.0] - 2026-10-29
 
 ### Added
