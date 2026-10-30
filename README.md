@@ -114,15 +114,12 @@ control, one instance reached by the keyboard to show its focus ring. The specim
 foundation's `page-full.css` and import its `register-full.js`, so a profile applies by its
 attribute on the root.
 
-`mise run screenshots` captures each specimen page light and dark, each page in vertical tiles at
-most 1200px tall, through spike-html-apps-tooling's `spike-html-apps-screenshots` on the
-description `scripts/screenshots.config.ts`: by default in flexoki, regular, and mono; with
-`--palette`, `--space`, or `--type`, combined, in the facet's profile named, checked against the
-pages' registry; with `--all`, in each of the four colors, and in compact and in sans.
-`--page <name>`, repeatable, captures only the specimen pages named, and `--scheme light` or
-`--scheme dark` only that scheme; both combine with the profile flags and `--all`. `--output`
-shows the captures inline in kitty (`terminal`, the default), keeps them in a directory
-(`directory`), or opens a gallery of them (`browser`); `--dir <path>` names the directory.
+`mise run screenshots` captures each specimen page light and dark, in vertical tiles at most
+1200px tall. It runs the `spike-html-apps-screenshots` bin of
+[spike-html-apps-tooling](https://github.com/JaimeStill/spike-html-apps-tooling) over the capture
+description `scripts/screenshots.config.ts`, and checks a named profile against the pages'
+registry. [Development](#development) lists the task's flags, and the tooling's README documents
+them.
 
 ## Development
 
@@ -147,8 +144,9 @@ mise run currency                     # report every tool, package, and action p
 ```
 
 The task's arguments follow its name, as above; `mise run screenshots -- --space compact` passes
-them the same. A usage error, an unknown page name, or a profile a page hasn't registered exits 2
-before any capture, an unknown name listing the valid ones.
+them the same, and `mise run screenshots -- --help` lists the flags with the pages and profiles.
+A usage error, an unknown page name, or a profile a page hasn't registered exits 2 before any
+capture, an unknown name listing the valid ones.
 
 A push to main whose `package.json` version has no tag yet releases it: the check, then the pack
 committed and tagged, and a GitHub release from `CHANGELOG.md`.
