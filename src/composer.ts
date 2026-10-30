@@ -32,8 +32,9 @@ export type StopDetail = Record<string, never>;
  * `send()` does what activating send does, so an app that binds a key to sending calls it rather
  * than repeating the rules: it does nothing while the text is empty or whitespace, or the composer
  * is busy or disabled. `value` is the field's text, kept in step with typing, so the app reads a
- * draft or sets one; it sends no event as the text changes. The field is named by `label`, in a label kept for assistive
- * technology and visually hidden, since a composer's place in a chat shows what it is for.
+ * draft or sets one; it sends no event as the text changes. The field is named by `label`, in a
+ * label kept for assistive technology and visually hidden, since a composer's place in a chat
+ * shows what it is for.
  */
 export class Composer extends LitElement {
   static styles = [reset, elements, styles];
@@ -78,19 +79,16 @@ export class Composer extends LitElement {
     this.value = (e.target as HTMLTextAreaElement).value;
   }
 
-  // The field clears before `send` goes out, so a listener that sets `value`, restoring the draft
-  // when its send fails, keeps what it set. Focus returns to the field: the control a pointer or
-  // the keyboard activated turns disabled once the field is empty, unless the app turns busy.
-  /**
-   * Sends `send` with the field's text, as activating send does: clears the field, sends `send`,
-   * and focuses the field. Does nothing while the text is empty or whitespace, or while `busy` or
-   * `disabled`.
-   */
+  /** Does what activating send does: clears the field, sends `send` with the text, refocuses. */
   send(): void {
     if (!this.#sendable) return;
     const text = this.value;
+    // The field clears before `send` goes out, so a listener that sets `value`, restoring the
+    // draft when its send fails, keeps what it set.
     this.value = "";
     emit<SendDetail>(this, "send", { text });
+    // The control a pointer or the keyboard activated turns disabled once the field is empty,
+    // unless the app turns busy, so focus returns to the field.
     this.#field?.focus();
   }
 

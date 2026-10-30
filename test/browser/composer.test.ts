@@ -1,9 +1,10 @@
 // The composer from this repository's dist/, on test/fixtures/components.html: send sending the
 // field's text, bubbling and composed, and clearing the field; send() doing what activating send
-// does, under the same rules; empty and whitespace-only text unsendable; busy putting stop in send's place, in the same footprint, typing still allowed;
-// disabled blocking typing, sending, and stopping; Enter, Shift+Enter, and Escape doing only what
-// a native textarea does; the field growing with its text to eight lines, then scrolling; value
-// and the attributes in step with the field; and no event but send and stop.
+// does, under the same rules; empty and whitespace-only text unsendable; busy putting stop in
+// send's place, in the same footprint, typing still allowed; disabled blocking typing, sending,
+// and stopping; Enter, Shift+Enter, and Escape doing only what a native textarea does; the field
+// growing with its text to eight lines, then scrolling; value and the attributes in step with the
+// field; and no event but send and stop.
 
 import assert from "node:assert/strict";
 import { after, before, beforeEach, describe, test } from "node:test";
