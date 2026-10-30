@@ -6,7 +6,7 @@
 // Adapted from spike-html-apps-components (2fded6d): scripts/screenshots.js, its pages, facets,
 // profiles, and registry read kept as a description of the tooling's command.
 
-import { deps } from "../test/browser/support/served.js";
+import { served } from "../test/browser/support/served.js";
 
 /** The specimen pages, in the order they're captured and numbered, each one full-page state. */
 const pages = [
@@ -44,6 +44,5 @@ export default {
     { type: "sans" },
   ],
   profiles: (page) => page.evaluate(REGISTRY),
-  // The root, against this module's directory: the repository's.
-  server: { root: "..", deps },
+  server: served,
 };
