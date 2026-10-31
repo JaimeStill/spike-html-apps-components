@@ -155,6 +155,7 @@ describe("components", { timeout: 60_000 }, () => {
         const reset = await sheet(foundation + "/baseline/reset.css");
         const elements = await sheet(foundation + "/baseline/elements.css");
         const components = [
+          ["sl-drawer", "drawer", "drawer.css"],
           ["sl-document-list", "document-list", "document-list.css"],
           ["sl-search-results", "search-results", "search-results.css"],
           ["sl-event-log", "event-log", "event-log.css"],
@@ -182,6 +183,7 @@ describe("components", { timeout: 60_000 }, () => {
         return { adopted, label: badge.shadowRoot.querySelector("button").textContent };
       })()`);
         for (const tag of [
+          "sl-drawer",
           "sl-document-list",
           "sl-search-results",
           "sl-event-log",
@@ -329,14 +331,20 @@ describe("components", { timeout: 60_000 }, () => {
         await page.evaluate(`(async () => {
         const registry = await import("@jaimestill/spike-html-apps-foundation/registry.js");
         const { directories, files } = await import("/demo/documents.js");
-        await Promise.all(["document-list", "search-results", "event-log", "stage-timeline", "upload-dropzone", "composer", "chat-thread", "artifact-viewer", "pagination", "entry", "status-badge"].map(
+        await Promise.all(["drawer", "document-list", "search-results", "event-log", "stage-timeline", "upload-dropzone", "composer", "chat-thread", "artifact-viewer", "pagination", "entry", "status-badge"].map(
           (module) => import("/dist/" + module + ".js")));
-        // Each component as a host composes it: a document list of one document on its first
+        // Each component as a host composes it: a drawer, docked at the page's width, holding one
+        // button, a document list of one document on its first
         // page, search results of a match in content, whose button the profile styles, an event log of a stage event, a stage timeline
         // part way through a run, an upload dropzone listing an upload in progress, a composer holding a draft, a chat thread of a
         // user's message and the assistant's Markdown reply, an artifact viewer of a Markdown document, the pagination
         // holding one entry per item, a lone entry, and a labelled badge.
         const components = {
+          "sl-drawer": () => {
+            const drawer = Object.assign(document.createElement("sl-drawer"), { label: "Documents" });
+            drawer.append(Object.assign(document.createElement("button"), { textContent: "notes.md" }));
+            return drawer;
+          },
           "sl-document-list": () =>
             Object.assign(document.createElement("sl-document-list"), {
               page: 1, size: 3, total: 1, pageSizes: [3, 6, 12], selected: "doc-1",
@@ -420,7 +428,10 @@ describe("components", { timeout: 60_000 }, () => {
             // the stage timeline, which holds none either, its complete stage's marker's color,
             // its step's column gap, the space between marker and text, and its label's font; the
             // event log, which holds no button but its data's toggle, its list's color and padding,
-            // and its time's font, the interface font.
+            // and its time's font, the interface font; the drawer, which holds no button of its own,
+            // its dialog's color and padding, and its slotted button's font, the interface font,
+            // since it sets no font itself.
+            const drawer = tag === "sl-drawer";
             const viewer = tag === "sl-artifact-viewer";
             const thread = tag === "sl-chat-thread";
             const timeline = tag === "sl-stage-timeline";
@@ -428,8 +439,10 @@ describe("components", { timeout: 60_000 }, () => {
             const style = getComputedStyle(entries.length
               ? entries[0].shadowRoot.querySelector("button")
               : element.shadowRoot.querySelector(
-                viewer ? ".body > *" : thread ? ".user > .message" : timeline ? ".complete > .marker" : log ? ".events" : "button"));
-            const font = viewer
+                drawer ? "dialog" : viewer ? ".body > *" : thread ? ".user > .message" : timeline ? ".complete > .marker" : log ? ".events" : "button"));
+            const font = drawer
+              ? getComputedStyle(element.querySelector("button"))
+              : viewer
               ? getComputedStyle(element.shadowRoot.querySelector("h1"))
               : thread
                 ? getComputedStyle(element.shadowRoot.querySelector(".role"))
@@ -459,7 +472,7 @@ describe("components", { timeout: 60_000 }, () => {
         space: ["regular", "compact"],
         type: ["mono", "sans"],
       });
-      assert.equal(rendered.length, profiles.length * 11);
+      assert.equal(rendered.length, profiles.length * 12);
       for (const { profile, tag, width, height } of rendered) {
         assert.ok(width > 0 && height > 0, `${tag} under ${profile}: a ${width} × ${height} box`);
       }
@@ -469,6 +482,7 @@ describe("components", { timeout: 60_000 }, () => {
       const looks = (tag: string, where: (shown: Rendered) => boolean) =>
         rendered.filter((shown) => shown.tag === tag && where(shown)).map((shown) => shown.look);
       for (const tag of [
+        "sl-drawer",
         "sl-document-list",
         "sl-search-results",
         "sl-event-log",
