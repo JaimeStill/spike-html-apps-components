@@ -54,11 +54,14 @@ function kindOf(item: EntryItem): OpenDetail["kind"] {
 /**
  * A content type with a break opportunity, a wbr, after each slash, dot, hyphen, and plus, so a
  * type too long for its line, "application/vnd.openxmlformats-officedocument…", breaks between its
- * parts, never inside one, unless a part alone is wider than the line.
+ * parts, never inside one, unless a part alone is wider than the line. Each wbr is aria-hidden:
+ * Chrome's accessibility tree reads a wbr as a space, so the button's accessible name would say
+ * "text/ plain"; hidden, it adds nothing to the name, which carries the type whole, and the break
+ * it offers the eye stays.
  */
 function renderType(contentType: string) {
   const parts = contentType.split(/(?<=[/.+-])/);
-  return parts.map((part, i) => (i === 0 ? part : html`<wbr />${part}`));
+  return parts.map((part, i) => (i === 0 ? part : html`<wbr aria-hidden="true" />${part}`));
 }
 
 /**

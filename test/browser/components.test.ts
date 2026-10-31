@@ -232,11 +232,14 @@ describe("components", { timeout: 60_000 }, () => {
     });
   }
 
-  test("the entry's meta line shows no kind word, its button's name keeps it, and open sends the id and kind", async () => {
+  test("the entry's meta line shows no kind word, its button's name keeps it and the content type whole, and open sends the id and kind", async () => {
     // A file's entry and a directory's on the lean page: the file's meta line is its size,
     // content type, and time, the directory's its time alone, neither with "file" or "directory"
     // in it; each button's accessible name, as the browser computes it, still says which it is,
-    // from the kind kept visually hidden; and activating each sends open with its id and kind.
+    // from the kind kept visually hidden, and says a file's content type whole, with no space
+    // where the type shows a break opportunity, a short type and the long openxml one alike; and
+    // activating each sends open with its id and kind.
+    const openxml = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
     const page = await open(runs[0]);
     try {
       /** One entry as it shows: its meta line's parts and text, and the open details it sent. */
@@ -245,7 +248,8 @@ describe("components", { timeout: 60_000 }, () => {
         meta: string;
         opened: unknown[];
       }
-      const shown: { file: Shown; directory: Shown } = await page.evaluate(`(async () => {
+      const shown: { file: Shown; directory: Shown; long: Shown } =
+        await page.evaluate(`(async () => {
         await import("/dist/entry.js");
         const make = async (item) => {
           const entry = document.createElement("sl-entry");
@@ -268,6 +272,8 @@ describe("components", { timeout: 60_000 }, () => {
           file: await make({ id: "f-1", name: "sketch.txt", status: "available", size: 1536,
             content_type: "text/plain", updated_at }),
           directory: await make({ id: "d-1", name: "designs", status: "active", updated_at }),
+          long: await make({ id: "f-2", name: "brief.docx", status: "available", size: 1536,
+            content_type: "${openxml}", updated_at }),
         };
       })()`);
       for (const [kind, { meta }] of Object.entries(shown)) {
@@ -275,23 +281,24 @@ describe("components", { timeout: 60_000 }, () => {
       }
       assert.deepEqual(shown.file.parts, ["size", "type", "time"], "the file's meta parts");
       assert.equal(shown.file.meta, "1.5 kB text/plain Oct 12, 2026, 4:41 PM");
+      assert.equal(shown.long.meta, `1.5 kB ${openxml} Oct 12, 2026, 4:41 PM`);
       assert.deepEqual(shown.directory.parts, ["time"], "the directory's meta parts");
       assert.equal(shown.directory.meta, "Oct 12, 2026, 4:41 PM");
       assert.deepEqual(shown.file.opened, [{ id: "f-1", kind: "file" }]);
       assert.deepEqual(shown.directory.opened, [{ id: "d-1", kind: "directory" }]);
       const { nodes }: { nodes: { role?: { value: string }; name?: { value: string } }[] } =
         await page.cdp("Accessibility.getFullAXTree", {});
-      // Each name up to its size or time: the content type's wbr reads as a space in a name.
+      // Each name whole: the kind after the status, and the content type with no space where
+      // its meta line offers a break.
       const names = nodes
         .filter((node) => node.role?.value === "button")
         .map((node) => node.name?.value ?? "")
-        .filter((name) => /^(sketch\.txt|designs) /.test(name));
-      assert.equal(names.length, 2, `the buttons' accessible names: ${names.join("; ")}`);
-      assert.ok(
-        names[0].startsWith("sketch.txt available file 1.5 kB "),
-        `the file's button: "${names[0]}"`,
-      );
-      assert.equal(names[1], "designs active directory Oct 12, 2026, 4:41 PM");
+        .filter((name) => /^(sketch\.txt|designs|brief\.docx) /.test(name));
+      assert.deepEqual(names, [
+        "sketch.txt available file 1.5 kB text/plain Oct 12, 2026, 4:41 PM",
+        "designs active directory Oct 12, 2026, 4:41 PM",
+        `brief.docx available file 1.5 kB ${openxml} Oct 12, 2026, 4:41 PM`,
+      ]);
     } finally {
       await page.close();
     }

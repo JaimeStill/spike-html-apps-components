@@ -13,6 +13,13 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
   The kind stays in the button's accessible name, after the status, in a visually hidden span, so
   a screen reader still says which an entry is; `open`'s detail is still `{ id, kind }`.
 
+### Fixed
+
+- `sl-entry`'s accessible name carries a file's content type whole, "text/plain" rather than
+  "text/ plain": each break opportunity the meta line puts after the type's slash, dots, hyphens,
+  and plus is now `aria-hidden`, since Chrome's accessibility tree read each as a space. The type
+  wraps at its punctuation as before.
+
 ## [0.4.0] - 2026-10-30
 
 ### Added
