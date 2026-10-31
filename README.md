@@ -131,7 +131,8 @@ foundation's `page-full.css` and import its `register-full.js`, so a profile app
 attribute on the root.
 
 `mise run screenshots` captures each specimen page light and dark, in vertical tiles at most
-1200px tall, and the drawer's in its viewport at each of its four states. It runs the `spike-html-apps-screenshots` bin of
+1200px tall, and the drawer's in its viewport at each of its four states. It runs the
+`spike-html-apps-screenshots` bin of
 [spike-html-apps-tooling](https://github.com/JaimeStill/spike-html-apps-tooling) over the capture
 description `scripts/screenshots.config.ts`, and checks a named profile against the pages'
 registry. [Development](#development) lists the task's flags, and the tooling's README documents

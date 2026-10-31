@@ -2,10 +2,10 @@
  * The drawer's layout in a shadow root: drawer.ts adopts this sheet into its root after the
  * foundation's reset and elements sheets (baseline/reset.css and elements.css), which give the
  * native dialog its surface, the Close button and the heading their looks and focus ring, and the
- * ::backdrop its scrim, which the drawer covers whole. It holds the docked aside's frame and the drawer's: the full
- * viewport, its header, its scrolling body, and its slide. It reads only the foundation's baseline
- * tokens, which a shadow root takes by inheritance from the page's entry; its one fixed length is
- * the slide's timing. Unlayered, it sits above the adopted layers in the root.
+ * ::backdrop its scrim, which the drawer covers whole. It holds the docked aside's frame and the
+ * drawer's: the full viewport, its header, its scrolling body, and its slide. It reads only the
+ * foundation's baseline tokens, which a shadow root takes by inheritance from the page's entry; its
+ * one fixed length is the slide's timing. Unlayered, it sits above the adopted layers in the root.
  *
  * Docked, the aside is an ordinary block filling the host on the first elevated surface, framed
  * as a container, scrolling inside it when the host is held shorter than its content. As a drawer
