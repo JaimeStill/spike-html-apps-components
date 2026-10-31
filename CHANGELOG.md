@@ -6,6 +6,13 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 
 ## [Unreleased]
 
+### Changed
+
+- `sl-entry`'s meta line no longer opens with its kind, "file" or "directory": a file's line is its
+  size, absent while pending, its content type, and its time, and a directory's its time alone.
+  The kind stays in the button's accessible name, after the status, in a visually hidden span, so
+  a screen reader still says which an entry is; `open`'s detail is still `{ id, kind }`.
+
 ## [0.4.0] - 2026-10-30
 
 ### Added

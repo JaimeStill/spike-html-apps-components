@@ -232,6 +232,71 @@ describe("components", { timeout: 60_000 }, () => {
     });
   }
 
+  test("the entry's meta line shows no kind word, its button's name keeps it, and open sends the id and kind", async () => {
+    // A file's entry and a directory's on the lean page: the file's meta line is its size,
+    // content type, and time, the directory's its time alone, neither with "file" or "directory"
+    // in it; each button's accessible name, as the browser computes it, still says which it is,
+    // from the kind kept visually hidden; and activating each sends open with its id and kind.
+    const page = await open(runs[0]);
+    try {
+      /** One entry as it shows: its meta line's parts and text, and the open details it sent. */
+      interface Shown {
+        parts: string[];
+        meta: string;
+        opened: unknown[];
+      }
+      const shown: { file: Shown; directory: Shown } = await page.evaluate(`(async () => {
+        await import("/dist/entry.js");
+        const make = async (item) => {
+          const entry = document.createElement("sl-entry");
+          entry.item = item;
+          document.querySelector("main").append(entry);
+          await entry.updateComplete;
+          const opened = [];
+          entry.addEventListener("open", (event) => opened.push(event.detail));
+          const root = entry.shadowRoot;
+          root.querySelector("button").click();
+          const meta = root.querySelector(".meta");
+          return {
+            parts: [...meta.children].map((part) => part.className || part.localName),
+            meta: meta.textContent.replace(/\\s+/g, " ").trim(),
+            opened,
+          };
+        };
+        const updated_at = "2026-10-12T16:41:07Z";
+        return {
+          file: await make({ id: "f-1", name: "sketch.txt", status: "available", size: 1536,
+            content_type: "text/plain", updated_at }),
+          directory: await make({ id: "d-1", name: "designs", status: "active", updated_at }),
+        };
+      })()`);
+      for (const [kind, { meta }] of Object.entries(shown)) {
+        assert.doesNotMatch(meta, /\b(file|directory)\b/, `the ${kind}'s meta line: "${meta}"`);
+      }
+      assert.deepEqual(shown.file.parts, ["size", "type", "time"], "the file's meta parts");
+      assert.equal(shown.file.meta, "1.5 kB text/plain Oct 12, 2026, 4:41 PM");
+      assert.deepEqual(shown.directory.parts, ["time"], "the directory's meta parts");
+      assert.equal(shown.directory.meta, "Oct 12, 2026, 4:41 PM");
+      assert.deepEqual(shown.file.opened, [{ id: "f-1", kind: "file" }]);
+      assert.deepEqual(shown.directory.opened, [{ id: "d-1", kind: "directory" }]);
+      const { nodes }: { nodes: { role?: { value: string }; name?: { value: string } }[] } =
+        await page.cdp("Accessibility.getFullAXTree", {});
+      // Each name up to its size or time: the content type's wbr reads as a space in a name.
+      const names = nodes
+        .filter((node) => node.role?.value === "button")
+        .map((node) => node.name?.value ?? "")
+        .filter((name) => /^(sketch\.txt|designs) /.test(name));
+      assert.equal(names.length, 2, `the buttons' accessible names: ${names.join("; ")}`);
+      assert.ok(
+        names[0].startsWith("sketch.txt available file 1.5 kB "),
+        `the file's button: "${names[0]}"`,
+      );
+      assert.equal(names[1], "designs active directory Oct 12, 2026, 4:41 PM");
+    } finally {
+      await page.close();
+    }
+  });
+
   /** A component as the profiles case renders it in one profile: the profile's every facet, the
    * component's tag and box, and its look, the color, font, and padding it shows. */
   interface Rendered {
@@ -493,14 +558,15 @@ describe("components", { timeout: 60_000 }, () => {
   const ENTRIES = `(section) => [...document.querySelectorAll(section + " sl-entry")]
     .filter((entry) => entry.item !== null)`;
 
-  test("the entry's name is its primary text, its status and kind quieter, the kind starting the meta line under the name, in every profile", async () => {
-    // The name is set larger than the status and the kind, and every entry, a directory's or a
-    // file's, at full width and at 20rem, puts its name and its meta line, which the kind opens,
-    // at one inline start, the kind under the name: no column of its own beside it.
+  test("the entry's name is its primary text, its status and meta quieter, the meta line under the name, in every profile", async () => {
+    // The name is set larger than the status and the meta, and every entry, a directory's or a
+    // file's, at full width and at 20rem, puts its name and its meta line, which a file's size or
+    // content type or a directory's time opens, at one inline start, the meta under the name: no
+    // column of its own beside it.
     const results = await measureSpecimen<{
       shown: {
         name: string;
-        sizes: { name: number; status: number; kind: number };
+        sizes: { name: number; status: number; meta: number };
         first: string;
         starts: number[];
         under: boolean;
@@ -510,30 +576,36 @@ describe("components", { timeout: 60_000 }, () => {
       `() => ({ shown: (${ENTRIES})("main").map((entry) => {
         const root = entry.shadowRoot;
         const size = (selector) => parseFloat(getComputedStyle(root.querySelector(selector)).fontSize);
-        const rect = (selector) => root.querySelector(selector).getBoundingClientRect();
+        const first = root.querySelector(".meta").firstElementChild;
+        const rect = (element) => element.getBoundingClientRect();
         return {
           name: entry.item.name,
-          sizes: { name: size(".name"), status: size(".status"), kind: size(".kind") },
-          first: root.querySelector(".meta").firstElementChild.className,
-          starts: [rect(".name").left, rect(".kind").left],
-          under: rect(".kind").top >= rect(".name").bottom - 0.5,
+          sizes: { name: size(".name"), status: size(".status"), meta: size(".meta") },
+          first: first.className || first.localName,
+          starts: [rect(root.querySelector(".name")).left, rect(first).left],
+          under: rect(first).top >= rect(root.querySelector(".name")).bottom - 0.5,
         };
       }) })`,
     );
     for (const { profile, shown } of results) {
       assert.ok(shown.length >= 2, `${profile}: entries at full width and at 20rem`);
+      const firsts = new Set(shown.map(({ first }) => first));
+      assert.ok(firsts.has("time"), `${profile}: a directory's meta, opened by its time`);
       for (const { name, sizes, first, starts, under } of shown) {
         const where = `${profile}, ${name}`;
         assert.ok(
-          sizes.name > sizes.status && sizes.name > sizes.kind,
-          `${where}: the name ${sizes.name}px, the status ${sizes.status}px, the kind ${sizes.kind}px`,
+          sizes.name > sizes.status && sizes.name > sizes.meta,
+          `${where}: the name ${sizes.name}px, the status ${sizes.status}px, the meta ${sizes.meta}px`,
         );
-        assert.equal(first, "kind", `${where}: the meta line's first part`);
+        assert.ok(
+          ["size", "type", "time"].includes(first),
+          `${where}: the meta opens with ${first}`,
+        );
         assert.ok(
           Math.abs(starts[0] - starts[1]) <= 0.5,
-          `${where}: the name and the kind start at ${starts}`,
+          `${where}: the name and the meta start at ${starts}`,
         );
-        assert.ok(under, `${where}: the kind under the name`);
+        assert.ok(under, `${where}: the meta under the name`);
       }
     }
   });
@@ -550,8 +622,8 @@ describe("components", { timeout: 60_000 }, () => {
       const meta = root.querySelector(".meta");
       const metaTop = meta.getBoundingClientRect().top;
       // The meta's lines: its parts, top to bottom, each on the line above's unless it starts
-      // below that line's bottom. Its parts sit on one baseline at two sizes, the kind smaller, so
-      // a line's parts don't share a top; a line spans its parts' boxes.
+      // below that line's bottom. Its parts sit on one baseline, the date and clock inside the
+      // time, so a line's parts needn't share a top; a line spans its parts' boxes.
       const lines = [];
       for (const part of [...meta.children].map((child) => child.getBoundingClientRect())
         .sort((a, b) => a.top - b.top)) {
@@ -646,7 +718,7 @@ describe("components", { timeout: 60_000 }, () => {
   test("from 20rem down to 16rem, every part of the entry keeps inside its button, its size and clock whole and its date broken only at its spaces, in mono and sans, regular and compact", async () => {
     // The narrow section restyled to each width in turn, down to 16rem, the entry's supported
     // minimum width, then put back to its own 20rem. At each,
-    // every part of every entry, the kind, the name, the status, and each meta part, keeps inside
+    // every part of every entry, the name, the status, and each meta part, keeps inside
     // its button; the size and the time's clock each render on one line; and each word of the
     // date, its text between spaces, renders on one line, so the date breaks only at its spaces.
     const over = ["mono", "sans"].flatMap((type) =>
@@ -660,7 +732,7 @@ describe("components", { timeout: 60_000 }, () => {
           const root = entry.shadowRoot;
           const button = root.querySelector(".entry");
           const box = button.getBoundingClientRect();
-          const parts = [".kind", ".name", ".status", ".meta > *", "time > .date", "time > .clock"]
+          const parts = [".name", ".status", ".meta > *", "time > .date", "time > .clock"]
             .flatMap((selector) => [...root.querySelectorAll(selector)]);
           const date = root.querySelector("time > .date");
           // Lit's markers stand beside the date's text: its one text node holds the date.
@@ -828,7 +900,7 @@ describe("components", { timeout: 60_000 }, () => {
         const box = button.getBoundingClientRect();
         const gap = parseFloat(getComputedStyle(root.querySelector(".head")).columnGap);
         const part = (selector) => root.querySelector(selector).getBoundingClientRect();
-        const [kind, name, status, meta] = [".kind", ".name", ".status", ".meta"].map(part);
+        const [name, status, meta] = [".name", ".status", ".meta"].map(part);
         // The name's text laid out on one line, however its box wraps it.
         const range = document.createRange();
         range.selectNodeContents(root.querySelector(".name"));
@@ -844,7 +916,7 @@ describe("components", { timeout: 60_000 }, () => {
           lines: (${LINES})(root.querySelector(".name")),
           status: status.width > 0 && status.height > 0,
           overflow: button.scrollWidth - button.clientWidth,
-          outside: [["kind", kind], ["name", name], ["status", status], ["meta", meta]]
+          outside: [["name", name], ["status", status], ["meta", meta]]
             .filter(([, rect]) => !inside(rect)).map(([which]) => which),
         };
       }) })`,
@@ -1962,7 +2034,7 @@ describe("components", { timeout: 60_000 }, () => {
             .map(([name]) => name),
           spills: entries.flatMap((entry) => {
             const button = entry.shadowRoot.querySelector("button").getBoundingClientRect();
-            return [".kind", ".name", ".status", ".meta"]
+            return [".name", ".status", ".meta"]
               .filter((selector) => outside(entry.shadowRoot.querySelector(selector).getBoundingClientRect(), button))
               .map((selector) => entry.item.name + " " + selector);
           }),

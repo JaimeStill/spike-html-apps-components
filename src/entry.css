@@ -1,9 +1,9 @@
-/* Adapted from spike-html-packages-components (4c0a5d8): src/entry-shadow.css, its kind moved from
-   a column of its own to the start of the meta line, its name the primary text and its status and
-   kind quiet labels, its meta lines stepped by the row gap, a long name wrapped, its name and
-   status in a row that wraps, its size and the time's clock each kept whole, the time's date
-   broken at its spaces, its content type broken at its punctuation, and its frame drawn in the
-   interaction color when selected. */
+/* Adapted from spike-html-packages-components (4c0a5d8): src/entry-shadow.css, its kind taken from
+   a column of its own and visually hidden, its name the primary text and its status a quiet label,
+   its meta lines stepped by the row gap, a long name wrapped, its name and status in a row that
+   wraps, its size and the time's clock each kept whole, the time's date broken at its spaces, its
+   content type broken at its punctuation, and its frame drawn in the interaction color when
+   selected. */
 
 /*
  * The entry's layout in a shadow root: entry.ts adopts this sheet into its root after the
@@ -27,6 +27,7 @@
    a directory's or a file's, each its own grid in its own shadow root, puts its name at the
    button's inline start. The button's font is the interface font, the elements sheet's. */
 .entry {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   align-items: baseline;
@@ -77,10 +78,21 @@
   color: var(--fg-2);
   white-space: nowrap;
 }
-/* The meta row sits under the head, smaller and muted: the kind, at the status's smallest size,
-   then the size, the content type, and the time. Its parts wrap between one another, each laid out
-   whole when it fits a line, and its wrapped lines step by the entry's row gap, the name-to-meta
-   step. It may shrink below its content. */
+/* The kind, "file" or "directory", names the entry for assistive technology and takes no space:
+   out of the grid's flow, a pixel inside the button, which holds it, and clipped to nothing, so it
+   adds neither a row nor a gap. The meta tells a file from a directory to the eye. */
+.kind {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+/* The meta row sits under the head, smaller and muted: a file's size and content type, then the
+   time, a directory's time alone. Its parts wrap between one another, each laid out whole when it
+   fits a line, and its wrapped lines step by the entry's row gap, the name-to-meta step. It may
+   shrink below its content. */
 .meta {
   display: flex;
   flex-wrap: wrap;
@@ -89,9 +101,6 @@
   min-inline-size: 0;
   font-size: var(--text-s);
   color: var(--fg-2);
-}
-.kind {
-  font-size: var(--text-xs);
 }
 /* The content type breaks at the wbr entry.ts puts after each slash, dot, hyphen, and plus, and
    inside a part only when that part alone is wider than the line: break-word, not anywhere, so its

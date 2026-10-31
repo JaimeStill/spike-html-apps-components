@@ -56,11 +56,12 @@ foundation's `page.css`:
 
 - `./status-badge.js`: `sl-status-badge`, a label; a click dispatches `badge-select`.
 - `./entry.js`: `sl-entry`, one directory or file of a document hierarchy, as a button, its name
-  the primary text, its status and kind quiet labels; it dispatches `open`, and `selected`,
-  reflected, frames it in the interaction color, moving nothing. It formats a file's size and its
-  updated time with the foundation's `formatBytes` and `formatDateTime`. It sizes to its content in
-  any parent, a shrink-to-fit one too, and stays inside its box down to 16rem, its supported
-  minimum width.
+  the primary text and its status a quiet label, over a meta line of a file's size and content
+  type and the time, its kind named to assistive technology alone; it dispatches `open`, and
+  `selected`, reflected, frames it in the interaction color, moving nothing. It formats a file's
+  size and its updated time with the foundation's `formatBytes` and `formatDateTime`. It sizes to
+  its content in any parent, a shrink-to-fit one too, and stays inside its box down to 16rem, its
+  supported minimum width.
 - `./pagination.js`: `sl-pagination`, a page of entries between its summary and its controls, a
   `status` slot running on after the summary's text; it dispatches `page-change` and
   `page-size-change`.
