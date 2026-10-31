@@ -8,8 +8,9 @@
          beside a document's content. The drawer's mode is the viewport's, so its states are the
          page's at two widths rather than figures on one page: above 48rem the drawer docks as the
          frame's first column; at or below it the frame is one column, the drawer is closed, and a
-         Documents button in the toolbar opens it as a modal drawer, which holds its own Close
-         button. mise run screenshots captures it docked at 1280px, then closed, open, and open in
+         Documents button in the toolbar opens it as a modal drawer over the whole viewport, under
+         the drawer's own header and Close button; docked, the page's own heading names the
+         column. mise run screenshots captures it docked at 1280px, then closed, open, and open in
          a right-to-left page at 480px, each opened by the keyboard on the toolbar's button so the
          drawer's first control shows its focus ring. The page links the installed foundation's
          full entry, page-full.css, and imports register-full.js, so a profile applies by
@@ -38,7 +39,6 @@
 
       const drawer = document.querySelector("sl-drawer");
       document.querySelector("#open-documents").addEventListener("click", () => drawer.show());
-      document.querySelector("#close-documents").addEventListener("click", () => drawer.close());
       // The toolbar's button says whether the drawer it controls is open.
       const expanded = () =>
         document.querySelector("#open-documents").setAttribute("aria-expanded", String(drawer.open));
@@ -50,23 +50,20 @@
     <main class="unframed">
       <h1>Drawer</h1>
       <p>
-        <code>sl-drawer</code>, docked beside the content above 48rem, and a modal drawer from the
-        inline-start edge at or below it.
+        <code>sl-drawer</code>, docked beside the content above 48rem, and at or below it a
+        modal drawer over the whole viewport, sliding in from the inline-start edge.
       </p>
 
       <div class="app">
         <sl-drawer label="Documents" dock="48rem" id="documents">
-          <div class="app-drawer-head">
-            <h2>Documents</h2>
-            <button type="button" id="close-documents" class="app-narrow">Close</button>
-          </div>
+          <h2 class="app-wide">Documents</h2>
           <input type="search" class="app-filter" aria-label="Filter documents" placeholder="Filter" />
           <ul class="app-documents">
-            <li><a href="#nda-2026">nda-2026.pdf</a></li>
-            <li><a href="#retainer">retainer.docx</a></li>
-            <li><a href="#quarterly-report" aria-current="page">quarterly-report.md</a></li>
-            <li><a href="#interview-notes">interview-notes.txt</a></li>
-            <li><a href="#site-survey">2026-10-29-site-survey-north-campus-building-c.pdf</a></li>
+            <li><a dir="auto" href="#nda-2026">nda-2026.pdf</a></li>
+            <li><a dir="auto" href="#retainer">retainer.docx</a></li>
+            <li><a dir="auto" href="#quarterly-report" aria-current="page">quarterly-report.md</a></li>
+            <li><a dir="auto" href="#interview-notes">interview-notes.txt</a></li>
+            <li><a dir="auto" href="#site-survey">2026-10-29-site-survey-north-campus-building-c.pdf</a></li>
           </ul>
         </sl-drawer>
         <article class="app-content">

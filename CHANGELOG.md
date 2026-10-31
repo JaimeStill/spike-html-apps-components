@@ -9,21 +9,23 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 ### Added
 
 - `./drawer.js` defines `sl-drawer`, a responsive drawer for a narrow layout: its children, in the
-  default slot, sit in one native dialog. Wider than `dock`, a CSS length (48rem by default) read
-  in the media query `(max-width: <dock>)`, the dialog is docked: open non-modally, by its
-  attribute so it never takes focus, laid out as an ordinary block in the host's place, with no
-  scrim and no focus trap; `open` stays false there, and `show()`, `close()`, and `toggle()` do
-  nothing. At or below `dock` the drawer is closed until `show()`, `toggle()`, or `open`, reflected,
-  opens it with `showModal()`: fixed to the inline-start edge, the right in a right-to-left page,
-  up to 20rem wide, over the foundation's scrim, the page behind inert, and focus on its first
-  control. Escape, a click on the scrim, `close()`, `toggle()`, or `open` set false closes it, and
-  the dialog returns focus to the element that held it. It slides in and out by a 200ms
-  translate, its scrim fading, only when the reader allows motion. `label` is the dialog's
-  accessible name. It dispatches `open` and `close`, each with `{}`, bubbling and composed, as the
-  modal drawer opens and closes, never on a switch between the modes: a viewport or a `dock` that
-  crosses the width only changes how the same dialog shows, transitions held off, so the slotted
-  content is never moved or re-created; an open drawer docks, and docked content becomes a closed
-  drawer.
+  default slot, sit in one of two shadow wrappers by the mode. Wider than `dock`, a CSS length
+  (48rem by default) read in the media query `(max-width: <dock>)`, the drawer is docked: an
+  `aside`, a complementary landmark named by `label`, laid out as an ordinary block in the host's
+  place, always shown and taking no focus; `open` stays false there, and `show()`, `close()`, and
+  `toggle()` do nothing. At or below `dock` the drawer is closed until `show()`, `toggle()`, or
+  `open`, reflected, opens it, a native dialog shown with `showModal()`: it covers the viewport
+  edge to edge, the page behind inert, and focus moves inside it. Its header holds `label` as an
+  `h2`, which names the dialog, and a Close button whose accessible name is its text and the
+  label, "Close Documents"; the text is the `close` slot's, "Close" by default, for a translation.
+  The header stays in view while the content below it scrolls. The Close button, Escape,
+  `close()`, `toggle()`, or `open` set false closes it, and the dialog returns focus to the
+  element that held it. It slides in and out from the inline-start edge, the right in a
+  right-to-left page, by a 200ms translate, only when the reader allows motion. It dispatches
+  `open` and `close`, each with `{}`, bubbling and composed, as the modal drawer opens and closes,
+  never on a switch between the modes: a viewport or a `dock` that crosses the width swaps only
+  the shadow wrapper, so the slotted content is never moved, disconnected, or re-created, and
+  nothing slides; an open drawer docks, and docked content becomes a closed drawer.
 - `demo/drawer.html`, the drawer's specimen page: an app's frame, captured docked at 1280px and
   closed, open, and open right to left at 480px.
 

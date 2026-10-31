@@ -428,8 +428,8 @@ describe("components", { timeout: 60_000 }, () => {
             // the stage timeline, which holds none either, its complete stage's marker's color,
             // its step's column gap, the space between marker and text, and its label's font; the
             // event log, which holds no button but its data's toggle, its list's color and padding,
-            // and its time's font, the interface font; the drawer, which holds no button of its own,
-            // its dialog's color and padding, and its slotted button's font, the interface font,
+            // and its time's font, the interface font; the drawer, docked, which holds no button of its own
+            // there, its aside's color and padding, and its slotted button's font, the interface font,
             // since it sets no font itself.
             const drawer = tag === "sl-drawer";
             const viewer = tag === "sl-artifact-viewer";
@@ -439,7 +439,7 @@ describe("components", { timeout: 60_000 }, () => {
             const style = getComputedStyle(entries.length
               ? entries[0].shadowRoot.querySelector("button")
               : element.shadowRoot.querySelector(
-                drawer ? "dialog" : viewer ? ".body > *" : thread ? ".user > .message" : timeline ? ".complete > .marker" : log ? ".events" : "button"));
+                drawer ? "aside" : viewer ? ".body > *" : thread ? ".user > .message" : timeline ? ".complete > .marker" : log ? ".events" : "button"));
             const font = drawer
               ? getComputedStyle(element.querySelector("button"))
               : viewer

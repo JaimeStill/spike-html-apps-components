@@ -105,14 +105,18 @@ foundation's `page.css`:
   error states, said on the pagination's summary line when it shows one. The entry's `open` and
   the pagination's `page-change` and `page-size-change` reach its listener as their parts sent
   them; it dispatches none of its own. It exports its document type and binds no key.
-- `./drawer.js`: `sl-drawer`, its children in one native dialog, docked inline as an ordinary
-  block wider than `dock`, a CSS length, 48rem by default, and at or below it a modal drawer,
-  closed until `show()`, `toggle()`, or `open` opens it, sliding in from the inline-start edge
-  over a scrim. Escape, a click on the scrim, `close()`, or `toggle()` closes it, and focus
-  returns to what opened it; `label` names the dialog. It dispatches `open` and `close` as the
-  modal drawer opens and closes, never as the viewport crosses `dock`, which changes only how the
-  one dialog shows, so the slotted content is never moved or re-created: an open drawer docks, and
-  docked content becomes a closed drawer. It slides only when the reader allows motion.
+- `./drawer.js`: `sl-drawer`, its children in the default slot, in one of two shadow wrappers by
+  the viewport. Wider than `dock`, a CSS length, 48rem by default, they sit in an `aside` docked
+  inline as an ordinary block, a complementary landmark named by `label`, always shown and taking
+  no focus. At or below it they sit in a modal dialog, closed until `show()`, `toggle()`, or
+  `open` opens it, covering the viewport and sliding in from the inline-start edge; its header
+  holds `label` as an `h2` that names the dialog, staying in view while the content scrolls, and
+  a Close button named "Close" and the label, its text replaceable through the `close` slot for a
+  translation. The Close button, Escape, `close()`, or `toggle()` closes it, and focus returns to
+  what opened it. It dispatches `open` and `close` as the modal drawer opens and closes, never as
+  the viewport crosses `dock`, which swaps only the wrapper, so the slotted content is never
+  moved, disconnected, or re-created: an open drawer docks, and docked content becomes a closed
+  drawer. It slides only when the reader allows motion.
 - `./*.css`: each component's sheet, which its module imports itself.
 
 `demo/components.html` puts the status badge, the entry, and the pagination on one page, with its

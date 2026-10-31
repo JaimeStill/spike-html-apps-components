@@ -1,81 +1,96 @@
 /*
  * The drawer's layout in a shadow root: drawer.ts adopts this sheet into its root after the
  * foundation's reset and elements sheets (baseline/reset.css and elements.css), which give the
- * native dialog its frame, its surface, and its scrim, the ::backdrop. It holds the two modes'
- * layouts, by the host's custom state, docked or drawer, and the drawer's slide. It reads only the
- * foundation's baseline tokens, which a shadow root takes by inheritance from the page's entry; its
- * fixed lengths are layout: the drawer's cap and the slide's timing. Unlayered, it sits above the
- * adopted layers in the root.
+ * native dialog its surface, the Close button and the heading their looks and focus ring, and the
+ * ::backdrop its scrim, which the drawer covers whole. It holds the docked aside's frame and the drawer's: the full
+ * viewport, its header, its scrolling body, and its slide. It reads only the foundation's baseline
+ * tokens, which a shadow root takes by inheritance from the page's entry; its one fixed length is
+ * the slide's timing. Unlayered, it sits above the adopted layers in the root.
  *
- * Docked, the dialog is an ordinary block filling the host, in the dialog's frame, scrolling inside
- * it when the host is held shorter than its content. As a drawer it is fixed to the viewport's
- * inline-start edge, the full block size, up to 20rem wide and always short of the viewport by a
- * strip of scrim; its frame is open at the edge it sits against, so only its inline-end corners
- * round. It slides in from that edge and back out, the scrim fading with it, unless the reader
- * prefers reduced motion; the slide is a translate, which moves nothing else.
+ * Docked, the aside is an ordinary block filling the host on the first elevated surface, framed
+ * as a container, scrolling inside it when the host is held shorter than its content. As a drawer
+ * the dialog covers the viewport edge to edge, with no frame, since every edge is the viewport's:
+ * its header stays in place while the body below it scrolls. It slides in from the inline-start
+ * edge and back out unless the reader prefers reduced motion; the slide is a translate, which
+ * moves nothing else.
  */
 
 :host {
   display: block;
-}
-:host(:state(drawer)) {
   /* The edge the drawer hides past, by the writing direction. */
   --drawer-from: -100%;
 }
-:host(:state(drawer):dir(rtl)) {
+:host(:dir(rtl)) {
   --drawer-from: 100%;
 }
-dialog {
-  position: static;
-  inset: auto;
-  inline-size: auto;
-  max-inline-size: none;
+aside {
   block-size: 100%;
+  overflow: auto;
+  padding: var(--space-s);
+  border: var(--line-s) solid var(--border);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-1);
+  color: var(--fg);
+}
+dialog {
+  position: fixed;
+  inset: 0;
+  inline-size: 100%;
+  max-inline-size: none;
+  block-size: 100dvh;
   max-block-size: none;
   margin: 0;
-  overflow: auto;
-}
-:host(:state(drawer)) dialog {
-  position: fixed;
-  inset-block: 0;
-  inset-inline: 0 auto;
-  inline-size: min(20rem, 100% - var(--space-xl));
-  block-size: auto;
-  border-block-width: 0;
-  border-inline-start-width: 0;
+  padding: 0;
+  border: 0;
   border-radius: 0;
-  border-start-end-radius: var(--radius-md);
-  border-end-end-radius: var(--radius-md);
+  flex-direction: column;
   overscroll-behavior: contain;
   translate: var(--drawer-from) 0;
 }
-:host(:state(drawer)) dialog[open] {
+dialog[open] {
+  display: flex;
   translate: 0 0;
 }
-:host(:state(drawer)) dialog::backdrop {
-  opacity: 0;
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-s);
+  padding: var(--space-s);
+  border-block-end: var(--line-s) solid var(--border);
 }
-:host(:state(drawer)) dialog[open]::backdrop {
-  opacity: 1;
+h2 {
+  margin: 0;
 }
-/* The slide and the fade, from the closed look as the dialog opens, and back as it closes, the
-   dialog kept rendered in the top layer until they end. A mode switch's instant state holds them
-   off, so a switch never slides. */
+.body {
+  flex: 1 1 auto;
+  min-block-size: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-s);
+}
+/* The label in the Close button's name, which takes no space. */
+.hidden {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+/* The slide, from past the edge as the dialog opens, and back as it closes, the dialog kept
+   rendered in the top layer until it ends. A mode switch creates or removes a closed dialog, so
+   it never slides. */
 @media (prefers-reduced-motion: no-preference) {
-  :host(:state(drawer):not(:state(instant))) dialog,
-  :host(:state(drawer):not(:state(instant))) dialog::backdrop {
+  dialog {
     transition:
       translate 200ms ease-out,
-      opacity 200ms ease-out,
       overlay 200ms allow-discrete,
       display 200ms allow-discrete;
   }
   @starting-style {
-    :host(:state(drawer)) dialog[open] {
+    dialog[open] {
       translate: var(--drawer-from) 0;
-    }
-    :host(:state(drawer)) dialog[open]::backdrop {
-      opacity: 0;
     }
   }
 }
