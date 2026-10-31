@@ -5,11 +5,12 @@
 // visible heading and covering the viewport edge to edge, its header in view while its content
 // scrolls, the page behind inert and focus inside, closed by its Close button, Escape, close(),
 // toggle(), or open, focus returned to the opener; the Close button's text replaced through its
-// slot; open and close sent once each, bubbling and composed, never on a mode switch; a switch in
-// either direction, by the viewport or by dock, keeping the very same slotted elements, never
+// slot; open and close sent once each, bubbling and composed, never on a mode switch or on removal,
+// which closes it, a drawer put back closed and opening modally again; a switch in either
+// direction, by the viewport or by dock, keeping the very same slotted elements, never
 // disconnected, and what was typed and counted in them; the slide's transition, absent under
-// reduced motion and on a switch; and the slide from the inline-start edge, the left, or the
-// right in a right-to-left page.
+// reduced motion and on a switch; and the slide from the inline-start edge, the left, or the right
+// in a right-to-left page.
 
 import assert from "node:assert/strict";
 import { after, before, beforeEach, describe, test } from "node:test";
@@ -419,21 +420,42 @@ describe("drawer", { timeout: 60_000 }, () => {
   }
 
   test("show() just after a resize to narrow opens it, before the media query's change event", async () => {
-    await mount(WIDE);
-    await page.cdp("Emulation.setDeviceMetricsOverride", {
-      width: NARROW,
-      height: HEIGHT,
-      deviceScaleFactor: 1,
-      mobile: false,
-    });
-    // Still docked by the last change event the drawer heard, though the viewport is narrow.
-    const shown: { docked: boolean; modal: boolean } = await page.evaluate(`(() => {
-      const drawer = document.querySelector("sl-drawer");
-      const docked = drawer.matches(":state(docked)");
-      drawer.show();
-      return { docked, modal: drawer.shadowRoot.querySelector("dialog")?.matches(":modal") ?? false };
+    // The change event lags a resize by a frame, a race a test can't win reliably, so the drawer's
+    // listener is held back while the viewport narrows: the drawer is still docked by the last
+    // event it heard, though the query matches. The original listener is put back afterwards.
+    await page.evaluate(`(() => {
+      const add = MediaQueryList.prototype.addEventListener;
+      const wrapped = [];
+      window.holdChanges = true;
+      MediaQueryList.prototype.addEventListener = function (type, listener, options) {
+        const held = (event) => window.holdChanges || listener.call(this, event);
+        wrapped.push([this, type, listener, held, options]);
+        return add.call(this, type, held, options);
+      };
+      window.releaseChanges = () => {
+        MediaQueryList.prototype.addEventListener = add;
+        window.holdChanges = false;
+        for (const [query, type, listener, held, options] of wrapped) {
+          query.removeEventListener(type, held, options);
+          query.addEventListener(type, listener, options);
+        }
+      };
     })()`);
-    assert.deepEqual(shown, { docked: true, modal: true });
+    try {
+      await mount(WIDE);
+      await resize(NARROW);
+      const shown: { matches: boolean; docked: boolean; modal: boolean } =
+        await page.evaluate(`(() => {
+        const drawer = document.querySelector("sl-drawer");
+        const matches = matchMedia("(max-width: 48rem)").matches;
+        const docked = drawer.matches(":state(docked)");
+        drawer.show();
+        return { matches, docked, modal: drawer.shadowRoot.querySelector("dialog")?.matches(":modal") ?? false };
+      })()`);
+      assert.deepEqual(shown, { matches: true, docked: true, modal: true });
+    } finally {
+      await page.evaluate("window.releaseChanges()");
+    }
   });
 
   test("toggle() and open set true open it modally, open sent once each time", async () => {
@@ -454,6 +476,30 @@ describe("drawer", { timeout: 60_000 }, () => {
     await mount(NARROW, { open: true });
     const shown = await read();
     assert.deepEqual([shown.modal, shown.sent], [true, ["open"]]);
+  });
+
+  test("removed while open it closes silently, and put back it is a closed drawer that opens modally", async () => {
+    await mount(NARROW);
+    await openByKeyboard();
+    const removed: { open: boolean; attribute: boolean; dialogOpen: boolean } =
+      await page.evaluate(`(async () => {
+        const drawer = (window.removed = document.querySelector("sl-drawer"));
+        drawer.remove();
+        await drawer.updateComplete;
+        return {
+          open: drawer.open,
+          attribute: drawer.hasAttribute("open"),
+          dialogOpen: drawer.shadowRoot.querySelector("dialog")?.open ?? false,
+        };
+      })()`);
+    assert.deepEqual(removed, { open: false, attribute: false, dialogOpen: false });
+    await page.evaluate(`document.querySelector("main").append(window.removed)`);
+    await settled("drawer");
+    let shown = await read();
+    assert.deepEqual([shown.dialogOpen, shown.open, shown.visible], [false, false, false]);
+    await call("show");
+    shown = await read();
+    assert.deepEqual([shown.modal, shown.sent], [true, ["open", "open"]], "no close on removal");
   });
 
   test("a switch across dock, either way, keeps the very same slotted elements, never disconnected, and their state; it sends nothing and never slides", async () => {
