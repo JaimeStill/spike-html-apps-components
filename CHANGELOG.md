@@ -6,6 +6,8 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-31
+
 ### Added
 
 - `./drawer.js` defines `sl-drawer`, a responsive drawer for a narrow layout: its children, in the
@@ -293,7 +295,8 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 - The release by tag: `v<version>`, whose tree is the pack, with the tarball on its GitHub
   release.
 
-[Unreleased]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.1.0...v0.2.0
