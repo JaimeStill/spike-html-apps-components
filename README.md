@@ -16,9 +16,9 @@ the one copy serves both, so a restyle of the foundation's sheets by package nam
 components' shadow roots too. Install both by their tags:
 
 ```
-npm install --allow-git=root github:JaimeStill/spike-html-apps-components#v0.3.0 github:JaimeStill/spike-html-apps-foundation#v0.2.0
-pnpm add github:JaimeStill/spike-html-apps-components#v0.3.0 github:JaimeStill/spike-html-apps-foundation#v0.2.0
-bun add github:JaimeStill/spike-html-apps-components#v0.3.0 github:JaimeStill/spike-html-apps-foundation#v0.2.0
+npm install --allow-git=root github:JaimeStill/spike-html-apps-components#v0.4.0 github:JaimeStill/spike-html-apps-foundation#v0.2.1
+pnpm add github:JaimeStill/spike-html-apps-components#v0.4.0 github:JaimeStill/spike-html-apps-foundation#v0.2.1
+bun add github:JaimeStill/spike-html-apps-components#v0.4.0 github:JaimeStill/spike-html-apps-foundation#v0.2.1
 ```
 
 Or by their release tarballs:
@@ -78,7 +78,8 @@ foundation's `page.css`:
   no event. It imports `./markdown.js`, so its page maps marked too.
 - `./composer.js`: `sl-composer`, a multi-line text field that grows to eight lines, and its
   send control, which a stop control replaces while `busy`; it dispatches `send` with the text,
-  then clears the field, and `stop`. It binds no key.
+  then clears the field, and `stop`. Its `send()` does what activating send does, so an app that
+  sends on a key calls it; the composer binds no key.
 - `./upload-dropzone.js`: `sl-upload-dropzone`, a zone that takes files by drop or through its
   picker button, and the app's uploads below it, each with its progress and a cancel control or
   its finished state; it dispatches `files-select` with an array of the files, and

@@ -1,9 +1,10 @@
 // The composer from this repository's dist/, on test/fixtures/components.html: send sending the
-// field's text, bubbling and composed, and clearing the field; empty and whitespace-only text
-// unsendable; busy putting stop in send's place, in the same footprint, typing still allowed;
-// disabled blocking typing, sending, and stopping; Enter, Shift+Enter, and Escape doing only what
-// a native textarea does; the field growing with its text to eight lines, then scrolling; value
-// and the attributes in step with the field; and no event but send and stop.
+// field's text, bubbling and composed, and clearing the field; send() doing what activating send
+// does, under the same rules; empty and whitespace-only text unsendable; busy putting stop in
+// send's place, in the same footprint, typing still allowed; disabled blocking typing, sending,
+// and stopping; Enter, Shift+Enter, and Escape doing only what a native textarea does; the field
+// growing with its text to eight lines, then scrolling; value and the attributes in step with the
+// field; and no event but send and stop.
 
 import assert from "node:assert/strict";
 import { after, before, beforeEach, describe, test } from "node:test";
@@ -96,8 +97,15 @@ describe("composer", { timeout: 60_000 }, () => {
       };
       window.focusField = () =>
         document.querySelector("sl-composer").shadowRoot.querySelector("textarea").focus();
+      // Focus moves to the control first, as a pointer or a key activating it moves it.
       window.clickAction = async () => {
-        document.querySelector("sl-composer").shadowRoot.querySelector(".action").click();
+        const action = document.querySelector("sl-composer").shadowRoot.querySelector(".action");
+        action.focus();
+        action.click();
+        return window.read();
+      };
+      window.callSend = async () => {
+        document.querySelector("sl-composer").send();
         return window.read();
       };
     })`);
@@ -112,6 +120,7 @@ describe("composer", { timeout: 60_000 }, () => {
     page.evaluate(`window.mount(${JSON.stringify(fields)}).then(() => {})`);
   const read = (): Promise<Shown> => page.evaluate("window.read()");
   const clickAction = (): Promise<Shown> => page.evaluate("window.clickAction()");
+  const callSend = (): Promise<Shown> => page.evaluate("window.callSend()");
   const focusField = () => page.evaluate("window.focusField()");
   // Text typed into the focused element, as an input method commits it.
   const type = (text: string) => page.cdp("Input.insertText", { text });
@@ -193,6 +202,48 @@ describe("composer", { timeout: 60_000 }, () => {
       assert.deepEqual([shown.action, shown.actionDisabled], ["send", true]);
       const after = await clickAction();
       assert.deepEqual([after.sent, after.heard, after.field], [[], [], value]);
+    });
+  }
+
+  test("send() sends the text once, bubbling and composed, clears the field, and focuses it", async () => {
+    await mount({ value: "  Which stages ran?\n" });
+    const before = await read();
+    assert.equal(before.focused, null, "the field starts unfocused");
+    const after = await callSend();
+    assert.deepEqual(after.sent, ["send"]);
+    assert.deepEqual(after.heard, [
+      { type: "send", detail: { text: "  Which stages ran?\n" }, bubbles: true, composed: true },
+    ]);
+    assert.deepEqual(
+      [after.value, after.field, after.actionDisabled, after.focused],
+      ["", "", true, "textarea"],
+    );
+  });
+
+  test("send() clears the field before send goes out, so a listener that restores the text keeps it", async () => {
+    await mount({ value: "draft" });
+    const after: Shown = await page.evaluate(`(() => {
+      const composer = document.querySelector("sl-composer");
+      composer.addEventListener("send", (event) => (composer.value = event.detail.text), { once: true });
+      return window.callSend();
+    })()`);
+    assert.deepEqual([after.value, after.field, after.actionDisabled], ["draft", "draft", false]);
+  });
+
+  for (const [what, fields] of [
+    ["the text is empty", { value: "" }],
+    ["the text is whitespace-only", { value: " \n\t  \n" }],
+    ["busy", { busy: true, value: "next question" }],
+    ["disabled", { disabled: true, value: "kept" }],
+    ["busy and disabled", { busy: true, disabled: true, value: "kept" }],
+  ] as const) {
+    test(`send() does nothing while ${what}, leaving the text`, async () => {
+      await mount(fields);
+      const after = await callSend();
+      assert.deepEqual(
+        [after.sent, after.heard, after.value, after.field, after.focused],
+        [[], [], fields.value, fields.value, null],
+      );
     });
   }
 

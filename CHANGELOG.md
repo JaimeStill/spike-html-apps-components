@@ -6,6 +6,15 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-30
+
+### Added
+
+- `sl-composer`'s `send()` does what activating its send control does, which now calls it: while
+  the text is empty or whitespace, or the composer is `busy` or `disabled`, nothing; otherwise it
+  clears the field, sends `send` with the text, and focuses the field. An app that sends on a key
+  calls it rather than repeating the rules; the composer still binds no key.
+
 ## [0.3.0] - 2026-10-29
 
 ### Added
@@ -242,7 +251,8 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 - The release by tag: `v<version>`, whose tree is the pack, with the tarball on its GitHub
   release.
 
-[Unreleased]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/JaimeStill/spike-html-apps-components/releases/tag/v0.1.0
