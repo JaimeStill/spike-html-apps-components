@@ -429,8 +429,8 @@ describe("components", { timeout: 60_000 }, () => {
             // its step's column gap, the space between marker and text, and its label's font; the
             // event log, which holds no button but its data's toggle, its list's color and padding,
             // and its time's font, the interface font; the drawer, docked, which holds no button of its own
-            // there, its aside's color and padding, and its slotted button's font, the interface font,
-            // since it sets no font itself.
+            // there, its aside's color, its body's padding, and its slotted button's font, the
+            // interface font, since it sets no font itself.
             const drawer = tag === "sl-drawer";
             const viewer = tag === "sl-artifact-viewer";
             const thread = tag === "sl-chat-thread";
@@ -456,7 +456,9 @@ describe("components", { timeout: 60_000 }, () => {
               font: font.fontFamily,
               padding: timeline
                 ? parseFloat(getComputedStyle(element.shadowRoot.querySelector(".stage")).columnGap)
-                : parseFloat(style.paddingInlineStart),
+                : drawer
+                  ? parseFloat(getComputedStyle(element.shadowRoot.querySelector("aside > .body")).paddingInlineStart)
+                  : parseFloat(style.paddingInlineStart),
             };
             rendered.push({ ...choice, profile: JSON.stringify(choice), tag, width, height, look });
             element.remove();

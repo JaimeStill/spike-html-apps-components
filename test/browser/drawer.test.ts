@@ -1,6 +1,8 @@
 // The drawer from this repository's dist/, on test/fixtures/components.html, its viewport set
-// either side of the dock width: docked above it, an aside exposed as a complementary landmark,
-// visible, its content interactive, the page live, focus left where it was; at or below it,
+// either side of the dock width: docked at it and wider, the boundary exact for a rem and a px
+// dock, and docked for a length the query can't read, an aside exposed as a complementary
+// landmark named by its own visible heading, the one heading in the drawer's shadow tree, with no
+// Close button, visible, its content interactive, the page live, focus left where it was; below it,
 // closed by default, and opened modally by show(), toggle(), or open, open in its markup or set
 // before it is connected included, which is undone while docked, a dialog named by its
 // visible heading and covering the viewport edge to edge, its header in view while its content
@@ -63,7 +65,8 @@ interface AXNode {
   name?: { value: string };
 }
 
-// The dock width, 48rem at the initial font size, and a viewport either side of it.
+// The dock width, 48rem at the initial font size, at which the drawer docks, and a viewport either
+// side of it.
 const DOCK = 768;
 const WIDE = 1280;
 const NARROW = 480;
@@ -192,19 +195,19 @@ describe("drawer", { timeout: 60_000 }, () => {
     await until(page, `innerWidth === ${width} && innerHeight === ${height}`);
   };
   // The drawer mounted at the viewport's size, once it has settled on the mode the default dock
-  // gives it there.
+  // gives it there, or the mode given, for another dock.
   // Its markup's attributes, if any, and, detached, its fields set before it is connected.
   const mount = async (
     width: number,
     fields: Record<string, unknown> = {},
     extra = "",
     height = HEIGHT,
-    { attributes = "", detached = false } = {},
+    { attributes = "", detached = false, mode = width >= DOCK ? "docked" : "drawer" } = {},
   ) => {
     await resize(width, height);
     const args = [{ label: "Documents", ...fields }, extra, attributes, detached];
     await page.evaluate(`window.mount(...${JSON.stringify(args)})`);
-    await settled(width > DOCK ? "docked" : "drawer");
+    await settled(mode as "docked" | "drawer");
   };
   // A key pressed and released on the focused element, with the text it types, if any.
   const press = async (key: string, keyCode: number, text?: string) => {
@@ -247,13 +250,34 @@ describe("drawer", { timeout: 60_000 }, () => {
       .filter((node) => !node.ignored && node.role?.value === role)
       .map((node) => node.name?.value ?? "");
   };
+  // The drawer's shadow tree's headings, each with whether it sits in the wrapper rendered and
+  // shows, and the wrapper's naming attributes.
+  const headings = (): Promise<{
+    texts: string[];
+    inWrapper: boolean;
+    visible: boolean;
+    labelledby: string | null;
+    label: string | null;
+  }> =>
+    page.evaluate(`(() => {
+      const root = document.querySelector("sl-drawer").shadowRoot;
+      const wrapper = root.querySelector("aside, dialog");
+      const found = [...root.querySelectorAll("h1, h2, h3, h4, h5, h6, [role=heading]")];
+      return {
+        texts: found.map((h) => h.textContent),
+        inWrapper: found.every((h) => wrapper.contains(h)),
+        visible: found.every((h) => h.checkVisibility()),
+        labelledby: wrapper.getAttribute("aria-labelledby"),
+        label: wrapper.getAttribute("aria-label"),
+      };
+    })()`);
 
   beforeEach(async () => {
     await page.cdp("Emulation.setEmulatedMedia", { features: [] });
     await page.evaluate(`document.documentElement.removeAttribute("dir")`);
   });
 
-  test("above dock it is docked: an aside exposed as a complementary landmark, not a dialog, its content interactive, the page live, focus left in place", async () => {
+  test("at dock and wider it is docked: an aside exposed as a complementary landmark, not a dialog, its content interactive, the page live, focus left in place", async () => {
     await mount(WIDE);
     const shown = await read();
     assert.deepEqual(
@@ -274,6 +298,99 @@ describe("drawer", { timeout: 60_000 }, () => {
     assert.deepEqual(after.sent, [], "show() does nothing while docked");
   });
 
+  test("docked, the aside is named by its own visible heading, the one heading exposed, with no Close button", async () => {
+    await mount(WIDE);
+    const {
+      nodes,
+    }: { nodes: (AXNode & { name?: { sources?: { attribute?: string; value?: unknown }[] } })[] } =
+      await page.cdp("Accessibility.getFullAXTree", {});
+    const landmark = nodes.filter((node) => !node.ignored && node.role?.value === "complementary");
+    assert.deepEqual(
+      landmark.map((node) => node.name?.value),
+      ["Documents"],
+    );
+    // The name comes from aria-labelledby, the heading, and from no aria-label.
+    const sources = landmark[0]?.name?.sources ?? [];
+    assert.ok(
+      sources.some(
+        (source) => source.attribute === "aria-labelledby" && source.value !== undefined,
+      ),
+      `named by aria-labelledby: ${JSON.stringify(sources)}`,
+    );
+    assert.deepEqual(await headings(), {
+      texts: ["Documents"],
+      inWrapper: true,
+      visible: true,
+      labelledby: "title",
+      label: null,
+    });
+    // The fixture page has no heading of its own.
+    assert.deepEqual(await exposed("heading"), ["Documents"]);
+    const buttons = await exposed("button");
+    assert.ok(!buttons.some((name) => name.startsWith("Close")), `no Close button: ${buttons}`);
+    assert.equal(
+      await page.evaluate(`document.querySelector("sl-drawer").shadowRoot.querySelector("button")`),
+      null,
+      "no button in the shadow tree",
+    );
+  });
+
+  test("docked, the header stays in view while the content scrolls below it in a host held short", async () => {
+    await mount(WIDE, {}, '<div id="tall" style="block-size: 3000px">tall</div>');
+    await page.evaluate(`document.querySelector("sl-drawer").style.blockSize = "300px"`);
+    const scrolled: {
+      header: number;
+      aside: number;
+      asideScroll: number;
+      body: number;
+      bottom: number;
+      asideBottom: number;
+    } = await page.evaluate(`(() => {
+        const root = document.querySelector("sl-drawer").shadowRoot;
+        const aside = root.querySelector("aside");
+        const body = root.querySelector(".body");
+        body.scrollTop = body.scrollHeight;
+        return {
+          header: root.querySelector("header").getBoundingClientRect().top,
+          aside: aside.getBoundingClientRect().top,
+          asideScroll: aside.scrollTop,
+          body: body.scrollTop,
+          bottom: document.querySelector("#tall").getBoundingClientRect().bottom,
+          asideBottom: aside.getBoundingClientRect().bottom,
+        };
+      })()`);
+    assert.ok(scrolled.body > 0, "the content scrolled");
+    assert.equal(scrolled.asideScroll, 0, "the aside itself doesn't scroll");
+    assert.ok(
+      scrolled.header >= scrolled.aside && scrolled.header - scrolled.aside <= 2,
+      `the header stays at the aside's top: ${scrolled.header}, ${scrolled.aside}`,
+    );
+    assert.ok(
+      scrolled.bottom <= scrolled.asideBottom,
+      `the content's end came into view: ${scrolled.bottom}`,
+    );
+  });
+
+  for (const [dock, px] of [
+    ["48rem", 768],
+    ["600px", 600],
+  ] as const) {
+    test(`with dock ${dock}, at exactly ${px}px it is docked, and at ${px - 1}px a drawer`, async () => {
+      await mount(px, { dock }, "", HEIGHT, { mode: "docked" });
+      assert.equal((await read()).wrapper, "aside");
+      await mount(px - 1, { dock }, "", HEIGHT, { mode: "drawer" });
+      assert.equal((await read()).wrapper, "dialog");
+    });
+  }
+
+  test("a dock the media query can't read leaves it docked at any width", async () => {
+    for (const width of [WIDE, NARROW]) {
+      await mount(width, { dock: "wide" }, "", HEIGHT, { mode: "docked" });
+      const shown = await read();
+      assert.deepEqual([shown.mode, shown.wrapper], ["docked", "aside"], `at ${width}px`);
+    }
+  });
+
   test("docked, show(), toggle(), and open leave it docked and send nothing", async () => {
     await mount(WIDE);
     await call("show");
@@ -286,8 +403,8 @@ describe("drawer", { timeout: 60_000 }, () => {
     );
   });
 
-  for (const width of [DOCK, NARROW]) {
-    test(`at ${width}px, at or below dock, it is closed by default`, async () => {
+  for (const width of [DOCK - 1, NARROW]) {
+    test(`at ${width}px, below dock, it is closed by default`, async () => {
       await mount(width);
       const shown = await read();
       assert.deepEqual(
@@ -306,15 +423,16 @@ describe("drawer", { timeout: 60_000 }, () => {
       ["drawer", true, true, true, true, true],
     );
     assert.deepEqual(await exposed("dialog"), ["Documents"]);
-    // The fixture page has no heading of its own.
+    // The fixture page has no heading of its own: the dialog's is the one exposed, and the
+    // shadow tree holds no other.
     assert.deepEqual(await exposed("heading"), ["Documents"]);
-    assert.equal(
-      await page.evaluate(
-        `document.querySelector("sl-drawer").shadowRoot.querySelector("h2").checkVisibility()`,
-      ),
-      true,
-      "the heading shows",
-    );
+    assert.deepEqual(await headings(), {
+      texts: ["Documents"],
+      inWrapper: true,
+      visible: true,
+      labelledby: "title",
+      label: null,
+    });
     assert.equal(shown.focused, "drawer button", "focus moves to the dialog's first control");
     assert.equal(await pageLive(), false, "the page behind takes no focus");
     assert.deepEqual(shown.heard, [{ type: "open", detail: {}, bubbles: true, composed: true }]);
@@ -458,7 +576,7 @@ describe("drawer", { timeout: 60_000 }, () => {
       const shown: { matches: boolean; docked: boolean; modal: boolean } =
         await page.evaluate(`(() => {
         const drawer = document.querySelector("sl-drawer");
-        const matches = matchMedia("(max-width: 48rem)").matches;
+        const matches = matchMedia("(width < 48rem)").matches;
         const docked = drawer.matches(":state(docked)");
         drawer.show();
         return { matches, docked, modal: drawer.shadowRoot.querySelector("dialog")?.matches(":modal") ?? false };
@@ -483,13 +601,13 @@ describe("drawer", { timeout: 60_000 }, () => {
     assert.deepEqual([shown.modal, shown.sent], [true, ["open", "close", "open"]]);
   });
 
-  test("open set before the first render opens it at or below dock", async () => {
+  test("open set before the first render opens it below dock", async () => {
     await mount(NARROW, { open: true });
     const shown = await read();
     assert.deepEqual([shown.modal, shown.sent], [true, ["open"]]);
   });
 
-  test("open in its markup at or below dock opens it modally as the page loads, focus on its Close button; open goes out once", async () => {
+  test("open in its markup below dock opens it modally as the page loads, focus on its Close button; open goes out once", async () => {
     await mount(NARROW, {}, "", HEIGHT, { attributes: "open" });
     const shown = await read();
     assert.deepEqual(
@@ -499,7 +617,7 @@ describe("drawer", { timeout: 60_000 }, () => {
     assert.deepEqual(shown.heard, [{ type: "open", detail: {}, bubbles: true, composed: true }]);
   });
 
-  test("open in its markup above dock is undone: docked, open false, nothing sent", async () => {
+  test("open in its markup at dock and wider is undone: docked, open false, nothing sent", async () => {
     await mount(WIDE, {}, "", HEIGHT, { attributes: "open" });
     const shown = await read();
     assert.deepEqual(
@@ -596,6 +714,11 @@ describe("drawer", { timeout: 60_000 }, () => {
       ["docked", "aside", false, false, true],
     );
     assert.deepEqual(await same(), kept, "open at narrow, resized wide");
+    // The heading follows the mode: the aside's own, the one exposed, with no Close button.
+    assert.deepEqual(await exposed("heading"), ["Documents"], "docked, one heading");
+    assert.deepEqual(await exposed("complementary"), ["Documents"]);
+    assert.ok(!(await exposed("button")).includes("Close Documents"), "docked, no Close button");
+    assert.deepEqual((await headings()).texts, ["Documents"]);
     // Back to narrow: closed, with no event.
     await resize(NARROW);
     await settled("drawer");
@@ -619,6 +742,12 @@ describe("drawer", { timeout: 60_000 }, () => {
     await call("show");
     shown = await read();
     assert.deepEqual([shown.modal, shown.focused], [true, "drawer button"]);
+    // And back in the dialog's header, beside its Close button, the one heading still.
+    await slid();
+    assert.deepEqual(await exposed("heading"), ["Documents"], "a drawer again, one heading");
+    assert.deepEqual(await exposed("dialog"), ["Documents"]);
+    assert.ok((await exposed("button")).includes("Close Documents"));
+    assert.deepEqual(await exposed("complementary"), [], "no landmark left behind");
     await page.evaluate("new Promise((resolve) => setTimeout(resolve, 50))");
     assert.deepEqual((await read()).sent, ["open", "open"], "only the opens went out");
   });

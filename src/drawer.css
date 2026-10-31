@@ -3,16 +3,19 @@
  * foundation's reset and elements sheets (baseline/reset.css and elements.css), which give the
  * native dialog its surface, the Close button and the heading their looks and focus ring, and the
  * ::backdrop its scrim, which the drawer covers whole. It holds the docked aside's frame and the
- * drawer's: the full viewport, its header, its scrolling body, and its slide. It reads only the
- * foundation's baseline tokens, which a shadow root takes by inheritance from the page's entry; its
- * one fixed length is the slide's timing. Unlayered, it sits above the adopted layers in the root.
+ * drawer's: the full viewport, the header both share, the scrolling body, and the slide. It reads
+ * only the foundation's baseline tokens, which a shadow root takes by inheritance from the page's
+ * entry; its one fixed length is the slide's timing. Unlayered, it sits above the adopted layers in
+ * the root.
  *
- * Docked, the aside is an ordinary block filling the host on the first elevated surface, framed
- * as a container, scrolling inside it when the host is held shorter than its content. As a drawer
- * the dialog covers the viewport edge to edge, with no frame, since every edge is the viewport's:
- * its header stays in place while the body below it scrolls. It slides in from the inline-start
- * edge and back out unless the reader prefers reduced motion; the slide is a translate, which
- * moves nothing else.
+ * Both wrappers are a column of the header over the body: the header, the label's heading and, as
+ * a drawer, the Close button, stays in place while the body below it scrolls. Docked, the aside is
+ * an ordinary block filling the host on the first elevated surface, framed as a container, its
+ * body scrolling when the host is held shorter than its content; in a host of its content's height
+ * the aside is that tall, and the page scrolls it, header and all. As a drawer the dialog covers
+ * the viewport edge to edge, with no frame, since every edge is the viewport's. It slides in from
+ * the inline-start edge and back out unless the reader prefers reduced motion; the slide is a
+ * translate, which moves nothing else.
  */
 
 :host {
@@ -24,9 +27,10 @@
   --drawer-from: 100%;
 }
 aside {
+  display: flex;
+  flex-direction: column;
   block-size: 100%;
-  overflow: auto;
-  padding: var(--space-s);
+  overflow: hidden;
   border: var(--line-s) solid var(--border);
   border-radius: var(--radius-md);
   background-color: var(--bg-1);

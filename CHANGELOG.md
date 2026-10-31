@@ -6,6 +6,20 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 
 ## [Unreleased]
 
+### Changed
+
+- `sl-drawer` docks at exactly `dock`: `dock` is the width at which it docks, read in the media
+  query `(width < <dock>)` in place of `(max-width: <dock>)`, so at exactly `dock` it now docks,
+  where it was a drawer before; it is a drawer only below `dock`. A page that wrote a value just
+  under its breakpoint, `47.99rem` for 48rem, to dock at it, can write the breakpoint itself. A
+  length the query can't read still leaves the drawer docked.
+- `sl-drawer`'s docked `aside` has the drawer's header: `label` as a visible `h2`, which names the
+  aside by `aria-labelledby` in place of `aria-label`, with no Close button. Each mode renders only
+  its own header, so the shadow tree holds one heading at a time, and the slotted content needs no
+  heading of its own; a page that gave the docked content a title of its own drops it. The aside
+  is a column, the header over the content, which scrolls below the header when the host is held
+  shorter than it, as the drawer's body does.
+
 ## [0.5.0] - 2026-10-31
 
 ### Added

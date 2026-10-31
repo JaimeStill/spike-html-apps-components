@@ -17,7 +17,7 @@ import type {
 
 import { served } from "../test/browser/support/served.ts";
 
-/** The drawer page's mode is the viewport's: wider than its dock, 48rem, and at or below it. */
+/** The drawer page's mode is the viewport's: at its dock, 48rem, and wider, and below it. */
 const wide = { width: 1280, height: 800 };
 const narrow = { width: 480, height: 800 };
 
@@ -40,23 +40,28 @@ const opened =
 
 /** The drawer page's states, each its viewport alone. */
 const drawerStates: DescribedState[] = [
-  { name: "drawer-docked", caption: "the drawer, docked above 48rem", viewport: wide, full: false },
+  {
+    name: "drawer-docked",
+    caption: "the drawer, docked at 48rem and wider",
+    viewport: wide,
+    full: false,
+  },
   {
     name: "drawer-closed",
-    caption: "the drawer, closed at or below 48rem",
+    caption: "the drawer, closed below 48rem",
     viewport: narrow,
     full: false,
   },
   {
     name: "drawer-open",
-    caption: "the drawer, open at or below 48rem",
+    caption: "the drawer, open below 48rem",
     viewport: narrow,
     full: false,
     open: opened("ltr"),
   },
   {
     name: "drawer-open-rtl",
-    caption: "the drawer, open at or below 48rem, right to left",
+    caption: "the drawer, open below 48rem, right to left",
     viewport: narrow,
     full: false,
     open: opened("rtl"),

@@ -106,11 +106,13 @@ foundation's `page.css`:
   the pagination's `page-change` and `page-size-change` reach its listener as their parts sent
   them; it dispatches none of its own. It exports its document type and binds no key.
 - `./drawer.js`: `sl-drawer`, its children in the default slot, in one of two shadow wrappers by
-  the viewport. Wider than `dock`, a CSS length, 48rem by default, they sit in an `aside` docked
-  inline as an ordinary block, a complementary landmark named by `label`, always shown and taking
-  no focus. At or below it they sit in a modal dialog, closed until `show()`, `toggle()`, or
-  `open` opens it, `open` in the markup as the page loads too, covering the viewport and sliding
-  in from the inline-start edge; docked, `open` in the markup is reverted to false. Its header
+  the viewport. At `dock`, a CSS length, 48rem by default, and wider, read in the media query
+  `(width < <dock>)` so that exactly `dock` docks, they sit in an `aside` docked inline as an
+  ordinary block, a complementary landmark, always shown and taking no focus, under a header that
+  holds `label` as the `h2` naming it, with no Close button, the content scrolling below it in a
+  host held short; the content needs no heading of its own. Below it they sit in a modal dialog,
+  closed until `show()`, `toggle()`, or `open` opens it, `open` in the markup as the page loads
+  too, covering the viewport and sliding in from the inline-start edge; docked, `open` in the markup is reverted to false. Its header
   holds `label` as an `h2` that names the dialog, staying in view while the content scrolls, and
   a Close button named "Close" and the label, its text replaceable through the `close` slot for a
   translation. The Close button, Escape, `close()`, or `toggle()` closes it, and focus returns to

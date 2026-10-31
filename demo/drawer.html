@@ -6,13 +6,13 @@
     <title>drawer specimen</title>
     <!-- The drawer's specimen page, from dist/: an app's frame, its documents in an sl-drawer
          beside a document's content. The drawer's mode is the viewport's, so its states are the
-         page's at two widths rather than figures on one page: above 48rem the drawer docks as the
-         frame's first column; at or below it the frame is one column, the drawer is closed, and a
-         Documents button in the toolbar opens it as a modal drawer over the whole viewport, under
-         the drawer's own header and Close button; docked, the page's own heading names the
-         column. mise run screenshots captures it docked at 1280px, then closed, open, and open in
-         a right-to-left page at 480px, each opened by the keyboard on the toolbar's button so the
-         drawer's first control shows its focus ring. The page links the installed foundation's
+         page's at two widths rather than figures on one page: at 48rem and wider the drawer docks
+         as the frame's first column, under its own header; below it the frame is one column, the
+         drawer is closed, and a Documents button in the toolbar opens it as a modal drawer over
+         the whole viewport, under the drawer's own header and Close button. The drawer's header
+         is the one Documents heading in either mode. mise run screenshots captures it docked at
+         1280px, then closed, open, and open in a right-to-left page at 480px, each opened by the
+         keyboard on the toolbar's button so the drawer's first control shows its focus ring. The page links the installed foundation's
          full entry, page-full.css, and imports register-full.js, so a profile applies by
          attribute on the root; its import map is components.html's, so it runs served only:
          mise run demo, or mise run screenshots. -->
@@ -50,13 +50,12 @@
     <main class="unframed">
       <h1>Drawer</h1>
       <p>
-        <code>sl-drawer</code>, docked beside the content above 48rem, and at or below it a
+        <code>sl-drawer</code>, docked beside the content at 48rem and wider, and below it a
         modal drawer over the whole viewport, sliding in from the inline-start edge.
       </p>
 
       <div class="app">
         <sl-drawer label="Documents" dock="48rem" id="documents">
-          <h2 class="app-wide">Documents</h2>
           <input type="search" class="app-filter" aria-label="Filter documents" placeholder="Filter" />
           <ul class="app-documents">
             <li><a dir="auto" href="#nda-2026">nda-2026.pdf</a></li>
