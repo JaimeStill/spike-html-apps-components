@@ -11,14 +11,14 @@ Each release is a tag, `v<version>`, whose tree is the package as `pnpm pack` bu
 `package.json`, this README, the LICENSE, and `dist/`; each GitHub release also carries the
 tarball. It depends on lit 3.3.3 and marked 18.1.2, and takes
 [the foundation](https://github.com/JaimeStill/spike-html-apps-foundation) as a peer at
-`^0.2.0`: a consumer declares the foundation beside the components, from any of its sources, and
+`^0.3.0`: a consumer declares the foundation beside the components, from any of its sources, and
 the one copy serves both, so a restyle of the foundation's sheets by package name reaches the
 components' shadow roots too. Install both by their tags:
 
 ```
-npm install --allow-git=root github:JaimeStill/spike-html-apps-components#v0.5.0 github:JaimeStill/spike-html-apps-foundation#v0.2.2
-pnpm add github:JaimeStill/spike-html-apps-components#v0.5.0 github:JaimeStill/spike-html-apps-foundation#v0.2.2
-bun add github:JaimeStill/spike-html-apps-components#v0.5.0 github:JaimeStill/spike-html-apps-foundation#v0.2.2
+npm install --allow-git=root github:JaimeStill/spike-html-apps-components#v0.5.0 github:JaimeStill/spike-html-apps-foundation#v0.3.0
+pnpm add github:JaimeStill/spike-html-apps-components#v0.5.0 github:JaimeStill/spike-html-apps-foundation#v0.3.0
+bun add github:JaimeStill/spike-html-apps-components#v0.5.0 github:JaimeStill/spike-html-apps-foundation#v0.3.0
 ```
 
 Or by their release tarballs:
