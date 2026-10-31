@@ -16,9 +16,9 @@ the one copy serves both, so a restyle of the foundation's sheets by package nam
 components' shadow roots too. Install both by their tags:
 
 ```
-npm install --allow-git=root github:JaimeStill/spike-html-apps-components#v0.4.0 github:JaimeStill/spike-html-apps-foundation#v0.2.1
-pnpm add github:JaimeStill/spike-html-apps-components#v0.4.0 github:JaimeStill/spike-html-apps-foundation#v0.2.1
-bun add github:JaimeStill/spike-html-apps-components#v0.4.0 github:JaimeStill/spike-html-apps-foundation#v0.2.1
+npm install --allow-git=root github:JaimeStill/spike-html-apps-components#v0.4.0 github:JaimeStill/spike-html-apps-foundation#v0.2.2
+pnpm add github:JaimeStill/spike-html-apps-components#v0.4.0 github:JaimeStill/spike-html-apps-foundation#v0.2.2
+bun add github:JaimeStill/spike-html-apps-components#v0.4.0 github:JaimeStill/spike-html-apps-foundation#v0.2.2
 ```
 
 Or by their release tarballs:

@@ -19,6 +19,9 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
   "text/ plain": each break opportunity the meta line puts after the type's slash, dots, hyphens,
   and plus is now `aria-hidden`, since Chrome's accessibility tree read each as a space. The type
   wraps at its punctuation as before.
+- `sl-upload-dropzone`'s bytes sent hold the width of "999 bytes", the widest count now that the
+  foundation's `formatBytes` writes the long unit under 1 kB (from v0.2.2), so the bar keeps its
+  length as a count climbs past 1 kB in a type whose letters are as wide as its digits.
 
 ## [0.4.0] - 2026-10-30
 
