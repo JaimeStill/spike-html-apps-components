@@ -18,14 +18,17 @@ components' sheets in the same change, and leaves this note.
 - **Status colors.** Complete or done in `--green`: `stage-timeline.css`, `upload-dropzone.css`.
   Failed or error in `--red`: `stage-timeline.css`, `upload-dropzone.css`, `chat-thread.css`, and
   the error state's label in `artifact-viewer.css`, `search-results.css`, and `document-list.css`.
-  In progress in the interaction color: `stage-timeline.css` (the active stage),
-  `chat-thread.css` (the streaming dot). Warning in `--orange`: `chat-thread.css` alone. Every
-  component picks the same hue for the same meaning by name, as the foundation's color tokens ask,
-  since they carry no role. Shape: role tokens, success, danger, warning, and active, each
-  defaulting to its hue, which revisits that decision deliberately.
-- **The interaction tint.** `color-mix(in srgb, var(--interaction-color, var(--blue)) 10%,
-  transparent)` behind the drag-over zone in `upload-dropzone.css`, and at 12% behind the active
-  marker in `stage-timeline.css`: one surface, at two strengths by accident. Shape: a token.
+  Warning in `--orange`: `chat-thread.css` alone. Every component picks the same hue for the same
+  meaning by name, as the foundation's color tokens ask, since they carry no role. Shape: role
+  tokens, success, danger, and warning, each defaulting to its hue, which revisits that decision
+  deliberately. The fourth role this note proposed, active, is the foundation's since v0.3.0: the
+  accent hook, `var(--accent-color, var(--magenta))`, which marks what is current, active, or in
+  progress, and which `stage-timeline.css` (the active stage), `chat-thread.css` (the streaming
+  dot), and `entry.css` (the selected frame) read.
+- **A hook's tint.** `color-mix(in srgb, var(--interaction-color, var(--blue)) 10%, transparent)`
+  behind the drag-over zone in `upload-dropzone.css`, and the accent hook's mix at 12% behind the
+  active marker in `stage-timeline.css`: a hook's surface, at two strengths by accident. Shape: a
+  tint strength as a token, mixed with either hook.
 
 ## Elements-sheet rules
 
@@ -111,5 +114,6 @@ has met.
 - Pluralized counts ("1 match", "3 matches") and the query in typographic quotes:
   `search-results.ts`.
 - A snippet's ellipses joined to their text by a word joiner: `search-results.ts`.
-- The selected frame, the border and an inset line in the interaction color, yielding to the focus
-  ring: `entry.css`; `sl-document-list` reaches it through the entry's `selected`.
+- The selected frame, the border and an inset line in the accent color, yielding to the focus
+  ring, which is the interaction color: `entry.css`; `sl-document-list` reaches it through the
+  entry's `selected`.

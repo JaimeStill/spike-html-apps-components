@@ -19,6 +19,16 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
   heading of its own; a page that gave the docked content a title of its own drops it. The aside
   is a column, the header over the content, which scrolls below the header when the host is held
   shorter than it, as the drawer's body does.
+- The active stage in `sl-stage-timeline` (its marker's border, tint, glyph, and ring, and its
+  label), the streaming dot in `sl-chat-thread`, and the selected frame in `sl-entry`, which
+  `sl-document-list`'s selected document shows, take the foundation's accent hook,
+  `var(--accent-color, var(--magenta))`, magenta by default, where they took the interaction
+  color, blue: each marks what is current, active, or in progress, not what can be acted on. The
+  focus ring, links, hover, and the upload dropzone's drag-over stay in the interaction color, so
+  a selected entry's frame and its focus ring now differ by hue as well. A page that set
+  `--interaction-color` to restyle these marks sets `--accent-color`.
+- The foundation peer is `^0.3.0`, where it was `^0.2.0`: the accent hook is v0.3.0's. In it the
+  upload dropzone's native progress bars follow the accent too.
 
 ## [0.5.0] - 2026-10-31
 

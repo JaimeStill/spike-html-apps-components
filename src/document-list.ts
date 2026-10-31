@@ -135,7 +135,7 @@ export class DocumentList extends LitElement {
   }
 
   // An entry per document, in a list item. The selected document's entry draws its own frame in
-  // the interaction color, by its selected property, and its item holds aria-current, which says
+  // the accent color, by its selected property, and its item holds aria-current, which says
   // it to assistive technology: the entry's button is inside its own shadow root, out of the
   // list's reach.
   #entry(item: DocumentItem) {

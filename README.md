@@ -58,7 +58,7 @@ foundation's `page.css`:
 - `./entry.js`: `sl-entry`, one directory or file of a document hierarchy, as a button, its name
   the primary text and its status a quiet label, over a meta line of a file's size and content
   type and the time, its kind named to assistive technology alone; it dispatches `open`, and
-  `selected`, reflected, frames it in the interaction color, moving nothing. It formats a file's
+  `selected`, reflected, frames it in the accent color, moving nothing. It formats a file's
   size and its updated time with the foundation's `formatBytes` and `formatDateTime`. It sizes to
   its content in any parent, a shrink-to-fit one too, and stays inside its box down to 16rem, its
   supported minimum width.
