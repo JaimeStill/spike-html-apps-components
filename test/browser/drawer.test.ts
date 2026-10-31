@@ -1,7 +1,8 @@
 // The drawer from this repository's dist/, on test/fixtures/components.html, its viewport set
 // either side of the dock width: docked above it, an aside exposed as a complementary landmark,
 // visible, its content interactive, the page live, focus left where it was; at or below it,
-// closed by default, and opened modally by show(), toggle(), or open, a dialog named by its
+// closed by default, and opened modally by show(), toggle(), or open, open in its markup or set
+// before it is connected included, which is undone while docked, a dialog named by its
 // visible heading and covering the viewport edge to edge, its header in view while its content
 // scrolls, the page behind inert and focus inside, closed by its Close button, Escape, close(),
 // toggle(), or open, focus returned to the opener; the Close button's text replaced through its
@@ -79,10 +80,12 @@ describe("drawer", { timeout: 60_000 }, () => {
     // Keys go to the focused element as a user's would, and :focus-visible matches, though a
     // headless page never has the window's focus.
     await page.cdp("Emulation.setFocusEmulationEnabled", { enabled: true });
-    // window.mount(fields, extra) renders, into main, an opener that calls show(), a drawer of
-    // the fields holding a filter field, a button that counts its clicks, a probe element that
-    // counts its connections and disconnections, and the extra markup, and a button outside it,
-    // all the page's; window.read() resolves, once the drawer renders, to what it shows.
+    // window.mount(fields, extra, attributes, detached) renders, into main, an opener that calls
+    // show(), a drawer of the attributes in its markup and of the fields holding a filter field, a
+    // button that counts its clicks, a probe element that counts its connections and
+    // disconnections, and the extra markup, and a button outside it, all the page's; the fields
+    // are set once the drawer is connected, or, detached, on the upgraded drawer before it is.
+    // window.read() resolves, once the drawer renders, to what it shows.
     await page.evaluate(`window.verdict.then(async () => {
       await import("/dist/drawer.js");
       window.lifecycle = { connected: 0, disconnected: 0 };
@@ -98,23 +101,30 @@ describe("drawer", { timeout: 60_000 }, () => {
           });
         });
       }
-      window.mount = async (fields, extra) => {
+      window.mount = async (fields, extra, attributes = "", detached = false) => {
         const main = document.querySelector("main");
         main.innerHTML = "";
         window.lifecycle.connected = window.lifecycle.disconnected = 0;
-        main.innerHTML = '<button id="opener" type="button">Documents</button>' +
-          '<sl-drawer><input id="filter" aria-label="Filter"><button id="count" type="button">0</button>' +
+        window.sent = [];
+        window.heard.length = 0;
+        // Built apart and upgraded, so the drawer's events are counted from its first connection.
+        const parts = document.createElement("div");
+        parts.innerHTML = '<button id="opener" type="button">Documents</button>' +
+          '<sl-drawer ' + attributes + '><input id="filter" aria-label="Filter">' +
+          '<button id="count" type="button">0</button>' +
           '<x-probe id="probe">probe</x-probe>' + extra + '</sl-drawer>' +
           '<button id="outside" type="button">Outside</button>';
+        customElements.upgrade(parts);
+        const drawer = parts.querySelector("sl-drawer");
+        const original = drawer.dispatchEvent.bind(drawer);
+        drawer.dispatchEvent = (event) => (window.sent.push(event.type), original(event));
+        if (detached) Object.assign(drawer, fields);
+        main.append(...parts.childNodes);
+        if (!detached) Object.assign(drawer, fields);
         document.querySelector("#opener").addEventListener("click", () =>
           document.querySelector("sl-drawer").show());
         document.querySelector("#count").addEventListener("click", (event) =>
           (event.target.textContent = String(Number(event.target.textContent) + 1)));
-        const drawer = Object.assign(document.querySelector("sl-drawer"), fields);
-        window.sent = [];
-        window.heard.length = 0;
-        const original = drawer.dispatchEvent.bind(drawer);
-        drawer.dispatchEvent = (event) => (window.sent.push(event.type), original(event));
         await drawer.updateComplete;
       };
       window.read = async () => {
@@ -183,16 +193,17 @@ describe("drawer", { timeout: 60_000 }, () => {
   };
   // The drawer mounted at the viewport's size, once it has settled on the mode the default dock
   // gives it there.
+  // Its markup's attributes, if any, and, detached, its fields set before it is connected.
   const mount = async (
     width: number,
     fields: Record<string, unknown> = {},
     extra = "",
     height = HEIGHT,
+    { attributes = "", detached = false } = {},
   ) => {
     await resize(width, height);
-    await page.evaluate(
-      `window.mount(${JSON.stringify({ label: "Documents", ...fields })}, ${JSON.stringify(extra)})`,
-    );
+    const args = [{ label: "Documents", ...fields }, extra, attributes, detached];
+    await page.evaluate(`window.mount(...${JSON.stringify(args)})`);
     await settled(width > DOCK ? "docked" : "drawer");
   };
   // A key pressed and released on the focused element, with the text it types, if any.
@@ -477,6 +488,40 @@ describe("drawer", { timeout: 60_000 }, () => {
     const shown = await read();
     assert.deepEqual([shown.modal, shown.sent], [true, ["open"]]);
   });
+
+  test("open in its markup at or below dock opens it modally as the page loads, focus on its Close button; open goes out once", async () => {
+    await mount(NARROW, {}, "", HEIGHT, { attributes: "open" });
+    const shown = await read();
+    assert.deepEqual(
+      [shown.mode, shown.modal, shown.open, shown.attribute, shown.focused, shown.sent],
+      ["drawer", true, true, true, "drawer button", ["open"]],
+    );
+    assert.deepEqual(shown.heard, [{ type: "open", detail: {}, bubbles: true, composed: true }]);
+  });
+
+  test("open in its markup above dock is undone: docked, open false, nothing sent", async () => {
+    await mount(WIDE, {}, "", HEIGHT, { attributes: "open" });
+    const shown = await read();
+    assert.deepEqual(
+      [shown.mode, shown.wrapper, shown.modal, shown.open, shown.attribute, shown.sent],
+      ["docked", "aside", false, false, false, []],
+    );
+  });
+
+  for (const [width, mode, modal, sent] of [
+    [NARROW, "drawer", true, ["open"]],
+    [WIDE, "docked", false, []],
+  ] as const) {
+    test(`open set before it is connected, at ${width}px, is as open in its markup`, async () => {
+      await mount(width, { open: true }, "", HEIGHT, { detached: true });
+      const shown = await read();
+      assert.deepEqual(
+        [shown.mode, shown.modal, shown.open, shown.attribute, shown.sent],
+        [mode, modal, modal, modal, sent],
+      );
+      if (modal) assert.equal(shown.focused, "drawer button");
+    });
+  }
 
   test("removed while open it closes silently, and put back it is a closed drawer that opens modally", async () => {
     await mount(NARROW);

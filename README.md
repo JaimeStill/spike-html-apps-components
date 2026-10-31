@@ -109,7 +109,8 @@ foundation's `page.css`:
   the viewport. Wider than `dock`, a CSS length, 48rem by default, they sit in an `aside` docked
   inline as an ordinary block, a complementary landmark named by `label`, always shown and taking
   no focus. At or below it they sit in a modal dialog, closed until `show()`, `toggle()`, or
-  `open` opens it, covering the viewport and sliding in from the inline-start edge; its header
+  `open` opens it, `open` in the markup as the page loads too, covering the viewport and sliding
+  in from the inline-start edge; docked, `open` in the markup is reverted to false. Its header
   holds `label` as an `h2` that names the dialog, staying in view while the content scrolls, and
   a Close button named "Close" and the label, its text replaceable through the `close` slot for a
   translation. The Close button, Escape, `close()`, or `toggle()` closes it, and focus returns to

@@ -36,12 +36,15 @@ export type CloseDetail = Record<string, never>;
  * the `close` slot's, "Close" by default, for a translation. The header stays in view while the
  * children scroll below it. The Close button, Escape, `close()`, `toggle()`, or `open` set false
  * closes it, and the dialog returns focus to the element that held it when it opened. Under
- * reduced motion it opens and closes at once.
+ * reduced motion it opens and closes at once. `open` in the markup, or set before the element is
+ * connected, opens the drawer as the page loads at or below `dock`, sending `open`, and is undone
+ * while docked, sending nothing.
  *
  * `open` and `close` go out each time the modal drawer opens or closes, however it was asked,
  * never on a switch between the modes. A switch, as the viewport crosses `dock`, closes an open
  * drawer silently: one that was open becomes docked, and docked content becomes a closed drawer.
- * Removing the element closes it silently too. `dock` is read in a media query,
+ * Removing the element closes it silently too, setting `open` false, so one put back is closed
+ * unless `open` is set again before. `dock` is read in a media query,
  * `(max-width: <dock>)`, where rem and em are the initial font size's; a length the query can't
  * read never matches, so the drawer stays docked.
  */
@@ -134,17 +137,22 @@ export class Drawer extends LitElement {
   /**
    * Sets the mode from the query. A switch renders the other wrapper around the same slotted
    * children: an open dialog leaves the top layer as it is removed, with no close event and no
-   * focus moved, and the new dialog is created closed, so nothing slides.
+   * focus moved, and the new dialog is created closed, so nothing slides. The first mode, on
+   * connecting, is no switch: `open` stands, from the markup or set before, and opens the drawer
+   * by the ordinary update, or is undone there if the drawer is docked.
    */
   #change = (): void => {
     const narrow = this.#query?.matches ?? false;
     if (narrow === this.#narrow) return;
+    const switched = this.#narrow !== null;
     this.#narrow = narrow;
     const { states } = this.#internals;
     states.delete(narrow ? "docked" : "drawer");
     states.add(narrow ? "drawer" : "docked");
-    this.#modal = false;
-    this.open = false;
+    if (switched) {
+      this.#modal = false;
+      this.open = false;
+    }
     this.requestUpdate();
   };
 

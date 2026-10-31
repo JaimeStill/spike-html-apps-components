@@ -15,7 +15,9 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
   place, always shown and taking no focus; `open` stays false there, and `show()`, `close()`, and
   `toggle()` do nothing. At or below `dock` the drawer is closed until `show()`, `toggle()`, or
   `open`, reflected, opens it, a native dialog shown with `showModal()`: it covers the viewport
-  edge to edge, the page behind inert, and focus moves inside it. Its header holds `label` as an
+  edge to edge, the page behind inert, and focus moves inside it. `open` in the markup, or set
+  before the element is connected, opens it so as the page loads, sending `open`, and is reverted
+  to false while docked, sending nothing. Its header holds `label` as an
   `h2`, which names the dialog, and a Close button whose accessible name is its text and the
   label, "Close Documents"; the text is the `close` slot's, "Close" by default, for a translation.
   The header stays in view while the content below it scrolls. The Close button, Escape,
