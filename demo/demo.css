@@ -96,4 +96,50 @@
     display: grid;
     grid-template-columns: auto 1fr;
   }
+
+  /* The drawer page's app frame: above 48rem, the drawer's dock, its drawer docked as a first
+     column beside the content, under the page's own heading; at or below it, one column, the
+     drawer modal and out of the flow, under its own header, and the toolbar's button that opens
+     it shown. */
+  .app {
+    margin-block-start: var(--space-l);
+  }
+  @media (width > 48rem) {
+    .app {
+      display: grid;
+      grid-template-columns: 18rem minmax(0, 1fr);
+      gap: var(--space-l);
+      align-items: start;
+    }
+    .app-narrow {
+      display: none;
+    }
+  }
+  @media (width <= 48rem) {
+    .app-wide {
+      display: none;
+    }
+  }
+  .app-toolbar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-s);
+    margin-block-end: var(--space-s);
+  }
+  .app-toolbar > h2 {
+    margin: 0;
+  }
+  .app-filter {
+    display: block;
+    inline-size: 100%;
+    margin-block-end: var(--space-s);
+  }
+  .app-documents {
+    padding-inline-start: 0;
+    list-style: none;
+    overflow-wrap: anywhere;
+  }
+  .app-documents [aria-current] {
+    font-weight: bold;
+  }
 }

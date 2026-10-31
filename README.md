@@ -1,7 +1,7 @@
 # spike-html-apps-components
 
 The components layer of [spike-html-apps](https://github.com/JaimeStill/spike-html-apps):
-eleven Lit components with shadow roots, their sheets, and a Markdown renderer. It is ES modules
+twelve Lit components with shadow roots, their sheets, and a Markdown renderer. It is ES modules
 with their type declarations and stylesheets, built on the foundation, which they take as a peer,
 and is released by git tag.
 
@@ -16,9 +16,9 @@ the one copy serves both, so a restyle of the foundation's sheets by package nam
 components' shadow roots too. Install both by their tags:
 
 ```
-npm install --allow-git=root github:JaimeStill/spike-html-apps-components#v0.4.0 github:JaimeStill/spike-html-apps-foundation#v0.2.1
-pnpm add github:JaimeStill/spike-html-apps-components#v0.4.0 github:JaimeStill/spike-html-apps-foundation#v0.2.1
-bun add github:JaimeStill/spike-html-apps-components#v0.4.0 github:JaimeStill/spike-html-apps-foundation#v0.2.1
+npm install --allow-git=root github:JaimeStill/spike-html-apps-components#v0.5.0 github:JaimeStill/spike-html-apps-foundation#v0.2.2
+pnpm add github:JaimeStill/spike-html-apps-components#v0.5.0 github:JaimeStill/spike-html-apps-foundation#v0.2.2
+bun add github:JaimeStill/spike-html-apps-components#v0.5.0 github:JaimeStill/spike-html-apps-foundation#v0.2.2
 ```
 
 Or by their release tarballs:
@@ -56,11 +56,12 @@ foundation's `page.css`:
 
 - `./status-badge.js`: `sl-status-badge`, a label; a click dispatches `badge-select`.
 - `./entry.js`: `sl-entry`, one directory or file of a document hierarchy, as a button, its name
-  the primary text, its status and kind quiet labels; it dispatches `open`, and `selected`,
-  reflected, frames it in the interaction color, moving nothing. It formats a file's size and its
-  updated time with the foundation's `formatBytes` and `formatDateTime`. It sizes to its content in
-  any parent, a shrink-to-fit one too, and stays inside its box down to 16rem, its supported
-  minimum width.
+  the primary text and its status a quiet label, over a meta line of a file's size and content
+  type and the time, its kind named to assistive technology alone; it dispatches `open`, and
+  `selected`, reflected, frames it in the interaction color, moving nothing. It formats a file's
+  size and its updated time with the foundation's `formatBytes` and `formatDateTime`. It sizes to
+  its content in any parent, a shrink-to-fit one too, and stays inside its box down to 16rem, its
+  supported minimum width.
 - `./pagination.js`: `sl-pagination`, a page of entries between its summary and its controls, a
   `status` slot running on after the summary's text; it dispatches `page-change` and
   `page-size-change`.
@@ -104,19 +105,35 @@ foundation's `page.css`:
   error states, said on the pagination's summary line when it shows one. The entry's `open` and
   the pagination's `page-change` and `page-size-change` reach its listener as their parts sent
   them; it dispatches none of its own. It exports its document type and binds no key.
+- `./drawer.js`: `sl-drawer`, its children in the default slot, in one of two shadow wrappers by
+  the viewport. Wider than `dock`, a CSS length, 48rem by default, they sit in an `aside` docked
+  inline as an ordinary block, a complementary landmark named by `label`, always shown and taking
+  no focus. At or below it they sit in a modal dialog, closed until `show()`, `toggle()`, or
+  `open` opens it, `open` in the markup as the page loads too, covering the viewport and sliding
+  in from the inline-start edge; docked, `open` in the markup is reverted to false. Its header
+  holds `label` as an `h2` that names the dialog, staying in view while the content scrolls, and
+  a Close button named "Close" and the label, its text replaceable through the `close` slot for a
+  translation. The Close button, Escape, `close()`, or `toggle()` closes it, and focus returns to
+  what opened it. It dispatches `open` and `close` as the modal drawer opens and closes, never as
+  the viewport crosses `dock`, which swaps only the wrapper, so the slotted content is never
+  moved, disconnected, or re-created: an open drawer docks, and docked content becomes a closed
+  drawer. It slides only when the reader allows motion.
 - `./*.css`: each component's sheet, which its module imports itself.
 
 `demo/components.html` puts the status badge, the entry, and the pagination on one page, with its
 import map. Each component has a specimen page, `demo/<name>.html`, for `status-badge`, `entry`,
 `pagination`, `artifact-viewer`, `chat-thread`, `composer`, `upload-dropzone`, `stage-timeline`,
-`event-log`, `search-results`, and `document-list`. A specimen page shows every state of its
-component, labelled, then again in a section 20rem wide, and, for a component that holds a
-control, one instance reached by the keyboard to show its focus ring. The specimen pages link the
+`event-log`, `search-results`, `document-list`, and `drawer`. A specimen page shows every state of
+its component, labelled, then again in a section 20rem wide, and, for a component that holds a
+control, one instance reached by the keyboard to show its focus ring. The drawer's mode is the
+viewport's, so its page is an app's frame instead, its states the page's at two widths: docked at
+1280px, and closed, open, and open right to left at 480px. The specimen pages link the
 foundation's `page-full.css` and import its `register-full.js`, so a profile applies by its
 attribute on the root.
 
 `mise run screenshots` captures each specimen page light and dark, in vertical tiles at most
-1200px tall. It runs the `spike-html-apps-screenshots` bin of
+1200px tall, and the drawer's in its viewport at each of its four states. It runs the
+`spike-html-apps-screenshots` bin of
 [spike-html-apps-tooling](https://github.com/JaimeStill/spike-html-apps-tooling) over the capture
 description `scripts/screenshots.config.ts`, and checks a named profile against the pages'
 registry. [Development](#development) lists the task's flags, and the tooling's README documents

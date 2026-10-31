@@ -1,8 +1,9 @@
 // Entry, Lit with a shadow root: one directory or file of a document hierarchy, as a button.
 // Adapted from spike-html-packages-components (4c0a5d8): src/entry-lit-shadow.ts, renamed, its
 // size and time formatted by the foundation's formatBytes and formatDateTime, its name and status
-// in a head, the row entry.css wraps, its kind leading the meta line, its content type breakable at
-// its punctuation, its time's date and clock in spans, and its frame marked when selected.
+// in a head, the row entry.css wraps, its kind kept for assistive technology alone, its content
+// type breakable at its punctuation, its time's date and clock in spans, and its frame marked when
+// selected.
 
 import { html, LitElement, nothing, type PropertyDeclarations } from "lit";
 
@@ -53,11 +54,14 @@ function kindOf(item: EntryItem): OpenDetail["kind"] {
 /**
  * A content type with a break opportunity, a wbr, after each slash, dot, hyphen, and plus, so a
  * type too long for its line, "application/vnd.openxmlformats-officedocument…", breaks between its
- * parts, never inside one, unless a part alone is wider than the line.
+ * parts, never inside one, unless a part alone is wider than the line. Each wbr is aria-hidden:
+ * Chrome's accessibility tree reads a wbr as a space, so the button's accessible name would say
+ * "text/ plain"; hidden, it adds nothing to the name, which carries the type whole, and the break
+ * it offers the eye stays.
  */
 function renderType(contentType: string) {
   const parts = contentType.split(/(?<=[/.+-])/);
-  return parts.map((part, i) => (i === 0 ? part : html`<wbr />${part}`));
+  return parts.map((part, i) => (i === 0 ? part : html`<wbr aria-hidden="true" />${part}`));
 }
 
 /**
@@ -85,10 +89,14 @@ function renderTime(updatedAt: string) {
 
 /**
  * Shows one entry: its name, the primary text, and its status, a quiet label at the line's end;
- * then a quiet meta line of its kind, a file's size, absent while it is pending, and content type,
- * and when it was last updated. Activating it sends `open` with its id and kind. `selected` frames
- * the entry's button in the interaction color, a mark to the eye only: the consumer that selects
- * it says so to assistive technology, as sl-document-list does with aria-current on its item.
+ * then a quiet meta line of a file's size, absent while it is pending, and content type, and when
+ * it was last updated, so a directory's meta is its time alone. Its kind, "file" or "directory",
+ * shows nowhere, since the meta already tells the two apart to the eye: it sits visually hidden
+ * between the head and the meta, so the button's accessible name, which a screen reader reads
+ * once and in order, still says which it is, after the status. Activating it sends `open` with its
+ * id and kind. `selected` frames the entry's button in the interaction color, a mark to the eye
+ * only: the consumer that selects it says so to assistive technology, as sl-document-list does
+ * with aria-current on its item.
  */
 export class Entry extends LitElement {
   static styles = [reset, elements, styles];
@@ -125,8 +133,8 @@ export class Entry extends LitElement {
           <span class="name">${item.name}</span>
           <span class="status">${item.status}</span>
         </span>
+        <span class="kind">${kindOf(item)}</span>
         <span class="meta">
-          <span class="kind">${kindOf(item)}</span>
           ${
             file && file.size !== null
               ? html`<span class="size">${formatBytes(file.size)}</span>`

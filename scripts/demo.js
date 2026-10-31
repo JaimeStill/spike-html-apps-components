@@ -22,6 +22,7 @@ for (const page of [
   "event-log",
   "search-results",
   "document-list",
+  "drawer",
 ]) {
   console.log(`${server.origin}/demo/${page}.html`);
 }

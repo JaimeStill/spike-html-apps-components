@@ -460,11 +460,11 @@ describe("upload dropzone", { timeout: 60_000 }, () => {
       const [shown] = (await read()).uploads;
       return [shown.progress?.[0], shown.progress?.[1], shown.bytes];
     };
-    assert.deepEqual(await at(0), [0, 18_400, "0 byte of 18.4 kB"]);
+    assert.deepEqual(await at(0), [0, 18_400, "0 bytes of 18.4 kB"]);
     assert.deepEqual(await at(6_300), [6_300, 18_400, "6.3 kB of 18.4 kB"]);
     assert.deepEqual(await at(18_400), [18_400, 18_400, "18.4 kB of 18.4 kB"]);
     assert.deepEqual(await at(99_999), [18_400, 18_400, "18.4 kB of 18.4 kB"]);
-    assert.deepEqual(await at(-5), [0, 18_400, "0 byte of 18.4 kB"]);
+    assert.deepEqual(await at(-5), [0, 18_400, "0 bytes of 18.4 kB"]);
   });
 
   test("an uploading item's cancel control sends upload-cancel with its id, bubbling and composed; no other item has one", async () => {

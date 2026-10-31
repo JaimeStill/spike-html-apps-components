@@ -148,7 +148,7 @@ progress {
   overflow-wrap: anywhere;
 }
 /* A size never breaks, and its digits share one width; the bytes sent hold the width of the
-   widest count, "999.9 kB", so the line keeps still as they climb. */
+   widest count, "999 bytes", so the line keeps still as they climb. */
 .bytes {
   flex: none;
   white-space: nowrap;
@@ -156,6 +156,6 @@ progress {
 }
 .sent {
   display: inline-block;
-  min-inline-size: 8ch;
+  min-inline-size: 9ch;
   text-align: end;
 }

@@ -6,6 +6,50 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-31
+
+### Added
+
+- `./drawer.js` defines `sl-drawer`, a responsive drawer for a narrow layout: its children, in the
+  default slot, sit in one of two shadow wrappers by the mode. Wider than `dock`, a CSS length
+  (48rem by default) read in the media query `(max-width: <dock>)`, the drawer is docked: an
+  `aside`, a complementary landmark named by `label`, laid out as an ordinary block in the host's
+  place, always shown and taking no focus; `open` stays false there, and `show()`, `close()`, and
+  `toggle()` do nothing. At or below `dock` the drawer is closed until `show()`, `toggle()`, or
+  `open`, reflected, opens it, a native dialog shown with `showModal()`: it covers the viewport
+  edge to edge, the page behind inert, and focus moves inside it. `open` in the markup, or set
+  before the element is connected, opens it so as the page loads, sending `open`, and is reverted
+  to false while docked, sending nothing. Its header holds `label` as an
+  `h2`, which names the dialog, and a Close button whose accessible name is its text and the
+  label, "Close Documents"; the text is the `close` slot's, "Close" by default, for a translation.
+  The header stays in view while the content below it scrolls. The Close button, Escape,
+  `close()`, `toggle()`, or `open` set false closes it, and the dialog returns focus to the
+  element that held it. It slides in and out from the inline-start edge, the right in a
+  right-to-left page, by a 200ms translate, only when the reader allows motion. It dispatches
+  `open` and `close`, each with `{}`, bubbling and composed, as the modal drawer opens and closes,
+  never on a switch between the modes: a viewport or a `dock` that crosses the width swaps only
+  the shadow wrapper, so the slotted content is never moved, disconnected, or re-created, and
+  nothing slides; an open drawer docks, and docked content becomes a closed drawer.
+- `demo/drawer.html`, the drawer's specimen page: an app's frame, captured docked at 1280px and
+  closed, open, and open right to left at 480px.
+
+### Changed
+
+- `sl-entry`'s meta line no longer opens with its kind, "file" or "directory": a file's line is its
+  size, absent while pending, its content type, and its time, and a directory's its time alone.
+  The kind stays in the button's accessible name, after the status, in a visually hidden span, so
+  a screen reader still says which an entry is; `open`'s detail is still `{ id, kind }`.
+
+### Fixed
+
+- `sl-entry`'s accessible name carries a file's content type whole, "text/plain" rather than
+  "text/ plain": each break opportunity the meta line puts after the type's slash, dots, hyphens,
+  and plus is now `aria-hidden`, since Chrome's accessibility tree read each as a space. The type
+  wraps at its punctuation as before.
+- `sl-upload-dropzone`'s bytes sent hold the width of "999 bytes", the widest count now that the
+  foundation's `formatBytes` writes the long unit under 1 kB (from v0.2.2), so the bar keeps its
+  length as a count climbs past 1 kB in a type whose letters are as wide as its digits.
+
 ## [0.4.0] - 2026-10-30
 
 ### Added
@@ -251,7 +295,8 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 - The release by tag: `v<version>`, whose tree is the pack, with the tarball on its GitHub
   release.
 
-[Unreleased]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.1.0...v0.2.0

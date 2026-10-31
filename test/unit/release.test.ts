@@ -18,11 +18,12 @@ const root = join(import.meta.dirname, "../..");
 const src = join(root, "src");
 const scratches: string[] = [];
 
-// The layer's budget in brotli bytes, a KB being 1,000 bytes: its baseline on 2026-10-29, 36,070 B
-// over 23 runtime files, plus 10%, rounded up to a whole KB. A layer over it fails the check;
-// a change that needs more raises it here, in the change's own commit.
+// The layer's budget in brotli bytes, a KB being 1,000 bytes: its baseline on 2026-10-31, 40,117 B
+// over 25 runtime files, plus 10%, rounded up to a whole KB. A layer over it fails the check;
+// a change that needs more raises it here, in the change's own commit. The drawer raised it from
+// 40,000 B, set on 2026-10-29 from 36,070 B over 23 files.
 const layer = "components";
-const budget = 40_000;
+const budget = 45_000;
 
 /** A new temporary directory, removed after the run. */
 function scratchDir() {

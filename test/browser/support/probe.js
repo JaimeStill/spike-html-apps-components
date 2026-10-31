@@ -362,7 +362,9 @@ function overflowCase(report, { cursor }) {
     ...(fits(button)
       ? []
       : [`the button's content, ${button.scrollWidth} > ${button.clientWidth}`]),
-    ...Array.from(button.querySelectorAll("*"))
+    // Every part the eye sees: the kind, visually hidden, is a pixel clipped to nothing, so its
+    // text overflows its box by design.
+    ...Array.from(button.querySelectorAll(":not(.kind)"))
       .filter((part) => !within(part, button) || !fits(part))
       .map((part) => `its ${part.localName} "${renderedText(part)}"`),
   ];
