@@ -23,13 +23,11 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
   titled with the name, the frame's width and up to 40rem tall, scrolling itself; `image/*` but
   `image/svg+xml` in an img, its alt the name, at its natural size or narrower, its aspect kept;
   `audio/*` and `video/*` in their native elements with controls, labelled with the name, the
-  viewer's width. `text/html` still shows as text, never as a page. A type it can't show, given a
-  Blob, adds a link that downloads it under the artifact's name. The `content-type` decides the
-  view, and the object URL's bytes are typed by it, never by the Blob (an unsupported type's as
-  `application/octet-stream`), so a disagreeing Blob never loads as a page. A type or subtype
-  that isn't an HTTP token is unsupported, whatever it starts with, since a browser sniffs bytes
-  of a type it can't parse, or reads `image/png,text/html` as the list's last type, a page. The
-  viewer owns the URL: it makes it while connected, revokes it as the content or its type changes
+  viewer's width. `text/html` still shows as text, never as a page. The `content-type` decides
+  the view, and the object URL's bytes are typed by it, never by the Blob, so a disagreeing Blob
+  never loads as a page. A native type's type and subtype must each be an HTTP token, since a
+  browser sniffs bytes of a type it can't parse, or reads `image/png,text/html` as the list's
+  last type, a page. The viewer owns the URL: it makes it while connected, revokes it as the content or its type changes
   and as it disconnects, and makes it again on reconnecting. A native type with no Blob yet shows
   the loading note. A string content for a text type is unchanged.
 - `sl-artifact-viewer` shows text whenever the content is text, "can't be shown" its last resort.
@@ -42,7 +40,7 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
   a malformed one, takes a Blob, and the viewer reads its bytes: its first MiB, `SNIFF_BYTES`,
   decoded as UTF-8 with no C0 control character but tab, line feed, form feed, and carriage
   return, shows as text, and only bytes that fail that, a NUL among them, show the note and a
-  download typed `application/octet-stream`. The loading note shows until the read ends, and
+  link that downloads them under the artifact's name, typed `application/octet-stream`. The loading note shows until the read ends, and
   `updateComplete` waits for it.
 
 ### Changed

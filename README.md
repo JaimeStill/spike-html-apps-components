@@ -87,8 +87,9 @@ foundation's `page.css`:
   and its numbers; JSON that doesn't parse shows as text under a note. `viewOf(contentType)` gives
   a type's `view` and the `content` it takes, `text` or `blob`, so a consumer knows what to
   fetch. A text view is always safe, never a URL and never a document, so the viewer shows text
-  whenever the content is text: "can't be shown" is left for bytes that aren't. The `content-type` decides the view, never a Blob's own type, and the Blob's bytes are
-  shown as that type. The viewer owns the object URL of the Blob it holds: it makes it while
+  whenever the content is text: "can't be shown" is left for bytes that aren't. The
+  `content-type` decides the view, never a Blob's own type, and the Blob's bytes are shown as
+  that type. The viewer owns the object URL of the Blob it holds: it makes it while
   connected and revokes it as the content or its type changes and as it disconnects. It sends no
   event. It imports `./markdown.js`, so its page maps marked too.
 
