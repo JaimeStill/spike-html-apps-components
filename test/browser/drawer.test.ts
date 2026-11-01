@@ -2,11 +2,12 @@
 // either side of the dock width: docked at it and wider, the boundary exact for a rem and a px
 // dock, and docked for a length the query can't read, an aside exposed as a complementary
 // landmark named by its own visible heading, the one heading in the drawer's shadow tree, with no
-// Close button, the heading at --text-l in either mode, below a page's h1 and h2, visible, its content interactive, the page live, focus left where it was; below it,
-// closed by default, and opened modally by show(), toggle(), or open, open in its markup or set
-// before it is connected included, which is undone while docked, a dialog named by its
-// visible heading and covering the viewport edge to edge, its header in view while its content
-// scrolls, the page behind inert and focus inside, closed by its Close button, Escape, close(),
+// Close button, visible, its content interactive, the page live, focus left where it was; the
+// heading at --text-l in either mode, below a page's h1 and h2; a control focused in the
+// scrolling body, docked or not, its whole focus outline drawn at either edge; below it, closed by
+// default, and opened modally by show(), toggle(), or open, open in its markup or set before it is
+// connected included, which is undone while docked, a dialog named by its visible heading and
+// covering the viewport edge to edge, its header in view while its content scrolls, the page behind inert and focus inside, closed by its Close button, Escape, close(),
 // toggle(), or open, focus returned to the opener; the Close button's text replaced through its
 // slot; open and close sent once each, bubbling and composed, never on a mode switch or on removal,
 // which closes it, a drawer put back closed and opening modally again; a switch in either
@@ -407,6 +408,121 @@ describe("drawer", { timeout: 60_000 }, () => {
       `the content's end came into view: ${scrolled.bottom}`,
     );
   });
+
+  // A control's focus outline inside the scrolling body, in both modes, the body held short so it
+  // scrolls: the app's composition, an upload dropzone with an upload in progress, its Cancel
+  // flush with the row's end, over a document list, whose entries span the body. Each control the
+  // keyboard reaches there, by Tab down to the last and Shift+Tab back up to the first, scrolled
+  // into view by its focus, draws its whole outline, the control's box grown by the outline's
+  // width and offset, inside the body's clip box, its padding box, cut by the wrapper's.
+  for (const [mode, width, height] of [
+    ["docked", WIDE, HEIGHT],
+    ["drawer", NARROW, 300],
+  ] as const) {
+    test(`${mode}, a control focused in the scrolling body draws its whole outline, at either edge`, async () => {
+      await page.evaluate(
+        `Promise.all([import("/dist/upload-dropzone.js"), import("/dist/document-list.js")])`,
+      );
+      const parts =
+        "<sl-upload-dropzone></sl-upload-dropzone><sl-document-list></sl-document-list>";
+      await mount(width, {}, parts, height);
+      await page.evaluate(`(async () => {
+        const drawer = document.querySelector("sl-drawer");
+        if (${mode === "docked"}) drawer.style.blockSize = "300px";
+        const dropzone = drawer.querySelector("sl-upload-dropzone");
+        const list = drawer.querySelector("sl-document-list");
+        dropzone.uploads = [
+          { id: "u-1", name: "quarterly-report.pdf", size: 4600000, sent: 1200000, state: "uploading" },
+          { id: "d-1", name: "brand-guide.pdf", size: 2400000, sent: 2400000, state: "done" },
+        ];
+        Object.assign(list, {
+          page: 1, size: 3, total: 3, more: false, pageSizes: [3],
+          items: ["terms.md", "retainer.md", "notes.txt"].map((name, i) => ({
+            id: "doc-" + i, name, content_type: "text/plain", size: 3120,
+            created_at: "2026-10-27T11:12:44Z", run_id: "run-" + i, status: "complete",
+          })),
+        });
+        await Promise.all([dropzone.updateComplete, list.updateComplete]);
+      })()`);
+      if (mode === "drawer") await openByKeyboard();
+      // The focused control in the body, null once focus leaves it, with its outline and the clip.
+      const measure = (): Promise<{
+        name: string;
+        visible: boolean;
+        outline: number[];
+        clip: number[];
+      } | null> =>
+        page.evaluate(`(() => {
+          const drawer = document.querySelector("sl-drawer");
+          let active = document.activeElement;
+          if (!drawer.contains(active) || active.closest("#count")) return null;
+          while (active.shadowRoot?.activeElement) active = active.shadowRoot.activeElement;
+          const style = getComputedStyle(active);
+          const reach = style.outlineStyle === "none" ? 0
+            : parseFloat(style.outlineWidth) + parseFloat(style.outlineOffset);
+          const box = active.getBoundingClientRect();
+          const root = drawer.shadowRoot;
+          const body = root.querySelector(".body").getBoundingClientRect();
+          const wrapper = root.querySelector("aside, dialog");
+          const frame = wrapper.getBoundingClientRect();
+          const left = frame.left + wrapper.clientLeft;
+          const top = frame.top + wrapper.clientTop;
+          return {
+            name: active.getRootNode().host.localName + " " + active.localName + " " + active.className,
+            visible: reach > 0 && active.matches(":focus-visible"),
+            outline: [box.left - reach, box.top - reach, box.right + reach, box.bottom + reach],
+            clip: [
+              Math.max(body.left, left), Math.max(body.top, top),
+              Math.min(body.right, left + wrapper.clientWidth),
+              Math.min(body.bottom, top + wrapper.clientHeight),
+            ],
+          };
+        })()`);
+      const tab = async (shift: boolean) => {
+        for (const type of ["keyDown", "keyUp"]) {
+          await page.cdp("Input.dispatchKeyEvent", {
+            type,
+            key: "Tab",
+            code: "Tab",
+            windowsVirtualKeyCode: 9,
+            modifiers: shift ? 8 : 0,
+          });
+        }
+      };
+      await page.evaluate(`document.querySelector("#count").focus()`);
+      const seen = [];
+      for (const shift of [false, true]) {
+        for (let step = 0; step < 12; step++) {
+          await tab(shift);
+          const one = await measure();
+          if (one === null) break;
+          seen.push(one);
+        }
+        // Back to the last control, to walk up from there.
+        if (!shift) await tab(true);
+      }
+      const names = new Set(seen.map(({ name }) => name.split(" ").slice(0, 2).join(" ")));
+      for (const control of ["sl-upload-dropzone button", "sl-entry button"]) {
+        assert.ok(names.has(control), `the keyboard reached ${control}: ${[...names].join(", ")}`);
+      }
+      assert.ok(
+        seen.some(({ name }) => name.endsWith("cancel")),
+        "the keyboard reached the Cancel button",
+      );
+      const scrolled: number = await page.evaluate(
+        `document.querySelector("sl-drawer").shadowRoot.querySelector(".body").scrollHeight`,
+      );
+      assert.ok(scrolled > 300, `the body scrolls: ${scrolled}`);
+      for (const { name, visible, outline, clip } of seen) {
+        const [left, top, right, bottom] = outline;
+        assert.ok(visible, `${name}'s focus outline drawn`);
+        assert.ok(
+          left >= clip[0] && top >= clip[1] && right <= clip[2] && bottom <= clip[3],
+          `${name}'s outline ${JSON.stringify(outline)} inside the clip ${JSON.stringify(clip)}`,
+        );
+      }
+    });
+  }
 
   for (const [dock, px] of [
     ["48rem", 768],

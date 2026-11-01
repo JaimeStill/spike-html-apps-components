@@ -8,15 +8,18 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 
 ### Fixed
 
-- `sl-drawer`'s heading, its `label` as an `h2` in the docked aside and in the drawer, is at
-  `--text-l`, the foundation's h4 step, where it took the baseline `h2`'s `--text-2xl`, a page
-  section's size, and competed with the page's own headings. Its weight, leading, and font stay
-  the baseline heading's, the same in both modes.
-- `sl-upload-dropzone`'s focused Cancel button keeps its whole focus outline clear of the
-  progress bar and the bytes sent below it: an upload's two lines sit apart by the outline's reach,
-  `--line-m` at the foundation's 2px offset, and `--space-3xs` beyond it, where they sat
-  `--space-3xs` apart and the outline reached into the bytes. The gap is every state's, so each
-  upload is that much taller, and an upload that finishes still keeps its height.
+- `sl-drawer`'s heading, its `label`, is at `--text-l`, the foundation's h4 size, in the docked
+  aside and in the drawer. It took the baseline `h2`'s `--text-2xl`, a page section's size, and
+  competed with the page's own headings. Its weight, leading, and font are unchanged.
+- `sl-drawer`'s scrolling body keeps a focused control's whole focus outline in view. Focus
+  scrolled the control flush with the body's top or bottom edge, which cut off the outline's
+  4px there; the body's scroll padding now matches its padding, `--space-s`, so focus stops a
+  padding short of the edge, as the content sits at rest.
+- `sl-upload-dropzone`'s focused Cancel button no longer draws its focus outline over the
+  progress bar and the bytes sent below it. An upload's two lines sat `--space-3xs` apart; they
+  now sit apart by the outline's reach, `--line-m` plus the foundation's 2px offset, and
+  `--space-3xs` beyond it. Every upload is that much taller, in every state, so one that finishes
+  keeps its height.
 
 ## [0.6.0] - 2026-10-31
 
