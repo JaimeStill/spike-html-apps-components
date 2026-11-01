@@ -1,7 +1,7 @@
 // The stage timeline, Lit with a shadow root: a run's stages as a connected, ordered list of steps,
 // each its name, its state in words and by its marker, and when it completed or failed, a failed
-// stage with why. It knows no SDK and no domain: the app maps its run's stages onto the shape below. It is display-only: it sends no
-// event, holds nothing focusable, and binds no key.
+// stage with why. It knows no SDK and no domain: the app maps its run's stages onto the shape
+// below. It is display-only: it sends no event, holds nothing focusable, and binds no key.
 
 import { html, LitElement, nothing, svg, type PropertyDeclarations } from "lit";
 import { repeat } from "lit/directives/repeat.js";

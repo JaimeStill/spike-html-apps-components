@@ -7,15 +7,14 @@
  *
  * The timeline draws no frame: it is a list of steps, as tall as its stages, with no cap. Each step
  * is a grid of two columns, the marker's and the step's text. The marker sits on the name's line;
- * under the name, the detail line holds the state's label and the stage's time, of the small
- * step; under that, a failed stage's reason, a row no other step fills; under that, a gap, which
- * the connector spans with the detail line and the reason, from under this step's marker to above
- * the next one's. The last step has no connector and no gap. The label's and
- * the time's slots each hold the width of the widest they show, so a stage's lines keep their
- * places and widths as its state changes, and a narrow column wraps every step's detail line
- * between its label and its time alike. In a shrink-to-fit parent the timeline is as wide as its
- * widest line, a name or a detail line laid out whole, up to the parent's width; a reason wraps to
- * that width and never sets it.
+ * under the name, the detail line holds the state's label and the stage's time, of the small step;
+ * under that, a failed stage's reason, a row no other step fills; under that, a gap, which the
+ * connector spans with the detail line and the reason, from under this step's marker to above the
+ * next one's. The last step has no connector and no gap. The label's and the time's slots each hold
+ * the width of the widest they show, so a stage's lines keep their places and widths as its state
+ * changes, and a narrow column wraps every step's detail line between its label and its time alike.
+ * In a shrink-to-fit parent the timeline is as wide as its widest line, a name or a detail line
+ * laid out whole, up to the parent's width; a reason wraps to that width and never sets it.
  */
 
 :host {

@@ -2,11 +2,12 @@
 // composition, one sl-pagination around one sl-entry per document, the pagination's properties
 // handed through and its attributes converted as the pagination's are, each entry's item mapped
 // from its document; the selected document marked, for assistive technology and to the eye by its
-// entry's frame, moving no entry; a document's status tone handed to its entry; the status line, one polite region, in every state, empty,
-// loading, error, and ready, on the summary's line when there is one and a line of its own when
-// not, the state reflected, a page kept busy while loading and moving nowhere; the entry's open
-// and the pagination's page-change and page-size-change reaching a listener on the list once each,
-// the very events their parts sent, bubbling and composed; and no event as the properties change.
+// entry's frame, moving no entry; a document's status tone handed to its entry; the status line,
+// one polite region, in every state, empty, loading, error, and ready, on the summary's line when
+// there is one and a line of its own when not, the state reflected, a page kept busy while loading
+// and moving nowhere; the entry's open and the pagination's page-change and page-size-change
+// reaching a listener on the list once each, the very events their parts sent, bubbling and
+// composed; and no event as the properties change.
 
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
