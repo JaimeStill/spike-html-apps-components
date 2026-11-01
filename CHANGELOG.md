@@ -6,6 +6,73 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-01
+
+### Added
+
+- `./json.js`'s `formatJson(text)`: valid JSON text re-indented from its own tokens, two spaces an
+  indent, one member or element a line, `": "` after each key, and an empty object or array as
+  `{}` or `[]`. Each token is kept as written, so only the whitespace between tokens changes. It
+  reads tokens without checking their grammar, so its caller decides whether the text is valid.
+  It indents containers to `MAX_DEPTH`, 64, deep, exported beside it; a container that would open
+  deeper is kept as written, from its opening bracket to its matching closing one, on the line
+  where it opens, and formatting resumes after it. Its output's length is then linear in the
+  text's at any depth, where indenting every level grew with the square of the depth and text of
+  40 kB nested 20,000 deep passed the longest string. Should formatting still throw a
+  `RangeError`, the viewer and the chat thread show the text as it is.
+- `sl-artifact-viewer` renders natively what the browser can, from a Blob given as its `content`,
+  which now takes `string | Blob`: `application/pdf` in an iframe, the browser's own PDF viewer,
+  titled with the name, the frame's width and up to 40rem tall, scrolling itself; `image/*` but
+  `image/svg+xml` in an img, its alt the name, at its natural size or narrower, its aspect kept;
+  `audio/*` and `video/*` in their native elements with controls, labelled with the name, the
+  viewer's width. `text/html` still shows as text, never as a page. The `content-type` decides
+  the view, and the object URL's bytes are typed by it, never by the Blob, so a disagreeing Blob
+  never loads as a page. A native type's type and subtype must each be an HTTP token, since a
+  browser sniffs bytes of a type it can't parse, or reads `image/png,text/html` as the list's
+  last type, a page. The viewer owns the URL: it makes it while connected, revokes it as the content or its type changes
+  and as it disconnects, and makes it again on reconnecting. A native type with no Blob yet shows
+  the loading note. A string content for a text type is unchanged.
+- `sl-artifact-viewer` shows text whenever the content is text, "can't be shown" its last resort.
+  The textual application types, exported as `TEXT_TYPES` (application/xml, application/javascript,
+  application/ecmascript, application/yaml, application/x-yaml, application/toml,
+  application/csv, application/x-ndjson, application/sql, application/x-sh, and
+  application/x-shellscript), and any subtype ending in +xml or +yaml, `image/svg+xml` and
+  `application/xhtml+xml` among them, show their source as text, from a string and from no URL. A
+  text/ type is text however it is written, `text/plain,x` included. Any other type, an unknown or
+  a malformed one, takes a Blob, and the viewer reads its bytes: its first MiB, `SNIFF_BYTES`,
+  decoded as UTF-8 with no C0 control character but tab, line feed, form feed, and carriage
+  return, shows as text, and only bytes that fail that, a NUL among them, show the note and a
+  link that downloads them under the artifact's name, typed `application/octet-stream`. The loading note shows until the read ends, and
+  `updateComplete` waits for it.
+
+### Changed
+
+- `viewOf(contentType)` returns `{ view, content }` in place of the view alone: `view` adds
+  `pdf`, `image`, `audio`, and `video`, and `unknown` replaces `unsupported`, a type that names no
+  view, whose Blob's bytes decide; `content` says what the view takes, `text` or `blob`, so a
+  consumer fetches text for a text type and a Blob for any other. A caller that compared its
+  result to `"unsupported"` decides on `viewOf(type).content`; `image/svg+xml` is now `text`, and
+  `image/*` other than SVG, `audio/*`, `video/*`, and `application/pdf` are native.
+
+### Removed
+
+- The unit tier's brotli budget check, which failed the check when the pack's runtime files, each
+  compressed alone with brotli, summed over 45,000 B. The layer's size is now measured, at the end
+  of a session's work, not enforced per commit.
+
+### Fixed
+
+- `sl-artifact-viewer`'s valid JSON shows its own keys, order, and numbers: it is formatted from
+  its tokens by `formatJson()`, where it was parsed and printed again, which moved integer-like
+  keys first, rewrote number literals, `1.0` as `1`, `1e3` as `1000`, and `9007199254740993` as
+  `9007199254740992`, and dropped all but the last of a duplicated key. Its strings keep their
+  escapes as written. Whether the content is valid JSON is still decided by `JSON.parse`, and
+  invalid JSON still shows as text under its note.
+- `sl-chat-thread`'s function call arguments and function output, when valid JSON, show their own
+  keys, order, numbers, and duplicates: they are formatted from their tokens by `formatJson()`,
+  where they were parsed and printed again, with the same misrepresentation the viewer had.
+  `JSON.parse` still decides validity alone, and text that doesn't parse still shows as it is.
+
 ## [0.7.0] - 2026-11-01
 
 ### Added
@@ -376,7 +443,8 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 - The release by tag: `v<version>`, whose tree is the pack, with the tarball on its GitHub
   release.
 
-[Unreleased]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.6.1...v0.7.0
 [0.6.1]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.5.0...v0.6.0

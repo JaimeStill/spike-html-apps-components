@@ -15,6 +15,10 @@
  * it there: the region fills the frame's share and shrinks to it, and long content scrolls inside
  * the one frame.
  *
+ * A native view's element sits in the frame unscrolled: the PDF's iframe scrolls its own document,
+ * at the frame's width and a height of its own, which a constrained viewer shrinks to its share;
+ * the image, never upscaled, and the audio and video, at the frame's width, keep their aspect.
+ *
  * The region is a grid of one column, minmax(0, 1fr), around its content: under a min-content
  * constraint the track is zero, and under a max-content one it is its content's widest line, so
  * in a shrink-to-fit parent the viewer takes its content's width up to the parent's, and a long
@@ -126,4 +130,35 @@
 .detail {
   font-size: var(--text-s);
   color: var(--fg-2);
+}
+/* The unsupported note's download link, on its own line. */
+.download {
+  justify-self: start;
+}
+/* The native views. Each element's corners follow the frame's, inside its border. */
+.media {
+  min-block-size: 0;
+  border-radius: inherit;
+}
+/* The PDF: the frame's width, and as tall as a page shows readably, up to most of the viewport;
+   a constrained viewer shrinks it to the frame's share. The frame's own border replaces the
+   iframe's. */
+.pdf {
+  flex: 1 1 auto;
+  inline-size: 100%;
+  block-size: min(40rem, 80svh);
+  border: 0;
+}
+/* The image at its natural size, or narrower to fit, its aspect kept: never stretched across the
+   frame, and in a constrained viewer contained in its share. */
+.image {
+  align-self: start;
+  object-fit: contain;
+}
+.audio,
+.video {
+  inline-size: 100%;
+}
+.video {
+  object-fit: contain;
 }

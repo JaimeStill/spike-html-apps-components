@@ -1,7 +1,14 @@
 // The artifact viewer from this repository's dist/, on test/fixtures/components.html: the view each
-// content type takes, its parameters and case aside; JSON pretty-printed, and invalid JSON's raw
-// text under its note; a type that isn't text as a note, never its bytes; the loading and error
-// states; long content scrolling inside the viewer, by the keyboard once Tab reaches its region;
+// content type takes, its parameters and case aside; JSON formatted from its own tokens, its keys,
+// their order, duplicates, numbers, and strings as written, and invalid JSON's raw text under its
+// note; text/html as text, never a page; the textual application types, SVG's and XHTML's source,
+// and malformed text/ types as text from no URL; an unknown type's Blob as text when its first MiB
+// is UTF-8 with no control character text never holds, and else a note and its download, typed
+// application/octet-stream; a PDF, an image, audio, and video from a Blob in their
+// native elements, named and sized, each object URL the viewer's own, revoked as the content
+// changes and as it disconnects, and made again as it reconnects; a type it can't show as a note,
+// never its bytes, with a link that downloads a Blob given; viewOf's view and content for each
+// type; the loading and error states; long content scrolling inside the viewer, by the keyboard once Tab reaches its region;
 // with noHeader, no header, the region's name kept, and no gap where the header was; every state's
 // container named for the artifact, with noHeader or without; and no event sent.
 
@@ -13,6 +20,7 @@ import type { Browser, Page } from "@jaimestill/spike-html-apps-tooling/browser.
 import { serve } from "@jaimestill/spike-html-apps-tooling/server.js";
 import type { Server } from "@jaimestill/spike-html-apps-tooling/server.js";
 
+import { deepFormatted } from "./support/deep.ts";
 import { served } from "./support/served.ts";
 
 /** What window.shown reads from a viewer's shadow root. */
@@ -53,6 +61,21 @@ describe("artifact viewer", { timeout: 60_000 }, () => {
     // text, and tabindex, and whether a heading, list, or table rendered.
     await page.evaluate(`window.verdict.then(async () => {
       await import("/dist/artifact-viewer.js");
+      window.media = await import("/test/fixtures/media.js");
+      // Every object URL the page makes, with the type and size of its Blob, and every URL it
+      // revokes, in order.
+      window.urls = { created: [], revoked: [] };
+      const create = URL.createObjectURL;
+      URL.createObjectURL = (blob) => {
+        const url = create.call(URL, blob);
+        window.urls.created.push({ url, type: blob.type, size: blob.size });
+        return url;
+      };
+      const revoke = URL.revokeObjectURL;
+      URL.revokeObjectURL = (url) => {
+        window.urls.revoked.push(url);
+        revoke.call(URL, url);
+      };
       window.shown = async (fields) => {
         const viewer = Object.assign(document.createElement("sl-artifact-viewer"), fields);
         document.querySelector("main").replaceChildren(viewer);
@@ -117,13 +140,64 @@ describe("artifact viewer", { timeout: 60_000 }, () => {
     "application/vnd.run+json; profile=x",
     "APPLICATION/VND.RUN+JSON",
   ]) {
-    test(`${JSON.stringify(contentType)} parses and prints as JSON, two spaces an indent`, async () => {
+    test(`${JSON.stringify(contentType)} shows as JSON, two spaces an indent`, async () => {
       const view = await shown({ name: "run.json", contentType, content: JSON.stringify(value) });
       assert.equal(view.region?.element, "pre");
       assert.equal(view.region?.text, printed);
       assert.deepEqual(view.notes, []);
     });
   }
+
+  test("JSON shows its own keys in their order, duplicates, numbers, and strings as written", async () => {
+    // Parsed and printed again, "2" and "10" would move first, the numbers would be rewritten,
+    // 9007199254740993 rounded, and the first "dup" dropped.
+    const content = String.raw`{"b":1,"10":[1.0,-0,1e3,1E-7,9007199254740993],"2":{},"dup":"a","dup":"say \"hi\", caf\u00e9 é\n\\"}`;
+    const view = await shown({ name: "run.json", contentType: "application/json", content });
+    assert.equal(
+      view.region?.text,
+      String.raw`{
+  "b": 1,
+  "10": [
+    1.0,
+    -0,
+    1e3,
+    1E-7,
+    9007199254740993
+  ],
+  "2": {},
+  "dup": "a",
+  "dup": "say \"hi\", caf\u00e9 é\n\\"
+}`,
+    );
+    assert.deepEqual(view.notes, []);
+  });
+
+  test("JSON of about 1 MB shows formatted without a stall", async (t) => {
+    const timing: { bytes: number; ms: number; lines: number } = await page.evaluate(`(async () => {
+      const record = (i) => ({ id: "run-" + i, "10": i, "2": -i * 1.5, note: "a \\"" + i + "\\"",
+        stages: [{ name: "classify", outputs: [i, i + 1], ok: true }, { name: "summarize", err: null }] });
+      const content = JSON.stringify(Array.from({ length: 6000 }, (_, i) => record(i)));
+      const viewer = Object.assign(document.createElement("sl-artifact-viewer"),
+        { name: "big.json", contentType: "application/json" });
+      document.querySelector("main").replaceChildren(viewer);
+      await viewer.updateComplete;
+      const start = performance.now();
+      viewer.content = content;
+      await viewer.updateComplete;
+      const ms = performance.now() - start;
+      return {
+        bytes: content.length,
+        ms,
+        lines: viewer.shadowRoot.querySelector(".content").textContent.split("\\n").length,
+      };
+    })()`);
+    t.diagnostic(
+      `${timing.bytes} bytes shown as ${timing.lines} lines in ${timing.ms.toFixed(1)} ms`,
+    );
+    assert.ok(timing.bytes > 900_000, `the content is ${timing.bytes} bytes`);
+    assert.ok(timing.lines > 100_000, `it shows ${timing.lines} lines`);
+    assert.ok(timing.ms < 500, `the update took ${timing.ms} ms`);
+  });
 
   for (const contentType of ["text/plain", "text/csv; charset=utf-8", "TEXT/HTML", "text/x-log"]) {
     test(`${JSON.stringify(contentType)} shows as preformatted text, as it is`, async () => {
@@ -135,6 +209,212 @@ describe("artifact viewer", { timeout: 60_000 }, () => {
       assert.deepEqual(view.notes, []);
     });
   }
+
+  /** What window.read reads of a viewer whose content is made in the page: its pre's text, its
+   * notes, its download link's href, any element that renders a document or media, and the
+   * object URLs made while it showed. */
+  interface Read {
+    pre: string | null;
+    notes: string[];
+    href: string | null;
+    rendering: string[];
+    made: { url: string; type: string; size: number }[];
+  }
+
+  // Renders a viewer of the content type and the content the expression makes in the page, a
+  // string or a Blob, awaits its update, its Blob read, and reads it.
+  const read = (contentType: string, content: string): Promise<Read> =>
+    page.evaluate(`(async () => {
+      const before = window.urls.created.length;
+      const viewer = Object.assign(document.createElement("sl-artifact-viewer"),
+        { name: "artifact", contentType: ${JSON.stringify(contentType)}, content: ${content} });
+      document.querySelector("main").replaceChildren(viewer);
+      await viewer.updateComplete;
+      const root = viewer.shadowRoot;
+      return {
+        pre: root.querySelector("pre")?.textContent ?? null,
+        notes: [...root.querySelectorAll(".note")].map((note) => note.classList[1]),
+        href: root.querySelector(".download")?.getAttribute("href") ?? null,
+        rendering: [...root.querySelectorAll("iframe, img, object, embed, svg, audio, video")]
+          .map((element) => element.localName),
+        made: window.urls.created.slice(before),
+      };
+    })()`);
+
+  /** A shown text: in the pre, as given, with no note, no rendering element, and no URL. */
+  const asText = (view: Read, text: string, where: string) =>
+    assert.deepEqual(
+      view,
+      { pre: text, notes: [], href: null, rendering: [], made: [] },
+      `${where} shows as text`,
+    );
+
+  for (const [contentType, content] of [
+    ["application/xml", '<?xml version="1.0"?>\n<run id="1"><stage name="a"/></run>'],
+    ["application/atom+xml; charset=utf-8", "<feed><title>runs</title></feed>"],
+    ["application/javascript", 'export const run = () => console.log("hi");'],
+    ["application/ecmascript", "var a = 1;"],
+    ["application/yaml", "run:\n  id: 1\n  stages: [a, b]"],
+    ["application/x-yaml", "- a\n- b"],
+    ["application/vnd.run+yaml", "id: 1"],
+    ["application/toml", '[run]\nid = "1"'],
+    ["application/csv", "a,b\n1,2"],
+    ["application/x-ndjson", '{"a":1}\n{"a":2}'],
+    ["application/sql", "SELECT * FROM runs;"],
+    ["application/x-sh", "#!/bin/sh\necho hi"],
+    ["application/x-shellscript", "echo hi"],
+    ["text/plain,x", "malformed, but text"],
+    ["text/markdown,x", "# no heading"],
+    [
+      "image/svg+xml",
+      '<svg xmlns="http://www.w3.org/2000/svg" onload="parent.ran = true"><circle r="4"/></svg>',
+    ],
+    [
+      "application/xhtml+xml",
+      '<html xmlns="http://www.w3.org/1999/xhtml"><body><script>parent.ran = true</script></body></html>',
+    ],
+  ]) {
+    test(`${JSON.stringify(contentType)} shows its source as text, from no URL`, async () => {
+      asText(await read(contentType, JSON.stringify(content)), content, contentType);
+    });
+  }
+
+  test("an unknown type's Blob of UTF-8 text shows as text, from no URL", async () => {
+    const text = "run 1: classify ok\tcafé 😀\r\n\fnext page";
+    for (const contentType of ["application/x-unknown", "", "image/png,text/html", "text"]) {
+      const view = await read(contentType, `new Blob([${JSON.stringify(text)}])`);
+      asText(view, text, JSON.stringify(contentType));
+    }
+    // A string given for one shows the same way.
+    asText(await read("application/x-unknown", '"plain words"'), "plain words", "a string");
+  });
+
+  for (const [what, blob] of [
+    ["a PNG's bytes", "window.media.png()"],
+    ["a NUL among text", `new Blob([${JSON.stringify("run 1 ok\0run 2 ok")}])`],
+    ["an escape among text", `new Blob([${JSON.stringify("\u001b[31mred\u001b[0m")}])`],
+    ["bytes that aren't UTF-8", "new Blob([new Uint8Array([0x72, 0x75, 0x6e, 0xff, 0x0a])])"],
+  ]) {
+    test(`an unknown type's Blob of ${what} can't be shown, and downloads as application/octet-stream`, async () => {
+      const view = await read("application/x-unknown", blob);
+      assert.deepEqual([view.pre, view.notes, view.rendering], [null, ["unsupported"], []]);
+      assert.equal(view.made.length, 1, "one URL, the download's");
+      assert.equal(view.href, view.made[0].url);
+      assert.equal(view.made[0].type, "application/octet-stream");
+    });
+  }
+
+  test("an unknown type's Blob is judged by its first MiB", async () => {
+    // A NUL past the first MiB, and a two-byte character cut by the MiB's end, leave it text.
+    const view: { pre: number | null; notes: string[]; made: number } =
+      await page.evaluate(`(async () => {
+      const head = new Uint8Array(1024 * 1024 + 1).fill(0x61);
+      head.set([0xc3, 0xa9], 1024 * 1024 - 1);
+      const viewer = Object.assign(document.createElement("sl-artifact-viewer"),
+        { name: "big", contentType: "application/x-unknown",
+          content: new Blob([head, new Uint8Array([0x00, 0x62])]) });
+      const before = window.urls.created.length;
+      document.querySelector("main").replaceChildren(viewer);
+      await viewer.updateComplete;
+      const root = viewer.shadowRoot;
+      return { pre: root.querySelector("pre")?.textContent.length ?? null,
+        notes: [...root.querySelectorAll(".note")].map((note) => note.classList[1]),
+        made: window.urls.created.length - before };
+    })()`);
+    assert.deepEqual(view, { pre: 1024 * 1024 + 2, notes: [], made: 0 });
+  });
+
+  // In the page, a Blob of the parts whose bytes, read by any of a Blob's reads or a slice's, are
+  // held until release() lets them go, as `const { blob, release } = held(parts)`.
+  const held = `(parts) => {
+    let release;
+    const gate = new Promise((resolve) => { release = resolve; });
+    class Held extends Blob {
+      slice(...args) { return new Held([super.slice(...args)]); }
+      async arrayBuffer() { await gate; return super.arrayBuffer(); }
+      async bytes() { await gate; return super.bytes(); }
+      async text() { await gate; return super.text(); }
+      stream() { throw new Error("held"); }
+    }
+    return { blob: new Held(parts), release };
+  }`;
+
+  test("an unknown type's Blob shows loading until read, and its download URL goes when text replaces it", async () => {
+    const steps: { notes: string[]; pre: string | null; href: string | null; revoked: string[] }[] =
+      await page.evaluate(`(async () => {
+      // A PNG whose bytes are held until the test lets them be read.
+      const { blob, release } = (${held})([window.media.png()]);
+      const viewer = Object.assign(document.createElement("sl-artifact-viewer"),
+        { name: "x", contentType: "application/x-unknown", content: blob });
+      const steps = [];
+      const step = () => {
+        const root = viewer.shadowRoot;
+        steps.push({ notes: [...root.querySelectorAll(".note")].map((note) => note.classList[1]),
+          pre: root.querySelector("pre")?.textContent ?? null,
+          href: root.querySelector(".download")?.getAttribute("href") ?? null,
+          revoked: [...window.urls.revoked] });
+      };
+      document.querySelector("main").replaceChildren(viewer);
+      // Rendered, the bytes not yet read.
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      step();
+      release();
+      await viewer.updateComplete;
+      step();
+      viewer.content = new Blob(["now text"]);
+      await viewer.updateComplete;
+      step();
+      return steps;
+    })()`);
+    const [first, binary, text] = steps;
+    assert.deepEqual([first.notes, first.href], [["loading"], null], "loading, before the read");
+    assert.deepEqual([binary.notes, binary.pre], [["unsupported"], null]);
+    assert.match(binary.href ?? "", /^blob:/);
+    assert.deepEqual([text.notes, text.pre, text.href], [[], "now text", null]);
+    assert.ok(text.revoked.includes(binary.href ?? ""), "the download's URL is revoked");
+  });
+
+  test("an unknown type's Blob read after its content changed never shows over the new content", async () => {
+    const shown: { notes: string[]; pre: string | null; href: string | null }[] =
+      await page.evaluate(`(async () => {
+      // A binary Blob and a text one, each held; the first given, then replaced by the second,
+      // and the first's read let go only after the second's has shown.
+      const binary = (${held})([window.media.png()]);
+      const text = (${held})(["the new text"]);
+      const viewer = Object.assign(document.createElement("sl-artifact-viewer"),
+        { name: "x", contentType: "application/x-unknown", content: binary.blob });
+      document.querySelector("main").replaceChildren(viewer);
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      viewer.content = text.blob;
+      text.release();
+      await viewer.updateComplete;
+      const read = () => {
+        const root = viewer.shadowRoot;
+        return { notes: [...root.querySelectorAll(".note")].map((note) => note.classList[1]),
+          pre: root.querySelector("pre")?.textContent ?? null,
+          href: root.querySelector(".download")?.getAttribute("href") ?? null };
+      };
+      const before = read();
+      binary.release();
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      await viewer.updateComplete;
+      return [before, read()];
+    })()`);
+    const now = { notes: [], pre: "the new text", href: null };
+    assert.deepEqual(
+      shown,
+      [now, now],
+      "the new content's text, before and after the old read ends",
+    );
+  });
+
+  test("valid JSON nested 20,000 deep shows its outer 64 levels formatted, the rest as written", async () => {
+    // Every level indented, their indents alone would be some 800 million spaces.
+    const content = "[".repeat(20_000) + "1" + "]".repeat(20_000);
+    const view = await shown({ name: "deep.json", contentType: "application/json", content });
+    assert.equal(view.region?.text, deepFormatted(20_000));
+    assert.deepEqual(view.notes, []);
+  });
 
   test("JSON that doesn't parse shows its raw text under a labelled note", async () => {
     const content = '{"id": "run-1", "status": complete,}';
@@ -148,15 +428,15 @@ describe("artifact viewer", { timeout: 60_000 }, () => {
   });
 
   for (const [contentType, detail] of [
-    ["image/png", "image/png isn't text."],
+    ["application/zip", "application/zip isn't text."],
     ["application/octet-stream", "application/octet-stream isn't text."],
-    ["application/pdf", "application/pdf isn't text."],
     ["", "It has no content type."],
     ["text", "text isn't text."],
   ]) {
-    test(`${JSON.stringify(contentType)} shows a labelled note in place of its content`, async () => {
+    test(`${JSON.stringify(contentType)} with content that isn't text shows a labelled note in place of it`, async () => {
+      // PNG's signature holds a substitute, U+001A, a control character text never holds.
       const content = "\u0089PNG\r\n\u001a\n-the-bytes-";
-      const view = await shown({ name: "chart.png", contentType, content });
+      const view = await shown({ name: "chart.zip", contentType, content });
       assert.equal(view.region, null);
       assert.deepEqual(
         view.notes.map(({ kind, label }) => [kind, label]),
@@ -195,6 +475,406 @@ describe("artifact viewer", { timeout: 60_000 }, () => {
       },
     ]);
     assert.equal(view.region, null);
+  });
+
+  test("viewOf gives each type's view and the content it takes", async () => {
+    const results: Record<string, unknown> = await page.evaluate(`(async () => {
+      const { viewOf } = await import("/dist/artifact-viewer.js");
+      const types = ["text/markdown", "application/ld+json", "text/html; charset=utf-8",
+        "Application/PDF", "image/png", "image/svg+xml", "audio/wav", "VIDEO/WEBM; codecs=vp9",
+        "application/zip", "", "image", "image/png,text/html", "image/x y", "text/plain,x",
+        "application/xhtml+xml", "Application/YAML", "application/json,x", "text/markdown,x"];
+      return Object.fromEntries(types.map((type) => [type, viewOf(type)]));
+    })()`);
+    assert.deepEqual(results, {
+      "text/markdown": { view: "markdown", content: "text" },
+      "application/ld+json": { view: "json", content: "text" },
+      "text/html; charset=utf-8": { view: "text", content: "text" },
+      "Application/PDF": { view: "pdf", content: "blob" },
+      "image/png": { view: "image", content: "blob" },
+      "image/svg+xml": { view: "text", content: "text" },
+      "audio/wav": { view: "audio", content: "blob" },
+      "VIDEO/WEBM; codecs=vp9": { view: "video", content: "blob" },
+      "application/zip": { view: "unknown", content: "blob" },
+      "": { view: "unknown", content: "blob" },
+      image: { view: "unknown", content: "blob" },
+      "image/png,text/html": { view: "unknown", content: "blob" },
+      "image/x y": { view: "unknown", content: "blob" },
+      "text/plain,x": { view: "text", content: "text" },
+      "application/xhtml+xml": { view: "text", content: "text" },
+      "Application/YAML": { view: "text", content: "text" },
+      // Lenient on text/ alone: a malformed JSON or Markdown type is no JSON or Markdown.
+      "application/json,x": { view: "unknown", content: "blob" },
+      "text/markdown,x": { view: "text", content: "text" },
+    });
+  });
+
+  /** What window.native reads of a viewer given a Blob from test/fixtures/media.js. */
+  interface Native {
+    element: string | null;
+    src: string | null;
+    created: { url: string; type: string; size: number } | null;
+    given: { type: string; size: number };
+    title: string | null;
+    alt: string | null;
+    label: string | null;
+    notes: string[];
+    frame: { width: number; height: number; scrolls: boolean };
+    box: { width: number; height: number } | null;
+    rem: number;
+  }
+
+  // Renders a viewer of the fields with media[fixture]() as its content, and reads its native
+  // element: its src and the object URL made for it, its names, and its box and the frame's. The
+  // style is the host's.
+  const native = async (
+    fields: Record<string, unknown>,
+    fixture: string,
+    style = "",
+  ): Promise<Native> =>
+    page.evaluate(`(async () => {
+      const fields = ${JSON.stringify(fields)};
+      const blob = window.media[${JSON.stringify(fixture)}]();
+      const viewer = Object.assign(document.createElement("sl-artifact-viewer"), fields,
+        { content: blob });
+      viewer.style.cssText = ${JSON.stringify(style)};
+      const before = window.urls.created.length;
+      document.querySelector("main").replaceChildren(viewer);
+      await viewer.updateComplete;
+      const root = viewer.shadowRoot;
+      const element = root.querySelector(".media");
+      if (element?.localName === "img") await element.decode();
+      if (element?.localName === "video" && element.readyState < 1) {
+        await new Promise((resolve) => element.addEventListener("loadedmetadata", resolve,
+          { once: true }));
+      }
+      const frame = root.querySelector(".frame");
+      const box = element?.getBoundingClientRect();
+      return {
+        element: element?.localName ?? null,
+        src: element?.getAttribute("src") ?? null,
+        created: window.urls.created.slice(before).at(-1) ?? null,
+        given: { type: blob.type, size: blob.size },
+        title: element?.getAttribute("title") ?? null,
+        alt: element?.getAttribute("alt") ?? null,
+        label: element?.getAttribute("aria-label") ?? null,
+        notes: [...root.querySelectorAll(".note")].map((note) => note.classList[1]),
+        frame: { width: frame.clientWidth, height: frame.clientHeight,
+          scrolls: frame.scrollHeight > frame.clientHeight || frame.scrollWidth > frame.clientWidth },
+        box: box ? { width: box.width, height: box.height } : null,
+        rem: parseFloat(getComputedStyle(document.documentElement).fontSize),
+      };
+    })()`);
+
+  // The object URL shown is the one the viewer made, from a Blob of the given one's bytes, typed by
+  // the content type, which decides the view.
+  const madeFor = (view: Native, type: string) => {
+    assert.match(view.src ?? "", /^blob:/);
+    assert.equal(view.src, view.created?.url, "the src is the URL the viewer made");
+    assert.deepEqual(
+      [view.created?.type, view.created?.size],
+      [type, view.given.size],
+      "made from the given bytes, typed by the content type",
+    );
+    assert.deepEqual(view.notes, []);
+  };
+
+  test("application/pdf shows in an iframe, titled, the frame's width, tall, the viewer's frame unscrolled", async () => {
+    // chrome-headless-shell has no PDF viewer plugin, so the frame's pages never render here: the
+    // test holds the iframe, its blob: src, its title, and its box, not the PDF's pages.
+    const view = await native({ name: "summary.pdf", contentType: "application/pdf" }, "pdf");
+    assert.equal(view.element, "iframe");
+    madeFor(view, "application/pdf");
+    assert.equal(view.title, "summary.pdf");
+    assert.ok(Math.abs((view.box?.width ?? 0) - view.frame.width) <= 0.5, "the frame's width");
+    assert.ok((view.box?.height ?? 0) >= 16 * view.rem, `${view.box?.height} tall`);
+    assert.equal(view.frame.scrolls, false, "the viewer's frame doesn't scroll the iframe");
+    assert.deepEqual(await regions().then((named) => named.map(({ name }) => name)), [
+      "summary.pdf content",
+    ]);
+    // Held to 12rem, the viewer shrinks the iframe into its frame, still unscrolled.
+    const held = await native(
+      { name: "summary.pdf", contentType: "application/pdf" },
+      "pdf",
+      "block-size: 12rem",
+    );
+    assert.ok((held.box?.height ?? 0) <= held.frame.height + 0.5, `${held.box?.height} tall`);
+    assert.equal(held.frame.scrolls, false);
+  });
+
+  test("no view's object URL, opened as a document of its own, loads a Blob as a page", async () => {
+    // Each Blob is a page typed text/html, which, loaded in the app's origin, would set ran on the
+    // frame's parent. Each view's URL, a native element's src or the download link's href, is
+    // opened in a frame, as "Open image in new tab" or the link opened rather than downloaded
+    // would; a URL the test makes of the Blob itself first shows that such a page would run. A
+    // text view, SVG's and XHTML's source among them, and an unknown type's text bytes, has no URL
+    // to open: the page shows as text. Its binary twin, the page after a NUL, is a download.
+    const opened: Record<string, { url: string | null; ran: boolean; type: string | null }> =
+      await page.evaluate(`(async () => {
+      const markup = "<script>parent.ran = true</script>";
+      const page = () => new Blob([markup], { type: "text/html" });
+      const binary = () => new Blob(["\\0" + markup], { type: "text/html" });
+      const open = async (url) => {
+        window.ran = false;
+        const frame = document.createElement("iframe");
+        frame.src = url;
+        const loaded = new Promise((resolve) => frame.addEventListener("load", resolve));
+        document.body.append(frame);
+        await Promise.race([loaded, new Promise((resolve) => setTimeout(resolve, 1000))]);
+        frame.remove();
+        return { url, ran: window.ran, type: (await fetch(url)).headers.get("content-type") };
+      };
+      const opened = { control: await open(URL.createObjectURL(page())) };
+      for (const [contentType, blob] of [["application/pdf; name=x", page],
+        ["image/png", page], ["audio/wav", page], ["video/webm", page], ["image/svg+xml", page],
+        ["application/xhtml+xml", page], ["text/html", page], ["application/zip", page],
+        ["image/png,text/html", page], ["application/zip, binary", binary],
+        ["image/png,text/html, binary", binary]]) {
+        window.ran = false;
+        const viewer = Object.assign(document.createElement("sl-artifact-viewer"),
+          { name: "x", contentType: contentType.replace(", binary", ""), content: blob() });
+        document.querySelector("main").replaceChildren(viewer);
+        await viewer.updateComplete;
+        const root = viewer.shadowRoot;
+        const url = root.querySelector(".media")?.getAttribute("src") ??
+          root.querySelector(".download")?.getAttribute("href");
+        opened[contentType] = url ? await open(url) : { url: null, ran: window.ran, type: null };
+      }
+      return opened;
+    })()`);
+    assert.deepEqual(
+      [opened.control.ran, opened.control.type],
+      [true, "text/html"],
+      "a page's own URL runs",
+    );
+    for (const [contentType, type] of [
+      ["application/pdf; name=x", "application/pdf"],
+      ["image/png", "image/png"],
+      ["audio/wav", "audio/wav"],
+      ["video/webm", "video/webm"],
+      ["application/zip, binary", "application/octet-stream"],
+      ["image/png,text/html, binary", "application/octet-stream"],
+    ]) {
+      const { url, ran, type: served } = opened[contentType];
+      assert.match(url ?? "", /^blob:/, `${contentType} shows a URL`);
+      assert.deepEqual([ran, served], [false, type], `${contentType}'s URL is no page`);
+    }
+    for (const contentType of [
+      "image/svg+xml",
+      "application/xhtml+xml",
+      "text/html",
+      "application/zip",
+      "image/png,text/html",
+    ]) {
+      assert.deepEqual(opened[contentType], { url: null, ran: false, type: null }, contentType);
+    }
+  });
+
+  test("image/* shows in an img, its alt the name, at its natural size, never upscaled, narrowed with its aspect", async () => {
+    const view = await native(
+      { name: "chart.png", contentType: "image/png" },
+      "png",
+      "inline-size: 40rem",
+    );
+    assert.equal(view.element, "img");
+    madeFor(view, "image/png");
+    assert.equal(view.alt, "chart.png");
+    assert.deepEqual(view.box, { width: 160, height: 90 }, "its natural size, the blob decoded");
+    const narrow = await native(
+      { name: "chart.png", contentType: "image/png" },
+      "png",
+      "inline-size: 100px",
+    );
+    assert.ok((narrow.box?.width ?? 0) <= narrow.frame.width + 0.5, "no wider than the frame");
+    const ratio = (narrow.box?.height ?? 0) / (narrow.box?.width ?? 1);
+    assert.ok(Math.abs(ratio - 90 / 160) < 0.02, `its aspect, ${ratio}`);
+    assert.equal(narrow.frame.scrolls, false);
+  });
+
+  test("audio/* shows in a native audio with controls, labelled, the frame's width", async () => {
+    const view = await native({ name: "silence.wav", contentType: "audio/wav" }, "wav");
+    assert.equal(view.element, "audio");
+    madeFor(view, "audio/wav");
+    assert.equal(view.label, "silence.wav");
+    assert.ok(Math.abs((view.box?.width ?? 0) - view.frame.width) <= 0.5, "the frame's width");
+    const controls = await page.evaluate(
+      `document.querySelector("sl-artifact-viewer").shadowRoot.querySelector("audio").controls`,
+    );
+    assert.equal(controls, true);
+  });
+
+  test("video/* shows in a native video with controls, labelled, the frame's width at its aspect", async () => {
+    const view = await native({ name: "clip.webm", contentType: "video/webm" }, "webm");
+    assert.equal(view.element, "video");
+    madeFor(view, "video/webm");
+    assert.equal(view.label, "clip.webm");
+    assert.ok(Math.abs((view.box?.width ?? 0) - view.frame.width) <= 0.5, "the frame's width");
+    const ratio = (view.box?.height ?? 0) / (view.box?.width ?? 1);
+    assert.ok(Math.abs(ratio - 36 / 64) < 0.02, `its aspect, ${ratio}`);
+  });
+
+  for (const noHeader of [false, true]) {
+    test(`a native view's frame is the region named for the artifact${noHeader ? ", with noHeader, no header and no gap" : ""}`, async () => {
+      const view = await native({ name: "chart.png", contentType: "image/png", noHeader }, "png");
+      assert.equal(view.element, "img");
+      const box: { header: boolean; frameTop: number } = await page.evaluate(`(() => {
+        const viewer = document.querySelector("sl-artifact-viewer");
+        const root = viewer.shadowRoot;
+        return { header: root.querySelector("header") !== null,
+          frameTop: root.querySelector(".frame").getBoundingClientRect().top -
+            viewer.getBoundingClientRect().top };
+      })()`);
+      assert.equal(box.header, !noHeader);
+      if (noHeader)
+        assert.ok(Math.abs(box.frameTop) <= 0.5, `the frame starts ${box.frameTop} down`);
+      const named = await regions();
+      assert.deepEqual(
+        named.map(({ name }) => name),
+        ["chart.png content"],
+      );
+    });
+  }
+
+  test("the viewer revokes its URL as the content changes and as it disconnects, and makes one again as it reconnects", async () => {
+    const {
+      steps,
+      served,
+    }: { steps: { src: string | null; revoked: string[]; created: string[] }[]; served: string[] } =
+      await page.evaluate(`(async () => {
+      const viewer = Object.assign(document.createElement("sl-artifact-viewer"),
+        { name: "chart.png", contentType: "image/png", content: window.media.png() });
+      const main = document.querySelector("main");
+      // The viewer a test before left, removed first, revokes its own URL before the count.
+      main.replaceChildren();
+      const steps = [];
+      let created = window.urls.created.length;
+      let revoked = window.urls.revoked.length;
+      const step = async (change) => {
+        await change();
+        await viewer.updateComplete;
+        steps.push({
+          src: viewer.shadowRoot.querySelector(".media")?.getAttribute("src") ?? null,
+          created: window.urls.created.slice(created).map(({ url }) => url),
+          revoked: window.urls.revoked.slice(revoked),
+        });
+        created = window.urls.created.length;
+        revoked = window.urls.revoked.length;
+      };
+      await step(() => main.replaceChildren(viewer));
+      await step(() => { viewer.content = window.media.png(); });
+      await step(() => viewer.remove());
+      await step(() => main.append(viewer));
+      await step(() => { viewer.contentType = "image/webp"; });
+      await step(() => { viewer.content = ""; });
+      // Each URL revoked is gone: the browser no longer serves it.
+      const served = await Promise.all(steps.flatMap(({ revoked }) => revoked).map((url) =>
+        fetch(url).then(() => url, () => null)));
+      return { steps, served: served.filter(Boolean) };
+    })()`);
+    const [mounted, changed, removed, restored, retyped, cleared] = steps;
+    assert.equal(mounted.created.length, 1, "connected, one URL is made");
+    assert.equal(mounted.src, mounted.created[0]);
+    assert.deepEqual(mounted.revoked, []);
+    assert.deepEqual(
+      changed.revoked,
+      [mounted.src],
+      "the old URL is revoked as the content changes",
+    );
+    assert.deepEqual(changed.created, [changed.src]);
+    assert.deepEqual(removed.revoked, [changed.src], "disconnecting revokes it");
+    assert.deepEqual(removed.created, []);
+    assert.equal(restored.created.length, 1, "reconnecting makes one again");
+    assert.equal(restored.src, restored.created[0]);
+    assert.deepEqual(restored.revoked, []);
+    assert.deepEqual(retyped.revoked, [restored.src], "a new type is a new URL");
+    assert.deepEqual(retyped.created, [retyped.src]);
+    assert.deepEqual(cleared.revoked, [retyped.src], "no Blob, no URL");
+    assert.deepEqual(cleared.created, []);
+    assert.equal(cleared.src, null);
+    assert.deepEqual(served, [], "no URL revoked is still served");
+  });
+
+  test("a native type with no Blob yet shows the loading note; loading and error take no Blob's element", async () => {
+    const view: { kinds: string[]; media: boolean }[] = await page.evaluate(`(async () => {
+      const viewer = Object.assign(document.createElement("sl-artifact-viewer"),
+        { name: "summary.pdf", contentType: "application/pdf" });
+      document.querySelector("main").replaceChildren(viewer);
+      const read = async (fields) => {
+        Object.assign(viewer, fields);
+        await viewer.updateComplete;
+        const root = viewer.shadowRoot;
+        return { kinds: [...root.querySelectorAll(".note")].map((note) => note.classList[1]),
+          media: root.querySelector(".media") !== null };
+      };
+      return [
+        await read({}),
+        await read({ content: "%PDF-1.4" }),
+        await read({ content: window.media.pdf(), state: "loading" }),
+        await read({ state: "error", message: "gone" }),
+        await read({ state: "ready", content: new Blob([], { type: "application/pdf" }) }),
+      ];
+    })()`);
+    assert.deepEqual(view, [
+      { kinds: ["loading"], media: false },
+      { kinds: ["loading"], media: false },
+      { kinds: ["loading"], media: false },
+      { kinds: ["error"], media: false },
+      { kinds: ["empty"], media: false },
+    ]);
+  });
+
+  test("text/html shows as text, string or Blob, never in an iframe", async () => {
+    const view: { pre: string | null; iframe: boolean; notes: string[]; made: number }[] =
+      await page.evaluate(`(async () => {
+      const viewer = Object.assign(document.createElement("sl-artifact-viewer"),
+        { name: "page.html", contentType: "text/html" });
+      document.querySelector("main").replaceChildren(viewer);
+      const read = async (content) => {
+        const before = window.urls.created.length;
+        viewer.content = content;
+        await viewer.updateComplete;
+        const root = viewer.shadowRoot;
+        return { pre: root.querySelector("pre")?.textContent ?? null,
+          iframe: root.querySelector("iframe") !== null,
+          notes: [...root.querySelectorAll(".note")].map((note) => note.classList[1]),
+          made: window.urls.created.length - before };
+      };
+      const html = "<h1>Hi</h1><script>window.pwned = 1</script>";
+      return [await read(html), await read(new Blob([html], { type: "text/html" }))];
+    })()`);
+    assert.deepEqual(view, [
+      { pre: "<h1>Hi</h1><script>window.pwned = 1</script>", iframe: false, notes: [], made: 0 },
+      // A Blob is no text type's content: it shows as none, and no URL is made of it.
+      { pre: null, iframe: false, notes: ["empty"], made: 0 },
+    ]);
+  });
+
+  test("a type it can't show, given a Blob, offers a link that downloads it under its name", async () => {
+    const view: {
+      href: string | null;
+      download: string | null;
+      text: string | null;
+      created: { url: string; type: string; size: number };
+      detail: string | null;
+    } = await page.evaluate(`(async () => {
+      const viewer = Object.assign(document.createElement("sl-artifact-viewer"), {
+        name: "bundle.zip", contentType: "application/zip",
+        content: window.media.png(),
+      });
+      document.querySelector("main").replaceChildren(viewer);
+      await viewer.updateComplete;
+      const link = viewer.shadowRoot.querySelector(".note a");
+      return { href: link?.getAttribute("href") ?? null, download: link?.getAttribute("download") ?? null,
+        text: link?.textContent.trim() ?? null, created: window.urls.created.at(-1),
+        detail: viewer.shadowRoot.querySelector(".detail")?.textContent ?? null };
+    })()`);
+    assert.match(view.href ?? "", /^blob:/);
+    assert.equal(view.href, view.created.url);
+    // Typed application/octet-stream, so the link opened rather than downloaded renders nothing.
+    assert.deepEqual([view.created.type, view.created.size], ["application/octet-stream", 167]);
+    assert.equal(view.download, "bundle.zip");
+    assert.equal(view.text, "Download bundle.zip");
+    assert.equal(view.detail, "application/zip isn't text.");
   });
 
   test("the attributes set the name, content type, and state", async () => {
@@ -408,8 +1088,8 @@ describe("artifact viewer", { timeout: 60_000 }, () => {
     },
     {
       state: "unsupported",
-      fields: { contentType: "image/png", content: "-the-bytes-" },
-      holds: ["This content type can't be shown.", "image/png isn't text."],
+      fields: { contentType: "application/zip", content: "PK\u0003\u0004-the-bytes-" },
+      holds: ["This content type can't be shown.", "application/zip isn't text."],
       description: /^$/,
     },
     {

@@ -16,9 +16,9 @@ the one copy serves both, so a restyle of the foundation's sheets by package nam
 components' shadow roots too. Install both by their tags:
 
 ```
-npm install --allow-git=root github:JaimeStill/spike-html-apps-components#v0.7.0 github:JaimeStill/spike-html-apps-foundation#v0.3.0
-pnpm add github:JaimeStill/spike-html-apps-components#v0.7.0 github:JaimeStill/spike-html-apps-foundation#v0.3.0
-bun add github:JaimeStill/spike-html-apps-components#v0.7.0 github:JaimeStill/spike-html-apps-foundation#v0.3.0
+npm install --allow-git=root github:JaimeStill/spike-html-apps-components#v0.8.0 github:JaimeStill/spike-html-apps-foundation#v0.3.0
+pnpm add github:JaimeStill/spike-html-apps-components#v0.8.0 github:JaimeStill/spike-html-apps-foundation#v0.3.0
+bun add github:JaimeStill/spike-html-apps-components#v0.8.0 github:JaimeStill/spike-html-apps-foundation#v0.3.0
 ```
 
 Or by their release tarballs:
@@ -71,17 +71,59 @@ foundation's `page.css`:
   marked's lexer: raw HTML shows as text, an image as its alt text, and a link is an anchor only
   to an http, https, or mailto URL or a relative one. It is the one module that imports marked,
   which an import map then maps too.
-- `./artifact-viewer.js`: `sl-artifact-viewer`, one artifact's content by its content type, as
-  rendered Markdown, pretty-printed JSON, or preformatted text, scrolling inside the viewer, under
-  a header of its name and content type that `no-header` (`noHeader`) leaves out, for a page whose
-  own header shows them. Every state, its content or its loading, error, invalid JSON,
-  unsupported, or empty note, is in a region named `<name> content`, header or not. It sends no
+- `./json.js`: `formatJson(text)`, valid JSON text re-indented from its own tokens, two spaces an
+  indent: its keys in their order, duplicates included, its number literals, and its strings with
+  their escapes as written, only the whitespace between tokens changed. Containers to `MAX_DEPTH`,
+  64, deep are indented; one that would open deeper is kept as written on the line where it opens,
+  so the output's length stays linear in the text's at any depth. It never decides whether
+  the text is valid; its caller does, as the artifact viewer and the chat thread do with
+  `JSON.parse`.
+- `./artifact-viewer.js`: `sl-artifact-viewer`, one artifact's content by its content type, text
+  from a string and the types the browser renders natively from a Blob, under a header of its name
+  and content type that `no-header` (`noHeader`) leaves out, for a page whose own header shows
+  them. Every state, its content or its loading, error, invalid JSON, unsupported, or empty note,
+  is in a region named `<name> content`, header or not. Valid JSON is formatted from its own
+  tokens by `./json.js`, never parsed and printed again, so it shows its own keys, their order,
+  and its numbers; JSON that doesn't parse shows as text under a note. `viewOf(contentType)` gives
+  a type's `view` and the `content` it takes, `text` or `blob`, so a consumer knows what to
+  fetch. A text view is always safe, never a URL and never a document, so the viewer shows text
+  whenever the content is text: "can't be shown" is left for bytes that aren't. The
+  `content-type` decides the view, never a Blob's own type, and the Blob's bytes are shown as
+  that type. The viewer owns the object URL of the Blob it holds: it makes it while
+  connected and revokes it as the content or its type changes and as it disconnects. It sends no
   event. It imports `./markdown.js`, so its page maps marked too.
+
+  | Content type, its parameters and case aside     | View                                              | Content |
+  | :---------------------------------------------- | :------------------------------------------------ | :------ |
+  | text/markdown                                   | rendered Markdown, scrolling                      | string  |
+  | application/json, or a subtype ending in +json  | JSON formatted from its tokens, scrolling         | string  |
+  | any other text/ type, text/html included        | preformatted text, as it is, never run as a page  | string  |
+  | a textual application type, `TEXT_TYPES`        | its source as preformatted text                   | string  |
+  | a subtype ending in +xml or +yaml, SVG included | its source as preformatted text                   | string  |
+  | application/pdf                                 | an iframe, the browser's own PDF viewer           | Blob    |
+  | image/*, but image/svg+xml                      | an img, at its natural size or narrower, its alt  | Blob    |
+  | audio/*                                         | an audio with controls, the viewer's width        | Blob    |
+  | video/*                                         | a video with controls, the viewer's width         | Blob    |
+  | anything else, `unknown`                        | text if its bytes are; else a note and a download | Blob    |
+
+  `TEXT_TYPES` is application/xml, application/javascript, application/ecmascript,
+  application/yaml, application/x-yaml, application/toml, application/csv, application/x-ndjson,
+  application/sql, application/x-sh, and application/x-shellscript. A native type's type and
+  subtype must each be an HTTP token, so `image/png,text/html` is anything else; a text/ type is
+  text however it is written, `text/plain,x` included, since text never gets a URL. An unknown
+  type's Blob is text when its first MiB, `SNIFF_BYTES`, decodes as UTF-8 and holds no C0 control
+  character but tab, line feed, form feed, and carriage return; past the MiB it shows as decoded.
+  Binary bytes show the note, with a link that downloads them typed `application/octet-stream`.
+  The viewer reads the Blob itself, showing the loading note until it has, and its
+  `updateComplete` waits for the read. A string given for an unknown type shows as text unless it
+  holds such a control character. A native type with no Blob yet, a string included, shows the
+  loading note; a text type given a Blob shows as empty, as `""` does.
 - `./chat-thread.js`: `sl-chat-thread`, a conversation's items in order, a structural subset of
   Open Responses: a user's text as plain text, the assistant's as rendered Markdown, a refusal
   labelled, and a streaming reply re-rendered in place; with `verbose`, reasoning, function calls,
-  and their outputs too, each collapsed in a native details. It exports its item types and sends
-  no event. It imports `./markdown.js`, so its page maps marked too.
+  and their outputs too, each collapsed in a native details, a call's arguments and its output
+  that are valid JSON formatted from their own tokens by `./json.js`. It exports its item types
+  and sends no event. It imports `./markdown.js`, so its page maps marked too.
 - `./composer.js`: `sl-composer`, a multi-line text field that grows to eight lines, and its
   send control, which a stop control replaces while `busy`; it dispatches `send` with the text,
   then clears the field, and `stop`. Its `send()` does what activating send does, so an app that

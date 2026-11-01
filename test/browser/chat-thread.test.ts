@@ -1,8 +1,9 @@
 // The chat thread from this repository's dist/, on test/fixtures/components.html: each item and
 // part type as it renders, user text plain and assistant text as Markdown, raw HTML as text; a
 // refusal labelled; each status labelled; unknown item and part types skipped; verbose hiding and
-// showing reasoning, function calls, and their outputs, collapsed; a streaming message re-rendered
-// in place, the items above it the same nodes; the verbose attribute reflected; and no event sent.
+// showing reasoning, function calls, and their outputs, collapsed, valid JSON formatted from its
+// own tokens and invalid JSON as it is; a streaming message re-rendered in place, the items above
+// it the same nodes; the verbose attribute reflected; and no event sent.
 
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
@@ -12,6 +13,7 @@ import type { Browser, Page } from "@jaimestill/spike-html-apps-tooling/browser.
 import { serve } from "@jaimestill/spike-html-apps-tooling/server.js";
 import type { Server } from "@jaimestill/spike-html-apps-tooling/server.js";
 
+import { deepFormatted } from "./support/deep.ts";
 import { served } from "./support/served.ts";
 
 /** What window.read reads from a list item of a thread's shadow root. */
@@ -249,6 +251,29 @@ describe("chat thread", { timeout: 60_000 }, () => {
     // The output names the function it answers, by its call_id.
     assert.deepEqual(answered.names, ["get_weather", "call_1"]);
     assert.equal(answered.pre, '{\n  "temperature": 14\n}');
+  });
+
+  test("a call's arguments and its output show their own keys, order, numbers, and duplicates as written", async () => {
+    // Parsed and printed again, "10" and "2" would move first, 9007199254740993 would round, 1.0
+    // and 1e3 would be rewritten, and the first "dup" would be dropped.
+    const args = '{"b":1,"10":[1.0,1e3,9007199254740993],"2":{},"dup":"a","dup":"b"}';
+    const formatted =
+      '{\n  "b": 1,\n  "10": [\n    1.0,\n    1e3,\n    9007199254740993\n  ],\n  "2": {},\n  "dup": "a",\n  "dup": "b"\n}';
+    const view = await shown({
+      verbose: true,
+      items: [
+        { ...call, arguments: args },
+        { ...output, id: "o_1", output: '{"9":9007199254740993,"1":-0}' },
+      ],
+    });
+    assert.equal(view.items[0].pre, formatted);
+    assert.equal(view.items[1].pre, '{\n  "9": 9007199254740993,\n  "1": -0\n}');
+  });
+
+  test("arguments nested 20,000 deep show their outer 64 levels formatted, the rest as written", async () => {
+    const args = "[".repeat(20_000) + "1" + "]".repeat(20_000);
+    const view = await shown({ verbose: true, items: [{ ...call, arguments: args }] });
+    assert.equal(view.items[0].pre, deepFormatted(20_000));
   });
 
   test("arguments that don't parse show raw; empty arguments and output say so; output parts join", async () => {
