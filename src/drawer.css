@@ -63,8 +63,13 @@ header {
   padding: var(--space-s);
   border-block-end: var(--line-s) solid var(--border);
 }
+/* The label is the heading of a contained surface, not of the page: it takes the step the
+   foundation gives an h4, --text-l, one above the body text and the entries' names it heads and
+   two below a page's section h2, so it never competes with the page's h1 or h2. The baseline's
+   heading rule gives it its font, weight, leading, and balance, the same in both modes. */
 h2 {
   margin: 0;
+  font-size: var(--text-l);
 }
 .body {
   flex: 1 1 auto;

@@ -6,6 +6,13 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 
 ## [Unreleased]
 
+### Fixed
+
+- `sl-drawer`'s heading, its `label` as an `h2` in the docked aside and in the drawer, is at
+  `--text-l`, the foundation's h4 step, where it took the baseline `h2`'s `--text-2xl`, a page
+  section's size, and competed with the page's own headings. Its weight, leading, and font stay
+  the baseline heading's, the same in both modes.
+
 ## [0.6.0] - 2026-10-31
 
 ### Changed

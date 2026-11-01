@@ -2,7 +2,7 @@
 // either side of the dock width: docked at it and wider, the boundary exact for a rem and a px
 // dock, and docked for a length the query can't read, an aside exposed as a complementary
 // landmark named by its own visible heading, the one heading in the drawer's shadow tree, with no
-// Close button, visible, its content interactive, the page live, focus left where it was; below it,
+// Close button, the heading at --text-l in either mode, below a page's h1 and h2, visible, its content interactive, the page live, focus left where it was; below it,
 // closed by default, and opened modally by show(), toggle(), or open, open in its markup or set
 // before it is connected included, which is undone while docked, a dialog named by its
 // visible heading and covering the viewport edge to edge, its header in view while its content
@@ -334,6 +334,43 @@ describe("drawer", { timeout: 60_000 }, () => {
       "no button in the shadow tree",
     );
   });
+
+  // The heading at a contained surface's size in both modes: the foundation's --text-l, an h4's
+  // step, read off a probe on the page at the same viewport, and smaller than a page's h1 and h2.
+  for (const [mode, width] of [
+    ["docked", WIDE],
+    ["drawer", NARROW],
+  ] as const) {
+    test(`${mode}, the heading is at --text-l, an h4's size, smaller than the page's h1 and h2`, async () => {
+      await mount(width);
+      if (mode === "drawer") await openByKeyboard();
+      const sizes: { heading: number; step: number; h1: number; h2: number; weight: string } =
+        await page.evaluate(`(() => {
+          const probe = document.createElement("div");
+          probe.innerHTML = '<h1>Page</h1><h2>Section</h2><span style="font-size: var(--text-l)">l</span>';
+          document.body.prepend(probe);
+          const px = (element) => parseFloat(getComputedStyle(element).fontSize);
+          const heading = document.querySelector("sl-drawer").shadowRoot.querySelector("h2");
+          const sizes = {
+            heading: px(heading),
+            step: px(probe.querySelector("span")),
+            h1: px(probe.querySelector("h1")),
+            h2: px(probe.querySelector("h2")),
+            weight: getComputedStyle(heading).fontWeight,
+          };
+          probe.remove();
+          return sizes;
+        })()`);
+      assert.equal(
+        sizes.heading,
+        sizes.step,
+        `the heading is at --text-l: ${JSON.stringify(sizes)}`,
+      );
+      assert.ok(sizes.heading < sizes.h2, `smaller than a page's h2: ${JSON.stringify(sizes)}`);
+      assert.ok(sizes.heading < sizes.h1, `smaller than the page's h1: ${JSON.stringify(sizes)}`);
+      assert.equal(sizes.weight, "600", "the baseline heading's weight");
+    });
+  }
 
   test("docked, the header stays in view while the content scrolls below it in a host held short", async () => {
     await mount(WIDE, {}, '<div id="tall" style="block-size: 3000px">tall</div>');
