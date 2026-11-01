@@ -12,6 +12,27 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
   indent, one member or element a line, `": "` after each key, and an empty object or array as
   `{}` or `[]`. Each token is kept as written, so only the whitespace between tokens changes. It
   reads tokens without checking their grammar, so its caller decides whether the text is valid.
+- `sl-artifact-viewer` renders natively what the browser can, from a Blob given as its `content`,
+  which now takes `string | Blob`: `application/pdf` in an iframe, the browser's own PDF viewer,
+  titled with the name, the frame's width and up to 40rem tall, scrolling itself; `image/*` but
+  `image/svg+xml` in an img, its alt the name, at its natural size or narrower, its aspect kept;
+  `audio/*` and `video/*` in their native elements with controls, labelled with the name, the
+  viewer's width. `text/html` still shows as text, never as a page. A type it can't show, given a
+  Blob, adds a link that downloads it under the artifact's name. The `content-type` decides the
+  view, and the object URL's bytes are typed by it, never by the Blob (an unsupported type's as
+  `application/octet-stream`), so a disagreeing Blob never loads as a page. The viewer owns the
+  URL: it makes it while connected, revokes it as the content or its type changes and as it
+  disconnects, and makes it again on reconnecting. A native type with no Blob yet shows the
+  loading note. A string content for a text type is unchanged.
+
+### Changed
+
+- `viewOf(contentType)` returns `{ view, content }` in place of the view alone: `view` adds
+  `pdf`, `image`, `audio`, and `video`, and `content` says what the view takes, `text`, `blob`, or
+  `none`, so a consumer fetches text for a text type and a Blob for a native one. A caller that
+  compared its result to `"unsupported"` compares `viewOf(type).view`, or decides on `content`;
+  `image/*` other than SVG, `audio/*`, `video/*`, and `application/pdf` are no longer
+  `unsupported`.
 
 ### Removed
 

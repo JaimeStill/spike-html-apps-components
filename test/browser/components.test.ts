@@ -1325,25 +1325,25 @@ describe("components", { timeout: 60_000 }, () => {
   const VIEWERS = `(section) => [...document.querySelectorAll(section + " sl-artifact-viewer")]`;
 
   test("the artifact viewer's specimen renders every state, at full size or held, within 20rem, in every profile", async () => {
-    // Every viewer but the no-header ones shows its header, and every one a region or a note. The
-    // viewer is as tall as its content, so no region scrolls down but run.log's, which the page
-    // holds to 16rem, and it does; at 20rem the states keep within the column, every part of each
-    // viewer inside its box, and a JSON line too long for the column scrolls its region sideways,
-    // never wrapping.
+    // Every viewer but the no-header ones shows its header, and every one a region, a note, or a
+    // native view's element: a PDF's frame, an image, audio, or video. The viewer is as tall as
+    // its content, so no region scrolls down but run.log's, which the page holds to 16rem, and it
+    // does; at 20rem the states keep within the column, every part of each viewer inside its box,
+    // and a JSON line too long for the column scrolls its region sideways, never wrapping.
     const measure = `() => {
       const list = document.querySelector(".narrow .states");
       const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
       const shown = (${VIEWERS})("main").map((viewer) => {
         const root = viewer.shadowRoot;
         const box = viewer.getBoundingClientRect();
-        const parts = [...root.querySelectorAll(".header, .name, .type, .frame, .note, .body")];
+        const parts = [...root.querySelectorAll(".header, .name, .type, .frame, .note, .body, .media")];
         const region = root.querySelector(".body");
         return {
           name: viewer.name,
           narrow: viewer.closest(".narrow") !== null,
           header: root.querySelector(".header") !== null,
           noHeader: viewer.noHeader,
-          shown: root.querySelector(".body, .note") !== null,
+          shown: root.querySelector(".body, .note, .media") !== null,
           held: viewer.classList.contains("held"),
           height: box.height / rem,
           outside: parts
@@ -1376,8 +1376,8 @@ describe("components", { timeout: 60_000 }, () => {
       assert.ok(overflow <= 0, `${profile}: the states overflow the column by ${overflow}`);
       assert.equal(
         shown.length,
-        38,
-        `${profile}: seventeen states twice, the three fits, and the focus state`,
+        52,
+        `${profile}: twenty-four states twice, the three fits, and the focus state`,
       );
       for (const {
         name,
@@ -1392,7 +1392,7 @@ describe("components", { timeout: 60_000 }, () => {
       } of shown) {
         const where = `${profile}, ${name}${narrow ? " at 20rem" : ""}`;
         assert.equal(header, !noHeader, `${where}: a header unless no-header`);
-        assert.ok(content, `${where}: a region or a note`);
+        assert.ok(content, `${where}: a region, a note, or a native element`);
         assert.equal(held, name === "run.log", `${where}: only run.log is held`);
         if (held) {
           assert.ok(Math.abs(height - 16) < 0.01, `${where}: held to ${height}rem, not 16rem`);
@@ -1411,8 +1411,8 @@ describe("components", { timeout: 60_000 }, () => {
       assert.ok(json.sideways, `${profile}: run.json's id line scrolls sideways at 20rem`);
       assert.equal(
         shown.filter(({ noHeader }) => noHeader).length,
-        12,
-        `${profile}: the six no-header states twice`,
+        14,
+        `${profile}: the seven no-header states twice`,
       );
     }
   });

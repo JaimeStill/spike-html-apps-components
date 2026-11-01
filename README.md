@@ -76,14 +76,32 @@ foundation's `page.css`:
   their escapes as written, only the whitespace between tokens changed. It never decides whether
   the text is valid; its caller does, as the artifact viewer and the chat thread do with
   `JSON.parse`.
-- `./artifact-viewer.js`: `sl-artifact-viewer`, one artifact's content by its content type, as
-  rendered Markdown, JSON, or preformatted text, scrolling inside the viewer, under
-  a header of its name and content type that `no-header` (`noHeader`) leaves out, for a page whose
-  own header shows them. Every state, its content or its loading, error, invalid JSON,
-  unsupported, or empty note, is in a region named `<name> content`, header or not. Valid JSON is
-  formatted from its own tokens by `./json.js`, never parsed and printed again, so it shows its own
-  keys, their order, and its numbers; JSON that doesn't parse shows as text under a note. It sends
-  no event. It imports `./markdown.js`, so its page maps marked too.
+- `./artifact-viewer.js`: `sl-artifact-viewer`, one artifact's content by its content type, text
+  from a string and the types the browser renders natively from a Blob, under a header of its name
+  and content type that `no-header` (`noHeader`) leaves out, for a page whose own header shows
+  them. Every state, its content or its loading, error, invalid JSON, unsupported, or empty note,
+  is in a region named `<name> content`, header or not. Valid JSON is formatted from its own
+  tokens by `./json.js`, never parsed and printed again, so it shows its own keys, their order,
+  and its numbers; JSON that doesn't parse shows as text under a note. `viewOf(contentType)` gives
+  a type's `view` and the `content` it takes, `text`, `blob`, or `none`, so a consumer knows what
+  to fetch. The `content-type` decides the view, never a Blob's own type, and the Blob's bytes are
+  shown as that type. The viewer owns the object URL of the Blob it holds: it makes it while
+  connected and revokes it as the content or its type changes and as it disconnects. It sends no
+  event. It imports `./markdown.js`, so its page maps marked too.
+
+  | Content type, its parameters and case aside     | View                                              | Content |
+  | :---------------------------------------------- | :------------------------------------------------ | :------ |
+  | text/markdown                                   | rendered Markdown, scrolling                      | string  |
+  | application/json, or a subtype ending in +json  | JSON formatted from its tokens, scrolling         | string  |
+  | any other text/ type, text/html included        | preformatted text, as it is, never run as a page  | string  |
+  | application/pdf                                 | an iframe, the browser's own PDF viewer           | Blob    |
+  | image/*, but image/svg+xml                      | an img, at its natural size or narrower, its alt  | Blob    |
+  | audio/*                                         | an audio with controls, the viewer's width        | Blob    |
+  | video/*                                         | a video with controls, the viewer's width         | Blob    |
+  | anything else                                   | a note, and a Blob given as a download link       | none    |
+
+  A native type with no Blob yet, a string included, shows the loading note; a text type given a
+  Blob shows as empty, as `""` does.
 - `./chat-thread.js`: `sl-chat-thread`, a conversation's items in order, a structural subset of
   Open Responses: a user's text as plain text, the assistant's as rendered Markdown, a refusal
   labelled, and a streaming reply re-rendered in place; with `verbose`, reasoning, function calls,
