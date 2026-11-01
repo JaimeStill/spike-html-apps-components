@@ -4,7 +4,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>artifact viewer specimen</title>
-    <!-- The artifact viewer's specimen page, from dist/: a Markdown document, JSON, invalid JSON,
+    <!-- The artifact viewer's specimen page, from dist/: a Markdown document, JSON, JSON whose
+         keys, numbers, and duplicates a parse would change, invalid JSON,
          plain text, content long enough to scroll, a type that isn't text, loading, an error,
          and empty content; then with no-header, so the content or the note shows alone, the
          Markdown document, loading, the error, invalid JSON, the type that isn't text, and the
@@ -99,12 +100,20 @@
             build: viewer({ name: "release-notes.md", contentType: "text/markdown; charset=utf-8", content: document_ }),
           },
           {
-            label: "JSON: application/json, pretty-printed",
+            label: "JSON: application/json, formatted from its tokens",
             build: viewer({ name: "run.json", contentType: "application/json", content: json }),
           },
           {
             label: "JSON by suffix: application/vnd.run+json",
             build: viewer({ name: "stage.json", contentType: "application/vnd.run+json", content: '{"name":"classify","outputs":3}' }),
+          },
+          {
+            label: "JSON as written: integer-like keys in their order, a big integer, 1.0 and 1e3, a duplicate key",
+            build: viewer({
+              name: "counts.json",
+              contentType: "application/json",
+              content: '{"b":"first","10":"ten","2":"two","id":9007199254740993,"ratio":1.0,"limit":1e3,"tag":"a","tag":"b"}',
+            }),
           },
           {
             label: "Invalid JSON: its raw text, under a note",

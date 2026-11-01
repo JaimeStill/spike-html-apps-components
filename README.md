@@ -71,12 +71,18 @@ foundation's `page.css`:
   marked's lexer: raw HTML shows as text, an image as its alt text, and a link is an anchor only
   to an http, https, or mailto URL or a relative one. It is the one module that imports marked,
   which an import map then maps too.
+- `./json.js`: `formatJson(text)`, valid JSON text re-indented from its own tokens, two spaces an
+  indent: its keys in their order, duplicates included, its number literals, and its strings with
+  their escapes as written, only the whitespace between tokens changed. It never decides whether
+  the text is valid; its caller does, as the artifact viewer does with `JSON.parse`.
 - `./artifact-viewer.js`: `sl-artifact-viewer`, one artifact's content by its content type, as
-  rendered Markdown, pretty-printed JSON, or preformatted text, scrolling inside the viewer, under
+  rendered Markdown, JSON, or preformatted text, scrolling inside the viewer, under
   a header of its name and content type that `no-header` (`noHeader`) leaves out, for a page whose
   own header shows them. Every state, its content or its loading, error, invalid JSON,
-  unsupported, or empty note, is in a region named `<name> content`, header or not. It sends no
-  event. It imports `./markdown.js`, so its page maps marked too.
+  unsupported, or empty note, is in a region named `<name> content`, header or not. Valid JSON is
+  formatted from its own tokens by `./json.js`, never parsed and printed again, so it shows its own
+  keys, their order, and its numbers; JSON that doesn't parse shows as text under a note. It sends
+  no event. It imports `./markdown.js`, so its page maps marked too.
 - `./chat-thread.js`: `sl-chat-thread`, a conversation's items in order, a structural subset of
   Open Responses: a user's text as plain text, the assistant's as rendered Markdown, a refusal
   labelled, and a streaming reply re-rendered in place; with `verbose`, reasoning, function calls,

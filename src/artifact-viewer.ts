@@ -1,11 +1,13 @@
 // The artifact viewer, Lit with a shadow root: one artifact's content, by its content type, as
-// rendered Markdown, pretty-printed JSON, or preformatted text, in a region that scrolls.
+// rendered Markdown, JSON formatted from its own tokens, or preformatted text, in a region that
+// scrolls.
 
 import { html, LitElement, nothing, type PropertyDeclarations, type PropertyValues } from "lit";
 
 import elements from "@jaimestill/spike-html-apps-foundation/baseline/elements.css" with { type: "css" };
 import reset from "@jaimestill/spike-html-apps-foundation/baseline/reset.css" with { type: "css" };
 import { define } from "@jaimestill/spike-html-apps-foundation/dom.js";
+import { formatJson } from "./json.ts";
 import { markdown } from "./markdown.ts";
 import styles from "./artifact-viewer.css" with { type: "css" };
 
@@ -35,22 +37,28 @@ export function viewOf(contentType: string): ArtifactView {
   return "unsupported";
 }
 
-/** JSON content as shown: pretty-printed, or, when it doesn't parse, the parser's reason. */
+/** JSON content as shown: formatted from its tokens, or, when it doesn't parse, the parser's
+ * reason. */
 type Json = { ok: true; text: string } | { ok: false; reason: string };
 
+// JSON.parse decides validity alone, and its value is thrown away: printing the value would move
+// integer-like keys first, rewrite numbers, and drop duplicate keys, so the text shown is the
+// content's own tokens, re-indented by formatJson.
 function pretty(content: string): Json {
   try {
-    return { ok: true, text: JSON.stringify(JSON.parse(content), null, 2) };
+    JSON.parse(content);
   } catch (error) {
     return { ok: false, reason: error instanceof Error ? error.message : String(error) };
   }
+  return { ok: true, text: formatJson(content) };
 }
 
 /**
  * Shows one artifact: a header of its name and content type over its content, or, with
  * `noHeader`, its content alone, for a page that already shows the name and type in a header of
- * its own. Markdown renders through `markdown()`, JSON is parsed and printed with two-space
- * indents, and other text is shown as it is; JSON that doesn't parse shows its raw text under a
+ * its own. Markdown renders through `markdown()`; valid JSON is formatted from its own tokens by
+ * `formatJson()`, two spaces an indent, so its keys, their order, duplicates, numbers, and
+ * strings show as written, never parsed and printed again; and other text is shown as it is; JSON that doesn't parse shows its raw text under a
  * note saying so, a type that isn't text shows a note in place of its bytes, and empty content a
  * note saying so. Long content scrolls inside the viewer, in a region the keyboard reaches. In
  * every state, header or not, one region named `<name> content` holds what the viewer shows: the

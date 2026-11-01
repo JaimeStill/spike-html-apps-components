@@ -1,6 +1,7 @@
 // The artifact viewer from this repository's dist/, on test/fixtures/components.html: the view each
-// content type takes, its parameters and case aside; JSON pretty-printed, and invalid JSON's raw
-// text under its note; a type that isn't text as a note, never its bytes; the loading and error
+// content type takes, its parameters and case aside; JSON formatted from its own tokens, its keys,
+// their order, duplicates, numbers, and strings as written, and invalid JSON's raw text under its
+// note; a type that isn't text as a note, never its bytes; the loading and error
 // states; long content scrolling inside the viewer, by the keyboard once Tab reaches its region;
 // with noHeader, no header, the region's name kept, and no gap where the header was; every state's
 // container named for the artifact, with noHeader or without; and no event sent.
@@ -117,13 +118,64 @@ describe("artifact viewer", { timeout: 60_000 }, () => {
     "application/vnd.run+json; profile=x",
     "APPLICATION/VND.RUN+JSON",
   ]) {
-    test(`${JSON.stringify(contentType)} parses and prints as JSON, two spaces an indent`, async () => {
+    test(`${JSON.stringify(contentType)} shows as JSON, two spaces an indent`, async () => {
       const view = await shown({ name: "run.json", contentType, content: JSON.stringify(value) });
       assert.equal(view.region?.element, "pre");
       assert.equal(view.region?.text, printed);
       assert.deepEqual(view.notes, []);
     });
   }
+
+  test("JSON shows its own keys in their order, duplicates, numbers, and strings as written", async () => {
+    // Parsed and printed again, "2" and "10" would move first, the numbers would be rewritten,
+    // 9007199254740993 rounded, and the first "dup" dropped.
+    const content = String.raw`{"b":1,"10":[1.0,-0,1e3,1E-7,9007199254740993],"2":{},"dup":"a","dup":"say \"hi\", caf\u00e9 é\n\\"}`;
+    const view = await shown({ name: "run.json", contentType: "application/json", content });
+    assert.equal(
+      view.region?.text,
+      String.raw`{
+  "b": 1,
+  "10": [
+    1.0,
+    -0,
+    1e3,
+    1E-7,
+    9007199254740993
+  ],
+  "2": {},
+  "dup": "a",
+  "dup": "say \"hi\", caf\u00e9 é\n\\"
+}`,
+    );
+    assert.deepEqual(view.notes, []);
+  });
+
+  test("JSON of about 1 MB shows formatted without a stall", async (t) => {
+    const timing: { bytes: number; ms: number; lines: number } = await page.evaluate(`(async () => {
+      const record = (i) => ({ id: "run-" + i, "10": i, "2": -i * 1.5, note: "a \\"" + i + "\\"",
+        stages: [{ name: "classify", outputs: [i, i + 1], ok: true }, { name: "summarize", err: null }] });
+      const content = JSON.stringify(Array.from({ length: 6000 }, (_, i) => record(i)));
+      const viewer = Object.assign(document.createElement("sl-artifact-viewer"),
+        { name: "big.json", contentType: "application/json" });
+      document.querySelector("main").replaceChildren(viewer);
+      await viewer.updateComplete;
+      const start = performance.now();
+      viewer.content = content;
+      await viewer.updateComplete;
+      const ms = performance.now() - start;
+      return {
+        bytes: content.length,
+        ms,
+        lines: viewer.shadowRoot.querySelector(".content").textContent.split("\\n").length,
+      };
+    })()`);
+    t.diagnostic(
+      `${timing.bytes} bytes shown as ${timing.lines} lines in ${timing.ms.toFixed(1)} ms`,
+    );
+    assert.ok(timing.bytes > 900_000, `the content is ${timing.bytes} bytes`);
+    assert.ok(timing.lines > 100_000, `it shows ${timing.lines} lines`);
+    assert.ok(timing.ms < 500, `the update took ${timing.ms} ms`);
+  });
 
   for (const contentType of ["text/plain", "text/csv; charset=utf-8", "TEXT/HTML", "text/x-log"]) {
     test(`${JSON.stringify(contentType)} shows as preformatted text, as it is`, async () => {

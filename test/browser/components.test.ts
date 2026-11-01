@@ -1376,8 +1376,8 @@ describe("components", { timeout: 60_000 }, () => {
       assert.ok(overflow <= 0, `${profile}: the states overflow the column by ${overflow}`);
       assert.equal(
         shown.length,
-        36,
-        `${profile}: sixteen states twice, the three fits, and the focus state`,
+        38,
+        `${profile}: seventeen states twice, the three fits, and the focus state`,
       );
       for (const {
         name,

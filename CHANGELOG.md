@@ -6,6 +6,22 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 
 ## [Unreleased]
 
+### Added
+
+- `./json.js`'s `formatJson(text)`: valid JSON text re-indented from its own tokens, two spaces an
+  indent, one member or element a line, `": "` after each key, and an empty object or array as
+  `{}` or `[]`. Each token is kept as written, so only the whitespace between tokens changes. It
+  reads tokens without checking their grammar, so its caller decides whether the text is valid.
+
+### Fixed
+
+- `sl-artifact-viewer`'s valid JSON shows its own keys, order, and numbers: it is formatted from
+  its tokens by `formatJson()`, where it was parsed and printed again, which moved integer-like
+  keys first, rewrote number literals, `1.0` as `1`, `1e3` as `1000`, and `9007199254740993` as
+  `9007199254740992`, and dropped all but the last of a duplicated key. Its strings keep their
+  escapes as written. Whether the content is valid JSON is still decided by `JSON.parse`, and
+  invalid JSON still shows as text under its note.
+
 ## [0.7.0] - 2026-11-01
 
 ### Added
