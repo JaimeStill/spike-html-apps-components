@@ -64,6 +64,8 @@ export class ArtifactViewer extends LitElement {
     content: { type: String },
     state: { type: String, reflect: true },
     message: { type: String },
+    // A boolean attribute is true by its presence, so the option names the departure from the
+    // default, the head shown, as the platform's novalidate and nomodule do.
     noHeader: { type: Boolean, reflect: true, attribute: "no-header" },
   } satisfies PropertyDeclarations;
 
@@ -77,12 +79,7 @@ export class ArtifactViewer extends LitElement {
   declare state: ArtifactState;
   /** Why the content failed to load, shown in the error state. */
   declare message: string;
-  /**
-   * Leaves out the head, the name and content type over the content, so the frame starts where
-   * the head would; the region keeps its name, `<name> content`. Reflected to the `no-header`
-   * attribute. A boolean attribute is true by its presence, so the option names the departure
-   * from the default, the head shown, as the platform's `novalidate` and `nomodule` do.
-   */
+  /** Leaves out the head, so the content shows alone; the region keeps its name. */
   declare noHeader: boolean;
 
   // The JSON view's text, parsed once per content and type rather than on every render.

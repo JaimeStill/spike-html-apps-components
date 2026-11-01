@@ -1249,10 +1249,11 @@ describe("components", { timeout: 60_000 }, () => {
   const VIEWERS = `(section) => [...document.querySelectorAll(section + " sl-artifact-viewer")]`;
 
   test("the artifact viewer's specimen renders every state, at full size or held, within 20rem, in every profile", async () => {
-    // Every viewer shows its head, but the no-header one, and a region or a note. The viewer is as tall as its content,
-    // so no region scrolls down but run.log's, which the page holds to 16rem, and it does; at
-    // 20rem the states keep within the column, every part of each viewer inside its box, and a
-    // JSON line too long for the column scrolls its region sideways, never wrapping.
+    // Every viewer but the no-header one shows its head, and every one a region or a note. The
+    // viewer is as tall as its content, so no region scrolls down but run.log's, which the page
+    // holds to 16rem, and it does; at 20rem the states keep within the column, every part of each
+    // viewer inside its box, and a JSON line too long for the column scrolls its region sideways,
+    // never wrapping.
     const measure = `() => {
       const list = document.querySelector(".narrow .states");
       const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
