@@ -71,9 +71,10 @@ foundation's `page.css`:
   which an import map then maps too.
 - `./artifact-viewer.js`: `sl-artifact-viewer`, one artifact's content by its content type, as
   rendered Markdown, pretty-printed JSON, or preformatted text, scrolling inside the viewer, under
-  a head of its name and content type that `no-header` (`noHeader`) leaves out, for a page whose
-  own header shows them; its region is named for the artifact either way. It sends no event. It
-  imports `./markdown.js`, so its page maps marked too.
+  a header of its name and content type that `no-header` (`noHeader`) leaves out, for a page whose
+  own header shows them. Every state, its content or its loading, error, invalid JSON,
+  unsupported, or empty note, is in a region named `<name> content`, header or not. It sends no
+  event. It imports `./markdown.js`, so its page maps marked too.
 - `./chat-thread.js`: `sl-chat-thread`, a conversation's items in order, a structural subset of
   Open Responses: a user's text as plain text, the assistant's as rendered Markdown, a refusal
   labelled, and a streaming reply re-rendered in place; with `verbose`, reasoning, function calls,

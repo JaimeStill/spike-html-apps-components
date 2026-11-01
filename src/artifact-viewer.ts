@@ -47,13 +47,15 @@ function pretty(content: string): Json {
 }
 
 /**
- * Shows one artifact: its name and content type over its content, or, with `noHeader`, its
- * content alone, for a page that already shows the name and type in a header of its own; the
- * content's region is named for the artifact either way. Markdown renders through
- * `markdown()`, JSON is parsed and printed with two-space indents, and other text is shown as it
- * is; JSON that doesn't parse shows its raw text under a note saying so, and a type that isn't
- * text shows a note in place of its bytes. Long content scrolls inside the viewer, in a region the
- * keyboard reaches. Display-only: it sends no event.
+ * Shows one artifact: a header of its name and content type over its content, or, with
+ * `noHeader`, its content alone, for a page that already shows the name and type in a header of
+ * its own. Markdown renders through `markdown()`, JSON is parsed and printed with two-space
+ * indents, and other text is shown as it is; JSON that doesn't parse shows its raw text under a
+ * note saying so, a type that isn't text shows a note in place of its bytes, and empty content a
+ * note saying so. Long content scrolls inside the viewer, in a region the keyboard reaches. In
+ * every state, header or not, one region named `<name> content` holds what the viewer shows: the
+ * scrolling region, which the invalid JSON's note describes, or the frame around a note alone.
+ * Display-only: it sends no event.
  */
 export class ArtifactViewer extends LitElement {
   static styles = [reset, elements, styles];
@@ -65,11 +67,11 @@ export class ArtifactViewer extends LitElement {
     state: { type: String, reflect: true },
     message: { type: String },
     // A boolean attribute is true by its presence, so the option names the departure from the
-    // default, the head shown, as the platform's novalidate and nomodule do.
+    // default, the header shown, as the platform's novalidate and nomodule do.
     noHeader: { type: Boolean, reflect: true, attribute: "no-header" },
   } satisfies PropertyDeclarations;
 
-  /** The artifact's name, shown in the viewer's head, and naming its content's region. */
+  /** The artifact's name, shown in the viewer's header, and naming its content's region. */
   declare name: string;
   /** The artifact's media type, parameters allowed; it chooses the view. */
   declare contentType: string;
@@ -79,7 +81,7 @@ export class ArtifactViewer extends LitElement {
   declare state: ArtifactState;
   /** Why the content failed to load, shown in the error state. */
   declare message: string;
-  /** Leaves out the head, so the content shows alone; the region keeps its name. */
+  /** Leaves out the header, so the content shows alone; its region keeps its name. */
   declare noHeader: boolean;
 
   // The JSON view's text, parsed once per content and type rather than on every render.
@@ -101,63 +103,94 @@ export class ArtifactViewer extends LitElement {
     }
   }
 
-  // The scrolling region: the keyboard reaches it by Tab, so arrow and page keys scroll it, and
-  // it is named for the artifact. Its one child is the content it scrolls, padded, so the padding
-  // scrolls with the content and shows at its far edges.
-  #region(content: unknown, markdownView = false) {
-    const label = `${this.name || "Artifact"} content`;
-    return markdownView
-      ? html`<div class="body markdown" tabindex="0" role="region" aria-label=${label}>
-          <div class="document">${content}</div>
-        </div>`
-      : html`<pre class="body" tabindex="0" role="region" aria-label=${label}><span class="content">${content}</span></pre>`;
+  // The name of the one region each state shows, the ready content's and every note's alike, so
+  // the state is tied to its artifact with the header left out as with it shown.
+  get #label(): string {
+    return `${this.name || "Artifact"} content`;
   }
 
+  // The scrolling region: the keyboard reaches it by Tab, so arrow and page keys scroll it, and
+  // it is named for the artifact; a note over it, the invalid JSON's, describes it by its id. Its
+  // one child is the content it scrolls, padded, so the padding scrolls with the content and
+  // shows at its far edges.
+  #region(content: unknown, markdownView = false, describedBy: string | typeof nothing = nothing) {
+    return markdownView
+      ? html`<div class="body markdown" tabindex="0" role="region" aria-label=${this.#label}>
+          <div class="document">${content}</div>
+        </div>`
+      : html`<pre
+          class="body"
+          tabindex="0"
+          role="region"
+          aria-label=${this.#label}
+          aria-describedby=${describedBy}
+        ><span class="content">${content}</span></pre>`;
+  }
+
+  // A state that shows a note alone: the frame around it is the region named for the artifact,
+  // as the scrolling region is in the states that show content, so no region nests in another.
+  #alone(note: unknown) {
+    return html`<div class="frame" role="region" aria-label=${this.#label}>${note}</div>`;
+  }
+
+  // A note: its label, and its detail below. Its kind is its class and its id, which the invalid
+  // JSON's region is described by.
   #note(kind: string, label: string, detail: string | typeof nothing = nothing) {
-    return html`<p class="note ${kind}" role=${kind === "loading" ? "status" : nothing}>
+    return html`<p class="note ${kind}" id=${kind} role=${kind === "loading" ? "status" : nothing}>
       <strong class="label">${label}</strong>
       ${detail === nothing ? nothing : html`<span class="detail">${detail}</span>`}
     </p>`;
   }
 
-  // The frame's content: a note, a region, or the invalid JSON note over its raw text's region.
-  #renderContent() {
+  // The frame: a note alone, a region, or the invalid JSON note over its raw text's region. A
+  // supported type's empty content shows a note, before JSON's parse could call it invalid, so
+  // the frame never stands empty.
+  #frame() {
     switch (this.state) {
       case "loading":
-        return this.#note("loading", "Loading…");
+        return this.#alone(this.#note("loading", "Loading…"));
       case "error":
-        return this.#note("error", "Couldn't load this artifact.", this.message || nothing);
+        return this.#alone(
+          this.#note("error", "Couldn't load this artifact.", this.message || nothing),
+        );
     }
     const content = this.content ?? "";
-    switch (viewOf(this.contentType)) {
-      case "markdown":
-        return this.#region(markdown(content), true);
-      case "json": {
-        const json = this.#json ?? pretty(content);
-        if (json.ok) return this.#region(json.text);
-        return html`${this.#note("invalid", "Invalid JSON, shown as text.", json.reason)}
-        ${this.#region(content)}`;
-      }
-      case "text":
-        return this.#region(content);
-      default:
-        return this.#note(
+    const view = viewOf(this.contentType);
+    if (view === "unsupported") {
+      return this.#alone(
+        this.#note(
           "unsupported",
           "This content type can't be shown.",
           this.contentType ? `${this.contentType} isn't text.` : "It has no content type.",
-        );
+        ),
+      );
+    }
+    if (content === "") return this.#alone(this.#note("empty", "This artifact is empty."));
+    switch (view) {
+      case "markdown":
+        return html`<div class="frame">${this.#region(markdown(content), true)}</div>`;
+      case "json": {
+        const json = this.#json ?? pretty(content);
+        if (json.ok) return html`<div class="frame">${this.#region(json.text)}</div>`;
+        return html`<div class="frame">
+          ${this.#note("invalid", "Invalid JSON, shown as text.", json.reason)}
+          ${this.#region(content, false, "invalid")}
+        </div>`;
+      }
+      default:
+        return html`<div class="frame">${this.#region(content)}</div>`;
     }
   }
 
   render() {
-    const head =
+    const header =
       !this.noHeader && (this.name || this.contentType)
-        ? html`<header class="head">
+        ? html`<header class="header">
             ${this.name ? html`<span class="name">${this.name}</span>` : nothing}
             ${this.contentType ? html`<span class="type">${this.contentType}</span>` : nothing}
           </header>`
         : nothing;
-    return html`${head}<div class="frame">${this.#renderContent()}</div>`;
+    return html`${header}${this.#frame()}`;
   }
 }
 

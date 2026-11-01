@@ -9,10 +9,20 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 ### Added
 
 - `sl-artifact-viewer`'s `noHeader` property, reflected to the `no-header` boolean attribute,
-  leaves out the viewer's head, the artifact's name and content type over its content, for a page
-  that shows them in a header of its own. The frame then starts where the head did, with no gap,
-  and the scrolling region keeps its accessible name, `<name> content`. The default, the head
-  shown, is unchanged.
+  leaves out the viewer's header, the artifact's name and content type over its content, for a
+  page that shows them in a header of its own. The frame then starts where the header did, with
+  no gap, in every state, and every state keeps its accessible name, `<name> content`, so what
+  it shows stays tied to its artifact without the header. The default, the header shown, is
+  unchanged.
+
+### Fixed
+
+- `sl-artifact-viewer` names every state for its artifact, as it named the ready content's
+  region. The loading, error, and unsupported notes, which sat in no named container, are now in
+  a region named `<name> content`, the frame around the note; invalid JSON's note describes its
+  raw text's region, by `aria-describedby`. Empty content of a supported type shows a note, "This
+  artifact is empty.", in that named frame, in place of an empty scrolling region; empty JSON,
+  which showed an invalid JSON note over an empty region, shows it too.
 
 ## [0.6.1] - 2026-11-01
 

@@ -6,7 +6,9 @@
     <title>artifact viewer specimen</title>
     <!-- The artifact viewer's specimen page, from dist/: a Markdown document, JSON, invalid JSON,
          plain text, content long enough to scroll, a type that isn't text, loading, an error,
-         and the Markdown document again with no-header, its content alone.
+         and empty content; then with no-header, so the content or the note shows alone, the
+         Markdown document, loading, the error, invalid JSON, the type that isn't text, and the
+         empty content.
          The viewer is as tall as its content, so each shows at full size but the long content,
          which the page holds to 16rem by demo.css's held class, so it scrolls.
          Every state is labelled, then shown again in a section 20rem wide; the fit section holds
@@ -129,8 +131,32 @@
             build: viewer({ name: "summary.md", contentType: "text/markdown", state: "error", message: "The pipeline returned 404 Not Found." }),
           },
           {
+            label: "Empty: a note in place of the empty region",
+            build: viewer({ name: "notes.txt", contentType: "text/plain", content: "" }),
+          },
+          {
             label: "No header: no-header, the content alone, its region still named release-notes.md content",
             build: viewer({ name: "release-notes.md", contentType: "text/markdown; charset=utf-8", content: document_, noHeader: true }),
+          },
+          {
+            label: "No header, loading: its frame named summary.md content",
+            build: viewer({ name: "summary.md", contentType: "text/markdown", state: "loading", noHeader: true }),
+          },
+          {
+            label: "No header, an error: its frame named summary.md content",
+            build: viewer({ name: "summary.md", contentType: "text/markdown", state: "error", message: "The pipeline returned 404 Not Found.", noHeader: true }),
+          },
+          {
+            label: "No header, invalid JSON: its region named broken.json content, described by the note",
+            build: viewer({ name: "broken.json", contentType: "application/json", content: '{"id": "run-01J9X", "status": complete,}', noHeader: true }),
+          },
+          {
+            label: "No header, unsupported: the note names the type, its frame named chart.png content",
+            build: viewer({ name: "chart.png", contentType: "image/png", content: "\u0089PNG\r\n\u001a\n", noHeader: true }),
+          },
+          {
+            label: "No header, empty: its frame named notes.txt content",
+            build: viewer({ name: "notes.txt", contentType: "text/plain", content: "", noHeader: true }),
           },
         ],
         {
