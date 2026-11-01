@@ -17,6 +17,7 @@ import type { Browser, Page } from "@jaimestill/spike-html-apps-tooling/browser.
 import { serve } from "@jaimestill/spike-html-apps-tooling/server.js";
 import type { Server } from "@jaimestill/spike-html-apps-tooling/server.js";
 
+import { deepFormatted } from "./support/deep.ts";
 import { served } from "./support/served.ts";
 
 /** What window.shown reads from a viewer's shadow root. */
@@ -206,11 +207,11 @@ describe("artifact viewer", { timeout: 60_000 }, () => {
     });
   }
 
-  test("valid JSON nested too deep for its indents to fit in a string shows as it is", async () => {
-    // 20,000 levels are 40 kB of text, but their indents alone would be some 800 million spaces.
+  test("valid JSON nested 20,000 deep shows its outer 64 levels formatted, the rest as written", async () => {
+    // Every level indented, their indents alone would be some 800 million spaces.
     const content = "[".repeat(20_000) + "1" + "]".repeat(20_000);
     const view = await shown({ name: "deep.json", contentType: "application/json", content });
-    assert.equal(view.region?.text, content);
+    assert.equal(view.region?.text, deepFormatted(20_000));
     assert.deepEqual(view.notes, []);
   });
 

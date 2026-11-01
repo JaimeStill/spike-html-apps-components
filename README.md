@@ -73,7 +73,9 @@ foundation's `page.css`:
   which an import map then maps too.
 - `./json.js`: `formatJson(text)`, valid JSON text re-indented from its own tokens, two spaces an
   indent: its keys in their order, duplicates included, its number literals, and its strings with
-  their escapes as written, only the whitespace between tokens changed. It never decides whether
+  their escapes as written, only the whitespace between tokens changed. Containers to `MAX_DEPTH`,
+  64, deep are indented; one that would open deeper is kept as written on the line where it opens,
+  so the output's length stays linear in the text's at any depth. It never decides whether
   the text is valid; its caller does, as the artifact viewer and the chat thread do with
   `JSON.parse`.
 - `./artifact-viewer.js`: `sl-artifact-viewer`, one artifact's content by its content type, text

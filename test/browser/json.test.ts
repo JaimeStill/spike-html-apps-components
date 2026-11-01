@@ -2,7 +2,8 @@
 // test/fixtures/components.html: keys in their order, integer-like keys and duplicates included;
 // number literals and strings with their escapes as written; minified and oddly spaced text
 // re-indented; empty, nested, scalar, and array documents; whitespace between tokens the only
-// difference from the text; and a document of about 1 MB formatted without a stall.
+// difference from the text; a document of about 1 MB formatted without a stall; and containers
+// past MAX_DEPTH kept as written, so 20,000 levels format in output linear in the text.
 
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
@@ -27,7 +28,9 @@ describe("json", { timeout: 60_000 }, () => {
     browser = await launch();
     page = await browser.open(`${server.origin}/test/fixtures/components.html`);
     await page.evaluate(`window.verdict.then(async () => {
-      window.formatJson = (await import("/dist/json.js")).formatJson;
+      const json = await import("/dist/json.js");
+      window.formatJson = json.formatJson;
+      window.maxDepth = json.MAX_DEPTH;
     })`);
   });
   after(async () => {
@@ -125,5 +128,65 @@ describe("json", { timeout: 60_000 }, () => {
     assert.ok(timing.bytes > 900_000, `the document is ${timing.bytes} bytes`);
     assert.ok(timing.same, "only whitespace between tokens changed");
     assert.ok(timing.ms < 250, `formatting took ${timing.ms} ms`);
+  });
+
+  /** Two spaces a level, as formatJson indents. */
+  const indent = (depth: number): string => "  ".repeat(depth);
+
+  test("MAX_DEPTH is 64", async () => {
+    assert.equal(await page.evaluate("window.maxDepth"), 64);
+  });
+
+  test("formats every level of text nested 64 deep", async () => {
+    const text = "[".repeat(64) + "1" + "]".repeat(64);
+    const opening = Array.from({ length: 64 }, (_, depth) => `${indent(depth)}[`);
+    const closing = Array.from({ length: 64 }, (_, depth) => `${indent(63 - depth)}]`);
+    const expected = [...opening, `${indent(64)}1`, ...closing].join("\n");
+    const output = await formatted(text);
+    assert.equal(output, expected);
+    assert.equal(tokensOf(output), tokensOf(text), "only whitespace between tokens changed");
+  });
+
+  test("keeps a container that would open at depth 65 as written, on its line", async () => {
+    // 63 arrays, an object at depth 64, and in it an array at 65, spaced oddly, a string with
+    // brackets in it, and a member after it, where the formatting resumes.
+    const inner = '[ 1 ,{"b" : "] }"} ,\t[ ] ]';
+    const text = "[".repeat(63) + `{"a":${inner} , "c":3}` + "]".repeat(63);
+    const opening = Array.from({ length: 63 }, (_, depth) => `${indent(depth)}[`);
+    const closing = Array.from({ length: 63 }, (_, depth) => `${indent(62 - depth)}]`);
+    const object = [`${indent(63)}{`, `${indent(64)}"a": ${inner},`, `${indent(64)}"c": 3`];
+    const expected = [...opening, ...object, `${indent(63)}}`, ...closing].join("\n");
+    const output = await formatted(text);
+    assert.equal(output, expected);
+    assert.equal(tokensOf(output), tokensOf(text), "only whitespace between tokens changed");
+  });
+
+  test("formats text nested 20,000 deep in output linear in its length, without a stall", async (t) => {
+    // The 64 levels formatted add a line break and at most 128 spaces of indent at each of their
+    // opening and closing brackets; the 19,936 below them are kept as written.
+    const result: { text: number; output: number; ms: number; same: boolean; tail: boolean } =
+      await page.evaluate(`(() => {
+      const text = "[".repeat(20000) + ' 1 ' + "]".repeat(20000);
+      window.formatJson(text);
+      const start = performance.now();
+      const output = window.formatJson(text);
+      const ms = performance.now() - start;
+      const kept = "[".repeat(20000 - 64) + ' 1 ' + "]".repeat(20000 - 64);
+      return {
+        text: text.length,
+        output: output.length,
+        ms,
+        same: output.replace(/[ \\n]+/g, "") === text.replace(/ /g, ""),
+        tail: output.includes("\\n" + "  ".repeat(64) + kept + "\\n"),
+      };
+    })()`);
+    t.diagnostic(`${result.text} characters to ${result.output} in ${result.ms.toFixed(1)} ms`);
+    assert.ok(
+      result.output <= result.text + 4 * 64 * 64,
+      `${result.output} characters from ${result.text}`,
+    );
+    assert.ok(result.same, "only whitespace between tokens changed");
+    assert.ok(result.tail, "the levels past 64 kept as written, on their line");
+    assert.ok(result.ms < 50, `formatting took ${result.ms} ms`);
   });
 });

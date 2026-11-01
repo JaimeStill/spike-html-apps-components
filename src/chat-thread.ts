@@ -95,7 +95,7 @@ export type ThreadItem = MessageItem | ReasoningItem | FunctionCallItem | Functi
  * Text as shown: valid JSON formatted from its own tokens by `formatJson()`, two spaces an indent,
  * else the text as it is. `JSON.parse` decides validity alone and its value is thrown away:
  * printing the value would move integer-like keys first, rewrite numbers, and drop duplicate keys.
- * Text nested too deep for its indents to fit in a string shows as it is too.
+ * Text whose formatting would pass the longest string, a RangeError, shows as it is too.
  */
 function pretty(text: string): string {
   try {

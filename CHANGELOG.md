@@ -12,8 +12,12 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
   indent, one member or element a line, `": "` after each key, and an empty object or array as
   `{}` or `[]`. Each token is kept as written, so only the whitespace between tokens changes. It
   reads tokens without checking their grammar, so its caller decides whether the text is valid.
-  Its indents grow with the square of the depth, so text nested some ten thousand deep throws a
-  `RangeError`; the viewer and the chat thread then show the text as it is.
+  It indents containers to `MAX_DEPTH`, 64, deep, exported beside it; a container that would open
+  deeper is kept as written, from its opening bracket to its matching closing one, on the line
+  where it opens, and formatting resumes after it. Its output's length is then linear in the
+  text's at any depth, where indenting every level grew with the square of the depth and text of
+  40 kB nested 20,000 deep passed the longest string. Should formatting still throw a
+  `RangeError`, the viewer and the chat thread show the text as it is.
 - `sl-artifact-viewer` renders natively what the browser can, from a Blob given as its `content`,
   which now takes `string | Blob`: `application/pdf` in an iframe, the browser's own PDF viewer,
   titled with the name, the frame's width and up to 40rem tall, scrolling itself; `image/*` but

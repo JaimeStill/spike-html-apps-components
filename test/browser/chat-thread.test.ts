@@ -13,6 +13,7 @@ import type { Browser, Page } from "@jaimestill/spike-html-apps-tooling/browser.
 import { serve } from "@jaimestill/spike-html-apps-tooling/server.js";
 import type { Server } from "@jaimestill/spike-html-apps-tooling/server.js";
 
+import { deepFormatted } from "./support/deep.ts";
 import { served } from "./support/served.ts";
 
 /** What window.read reads from a list item of a thread's shadow root. */
@@ -269,10 +270,10 @@ describe("chat thread", { timeout: 60_000 }, () => {
     assert.equal(view.items[1].pre, '{\n  "9": 9007199254740993,\n  "1": -0\n}');
   });
 
-  test("arguments nested too deep for their indents to fit in a string show as they are", async () => {
+  test("arguments nested 20,000 deep show their outer 64 levels formatted, the rest as written", async () => {
     const args = "[".repeat(20_000) + "1" + "]".repeat(20_000);
     const view = await shown({ verbose: true, items: [{ ...call, arguments: args }] });
-    assert.equal(view.items[0].pre, args);
+    assert.equal(view.items[0].pre, deepFormatted(20_000));
   });
 
   test("arguments that don't parse show raw; empty arguments and output say so; output parts join", async () => {
