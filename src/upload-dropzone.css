@@ -4,7 +4,8 @@
  * which give the native buttons and progress bars their look and the focus outline. It holds the
  * zone's frame and its drag-over and disabled looks, the list's layout, each upload's rows, and
  * the finished states' labels. It reads only the foundation's baseline tokens, which a shadow
- * root takes by inheritance from the page's entry. Unlayered, it sits above the adopted layers in
+ * root takes by inheritance from the page's entry; its one fixed length is the focus outline's
+ * offset, the elements sheet's 2px, in the rows' gap. Unlayered, it sits above the adopted layers in
  * the root.
  *
  * The zone is the component's one frame, dashed, around its prompt and its picker button. The
@@ -15,7 +16,8 @@
  * trailing cell, the finished label, ends the item, centered on both lines. An uploading item's
  * detail line spans the item instead, its progress bar as wide as the row and its bytes sent of
  * its size after it, and its trailing cell, the cancel control, ends the first line. The first
- * line is as tall as the control in every state, so the name keeps its place and the item its
+ * line is as tall as the control in every state, and the lines sit apart by the control's focus
+ * outline and a step more in every state, so the name keeps its place and the item its
  * height: neither progress nor a change of state moves anything but a failed upload's message,
  * which wraps rather than hide why. In a shrink-to-fit parent the component is as wide as its
  * widest line, its prompt and button or a name, up to the parent's width.
@@ -69,7 +71,11 @@
     "name end"
     "detail end";
   align-items: center;
-  gap: var(--space-3xs) var(--space-s);
+  /* The rows sit apart by the focus outline's reach, the foundation's :focus-visible outline of
+     --line-m at its 2px offset, and the 3xs step beyond it, so a focused cancel control's whole
+     outline clears the bar and the bytes under it. The gap is every state's, so an upload that
+     finishes, its control gone, keeps its height. */
+  gap: calc(var(--line-m) + 2px + var(--space-3xs)) var(--space-s);
   margin: 0;
   padding-block: var(--space-2xs);
 }

@@ -12,6 +12,11 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
   `--text-l`, the foundation's h4 step, where it took the baseline `h2`'s `--text-2xl`, a page
   section's size, and competed with the page's own headings. Its weight, leading, and font stay
   the baseline heading's, the same in both modes.
+- `sl-upload-dropzone`'s focused Cancel button keeps its whole focus outline clear of the
+  progress bar and the bytes sent below it: an upload's two lines sit apart by the outline's reach,
+  `--line-m` at the foundation's 2px offset, and `--space-3xs` beyond it, where they sat
+  `--space-3xs` apart and the outline reached into the bytes. The gap is every state's, so each
+  upload is that much taller, and an upload that finishes still keeps its height.
 
 ## [0.6.0] - 2026-10-31
 

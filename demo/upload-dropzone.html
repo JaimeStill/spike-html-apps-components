@@ -12,7 +12,9 @@
          labelled, then shown again in a section 20rem wide; the fit section holds one short
          upload's dropzone in three parents that size it to their content, an inline-block, a
          content-sized flex item, and a grid's auto track; and the focus section holds one
-         instance whose picker button the screenshot script reaches with a Tab press. The zone
+         instance, an upload in progress above a finished one, whose Cancel button the screenshot
+         script reaches with two Tab presses, past the picker button, its focus outline clear of
+         the bar and the bytes below it. The zone
          draws the component's one frame, so main is unframed: no specimen frame around it. The
          page links the installed foundation's full entry, page-full.css, and imports
          register-full.js, so a profile applies by attribute on the root; its import map is
@@ -120,7 +122,10 @@
           { label: "Disabled", build: dropzone({ disabled: true }) },
           { label: "Disabled, with uploads listed", build: dropzone({ disabled: true, uploads: [...done, ...cancelled] }) },
         ],
-        { label: "Focused by Tab: the picker button", build: dropzone({}) },
+        {
+          label: "Focused by Tab: an uploading file's Cancel button, past the picker button",
+          build: dropzone({ uploads: [uploading[2], ...done] }),
+        },
       );
       // One short upload's dropzone in each parent that sizes it to its content, by the parent's
       // class in demo.css.
@@ -163,8 +168,8 @@
 
       <section id="focus">
         <h2>Focus visible</h2>
-        <p>The dropzone's picker button, reached by the keyboard.</p>
-        <span tabindex="-1" data-focus-start="1"></span>
+        <p>An uploading file's Cancel button, reached by the keyboard past the picker button.</p>
+        <span tabindex="-1" data-focus-start="2"></span>
         <div class="states"></div>
       </section>
     </main>
