@@ -12,7 +12,7 @@ import elements from "@jaimestill/spike-html-apps-foundation/baseline/elements.c
 import reset from "@jaimestill/spike-html-apps-foundation/baseline/reset.css" with { type: "css" };
 import { define } from "@jaimestill/spike-html-apps-foundation/dom.js";
 import "./entry.ts";
-import type { FileItem } from "./entry.ts";
+import type { FileItem, StatusTone } from "./entry.ts";
 import { Pagination, summaryRange } from "./pagination.ts";
 import styles from "./document-list.css" with { type: "css" };
 
@@ -27,9 +27,10 @@ export type DocumentListState = "loading" | "error" | "ready";
 
 /**
  * A document as the list shows it: its id, name, content type, and size in bytes, as its upload
- * declared them; when it was accepted, an RFC 3339 string; and a status, the state of the run its
- * upload started. An API's document fits it with its run's status set beside it; its other fields,
- * the run's id among them, the list ignores.
+ * declared them; when it was accepted, an RFC 3339 string; a status, the state of the run its
+ * upload started; and, optionally, the status's tone, the hue its entry shows it in, muted when
+ * absent or null. An API's document fits it with its run's status, and the tone the app reads from
+ * it, set beside it; its other fields, the run's id among them, the list ignores.
  */
 export interface DocumentItem {
   id: string;
@@ -38,6 +39,7 @@ export interface DocumentItem {
   size: number;
   created_at: string;
   status: string;
+  status_tone?: StatusTone | null;
 }
 
 /**
@@ -134,14 +136,18 @@ export class DocumentList extends LitElement {
     return documents.length ? nothing : html`<span class="label empty">No documents.</span>`;
   }
 
-  // An entry per document, in a list item. The selected document's entry draws its own frame in
-  // the accent color, by its selected property, and its item holds aria-current, which says
-  // it to assistive technology: the entry's button is inside its own shadow root, out of the
-  // list's reach.
+  // An entry per document, in a list item, its status's tone handed to the entry beside its file.
+  // The selected document's entry draws its own frame in the accent color, by its selected
+  // property, and its item holds aria-current, which says it to assistive technology: the entry's
+  // button is inside its own shadow root, out of the list's reach.
   #entry(item: DocumentItem) {
     const selected = item.id === this.selected;
     return html`<li aria-current=${selected ? "true" : nothing}>
-      <sl-entry .item=${entryItem(item)} .selected=${selected}></sl-entry>
+      <sl-entry
+        .item=${entryItem(item)}
+        .selected=${selected}
+        .statusTone=${item.status_tone ?? null}
+      ></sl-entry>
     </li>`;
   }
 

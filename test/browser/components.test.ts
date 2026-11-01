@@ -307,6 +307,82 @@ describe("components", { timeout: 60_000 }, () => {
     }
   });
 
+  test("the entry's status takes its status tone's hue, the components' status hues, its text kept; no tone, or one it doesn't know, stays muted", async () => {
+    // On the lean page, an entry per tone, then one with none and one with a tone outside the
+    // vocabulary: each status's color as it resolves, against each hue resolved in the entry's
+    // root, at the accent hook's fallback and then with --accent-color set on the page; each
+    // entry's status-tone attribute, reflected from the property, and its status's text. One entry
+    // given its tone by the attribute reads it back as the property.
+    const page = await open(runs[0]);
+    try {
+      const read = (hook: boolean) =>
+        page.evaluate(`(async () => {
+        await import("/dist/entry.js");
+        const main = document.querySelector("main");
+        if (!main.querySelector("sl-entry")) {
+          for (const tone of ["active", "complete", "incomplete", "failed", null, "danger"]) {
+            const entry = document.createElement("sl-entry");
+            entry.item = { id: "d-" + tone, name: "designs", status: tone === "failed" ? "failed 3/5" : String(tone),
+              updated_at: "2026-10-12T16:41:07Z" };
+            entry.statusTone = tone;
+            main.append(entry);
+          }
+          const byAttribute = document.createElement("sl-entry");
+          byAttribute.setAttribute("status-tone", "failed");
+          byAttribute.item = { id: "d-attr", name: "designs", status: "failed", updated_at: "2026-10-12T16:41:07Z" };
+          main.append(byAttribute);
+        }
+        ${hook ? `main.style.setProperty("--accent-color", "rgb(1, 2, 3)");` : ""}
+        const entries = [...main.querySelectorAll("sl-entry")];
+        await Promise.all(entries.map((entry) => entry.updateComplete));
+        const root = entries[0].shadowRoot;
+        const resolve = (value) => {
+          const probe = root.appendChild(document.createElement("span"));
+          probe.style.color = value;
+          const resolved = getComputedStyle(probe).color;
+          probe.remove();
+          return resolved;
+        };
+        const hues = {
+          accent: resolve("var(--accent-color, var(--magenta))"),
+          green: resolve("var(--green)"),
+          orange: resolve("var(--orange)"),
+          red: resolve("var(--red)"),
+          muted: resolve("var(--fg-2)"),
+        };
+        const named = (color) => Object.keys(hues).find((hue) => hues[hue] === color) ?? color;
+        return {
+          distinct: new Set(Object.values(hues)).size === Object.keys(hues).length,
+          entries: entries.map((entry) => {
+            const status = entry.shadowRoot.querySelector(".status");
+            return [entry.statusTone, entry.getAttribute("status-tone"), status.textContent,
+              named(getComputedStyle(status).color)];
+          }),
+        };
+      })()`);
+      for (const hook of [false, true]) {
+        const where = hook ? "--accent-color set" : "at the accent hook's fallback";
+        const shown: { distinct: boolean; entries: unknown[][] } = await read(hook);
+        assert.ok(shown.distinct, `${where}: the hues differ`);
+        assert.deepEqual(
+          shown.entries,
+          [
+            ["active", "active", "active", "accent"],
+            ["complete", "complete", "complete", "green"],
+            ["incomplete", "incomplete", "incomplete", "orange"],
+            ["failed", "failed", "failed 3/5", "red"],
+            [null, null, "null", "muted"],
+            ["danger", "danger", "danger", "muted"],
+            ["failed", "failed", "failed", "red"],
+          ],
+          where,
+        );
+      }
+    } finally {
+      await page.close();
+    }
+  });
+
   /** A component as the profiles case renders it in one profile: the profile's every facet, the
    * component's tag and box, and its look, the color, font, and padding it shows. */
   interface Rendered {
@@ -2246,8 +2322,8 @@ describe("components", { timeout: 60_000 }, () => {
       assert.ok(overflow <= 0, `${profile}: the states overflow the column by ${overflow}`);
       assert.equal(
         shown.length,
-        20,
-        `${profile}: eight states twice, the three fits, and the focus state`,
+        22,
+        `${profile}: nine states twice, the three fits, and the focus state`,
       );
       for (const [
         index,

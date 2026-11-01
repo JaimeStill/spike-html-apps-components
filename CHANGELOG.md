@@ -24,6 +24,16 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
   the markers and the text column aligned. A failed stage with no `failedAt` still shows its
   `completedAt`, so a consumer that passed the failure's time there keeps working; every other
   state, and a reason on any stage but a failed one, is unchanged.
+- `sl-entry`'s `statusTone` property, reflected to the `status-tone` attribute, shows the status
+  in a status hue, by the components' own status vocabulary and hues: `active` in the accent
+  hook, `var(--accent-color, var(--magenta))`, as the timeline's active stage; `complete` in
+  `--green`; `incomplete` in `--orange`, as the chat thread's incomplete item; and `failed` in
+  `--red`. Only the color changes, so a tone moves nothing, and the status's text still says the
+  state. With no tone, or a value outside the four, the status stays muted in `--fg-2`, as
+  before; the item's shape is unchanged.
+- `sl-document-list`'s `DocumentItem` takes an optional `status_tone`, which the list hands to
+  the document's entry as its `statusTone`, so a failed run's status shows in red and a complete
+  one's in green. A document without one shows its status muted, as before.
 
 ### Fixed
 
