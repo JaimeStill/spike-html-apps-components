@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>artifact viewer specimen</title>
     <!-- The artifact viewer's specimen page, from dist/: a Markdown document, JSON, invalid JSON,
-         plain text, content long enough to scroll, a type that isn't text, loading, and an error.
+         plain text, content long enough to scroll, a type that isn't text, loading, an error,
+         and the Markdown document again with no-header, its content alone.
          The viewer is as tall as its content, so each shows at full size but the long content,
          which the page holds to 16rem by demo.css's held class, so it scrolls.
          Every state is labelled, then shown again in a section 20rem wide; the fit section holds
@@ -126,6 +127,10 @@
           {
             label: "Error: the message says why",
             build: viewer({ name: "summary.md", contentType: "text/markdown", state: "error", message: "The pipeline returned 404 Not Found." }),
+          },
+          {
+            label: "No header: no-header, the content alone, its region still named release-notes.md content",
+            build: viewer({ name: "release-notes.md", contentType: "text/markdown; charset=utf-8", content: document_, noHeader: true }),
           },
         ],
         {

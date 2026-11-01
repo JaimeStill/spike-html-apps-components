@@ -2,7 +2,8 @@
 // content type takes, its parameters and case aside; JSON pretty-printed, and invalid JSON's raw
 // text under its note; a type that isn't text as a note, never its bytes; the loading and error
 // states; long content scrolling inside the viewer, by the keyboard once Tab reaches its region;
-// and no event sent.
+// with noHeader, no head, the region's name kept, and no gap where the head was; and no event
+// sent.
 
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
@@ -27,6 +28,13 @@ interface View {
     label: string | null;
   } | null;
   rendered: string[];
+}
+
+/** A node of the page's accessibility tree, as Accessibility.getFullAXTree gives it. */
+interface AXNode {
+  ignored: boolean;
+  role?: { value: string };
+  name?: { value: string };
 }
 
 describe("artifact viewer", { timeout: 60_000 }, () => {
@@ -293,6 +301,73 @@ describe("artifact viewer", { timeout: 60_000 }, () => {
       assert.ok(gaps.inline >= 0.5, `${where}: ${gaps.inline}rem past the content's inline end`);
       assert.ok(gaps.block >= 0.5, `${where}: ${gaps.block}rem past the content's block end`);
     }
+  });
+
+  // The viewer's layout and its region's names in the accessibility tree, for the fields: whether
+  // a head renders and shows, the head's and the frame's tops from the host's, and the names of
+  // the regions exposed.
+  const laidOut = async (
+    fields: Record<string, unknown>,
+  ): Promise<{ head: boolean; headTop: number | null; frameTop: number; regions: string[] }> => {
+    await shown(fields);
+    const box: { head: boolean; headTop: number | null; frameTop: number } =
+      await page.evaluate(`(() => {
+      const viewer = document.querySelector("sl-artifact-viewer");
+      const root = viewer.shadowRoot;
+      const top = viewer.getBoundingClientRect().top;
+      const head = root.querySelector("header, .head");
+      return {
+        head: head !== null && head.checkVisibility(),
+        headTop: head && head.getBoundingClientRect().top - top,
+        frameTop: root.querySelector(".frame").getBoundingClientRect().top - top,
+      };
+    })()`);
+    const { nodes }: { nodes: AXNode[] } = await page.cdp("Accessibility.getFullAXTree", {});
+    const regions = nodes
+      .filter((node) => !node.ignored && node.role?.value === "region")
+      .map((node) => node.name?.value ?? "");
+    return { ...box, regions };
+  };
+
+  for (const contentType of ["text/markdown", "application/json", "text/plain"]) {
+    test(`${contentType}: with noHeader, no head shows, the region keeps its name, and the frame starts where the head did`, async () => {
+      const fields = { name: "notes.md", contentType, content: "[1]" };
+      const headed = await laidOut(fields);
+      assert.equal(headed.head, true, "without noHeader, the head shows");
+      assert.ok(headed.frameTop > 0, `without noHeader, the frame sits ${headed.frameTop} below`);
+      assert.deepEqual(headed.regions, ["notes.md content"]);
+      const bare = await laidOut({ ...fields, noHeader: true });
+      assert.equal(bare.head, false, "no head renders");
+      assert.equal(bare.headTop, null, "no head element");
+      assert.ok(
+        Math.abs(bare.frameTop - (headed.headTop ?? NaN)) <= 0.5,
+        `the frame's top, ${bare.frameTop}, is the head's, ${headed.headTop}`,
+      );
+      assert.deepEqual(bare.regions, headed.regions, "the region's accessible name is unchanged");
+    });
+  }
+
+  test("the no-header attribute sets noHeader, and noHeader reflects to it", async () => {
+    const view = await page.evaluate(`(async () => {
+      const main = document.querySelector("main");
+      main.innerHTML =
+        '<sl-artifact-viewer no-header name="a.json" content-type="application/json" content="[1]"></sl-artifact-viewer>';
+      const viewer = main.firstElementChild;
+      await viewer.updateComplete;
+      const read = () => ({
+        noHeader: viewer.noHeader,
+        attribute: viewer.hasAttribute("no-header"),
+        head: viewer.shadowRoot.querySelector("header") !== null,
+      });
+      const set = read();
+      viewer.noHeader = false;
+      await viewer.updateComplete;
+      return { set, cleared: read() };
+    })()`);
+    assert.deepEqual(view, {
+      set: { noHeader: true, attribute: true, head: false },
+      cleared: { noHeader: false, attribute: false, head: true },
+    });
   });
 
   test("the viewer sends no event as its properties change", async () => {

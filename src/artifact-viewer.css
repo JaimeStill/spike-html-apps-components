@@ -9,7 +9,8 @@
  * layers in the root.
  *
  * The host is a flex column: the head, then the frame, itself a flex column of a note and the
- * region. Unconstrained, the viewer is as tall as its content. A consumer that constrains its
+ * region. With no-header the head isn't rendered, its margin with it, so the frame starts at the
+ * host's top. Unconstrained, the viewer is as tall as its content. A consumer that constrains its
  * block size, by a block-size or max-block-size on the host or a sized flex or grid parent, holds
  * it there: the region fills the frame's share and shrinks to it, and long content scrolls inside
  * the one frame.

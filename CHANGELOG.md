@@ -6,6 +6,14 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 
 ## [Unreleased]
 
+### Added
+
+- `sl-artifact-viewer`'s `noHeader` property, reflected to the `no-header` boolean attribute,
+  leaves out the viewer's head, the artifact's name and content type over its content, for a page
+  that shows them in a header of its own. The frame then starts where the head did, with no gap,
+  and the scrolling region keeps its accessible name, `<name> content`. The default, the head
+  shown, is unchanged.
+
 ## [0.6.1] - 2026-11-01
 
 ### Fixed

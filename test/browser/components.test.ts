@@ -1249,7 +1249,7 @@ describe("components", { timeout: 60_000 }, () => {
   const VIEWERS = `(section) => [...document.querySelectorAll(section + " sl-artifact-viewer")]`;
 
   test("the artifact viewer's specimen renders every state, at full size or held, within 20rem, in every profile", async () => {
-    // Every viewer shows its head and a region or a note. The viewer is as tall as its content,
+    // Every viewer shows its head, but the no-header one, and a region or a note. The viewer is as tall as its content,
     // so no region scrolls down but run.log's, which the page holds to 16rem, and it does; at
     // 20rem the states keep within the column, every part of each viewer inside its box, and a
     // JSON line too long for the column scrolls its region sideways, never wrapping.
@@ -1265,6 +1265,7 @@ describe("components", { timeout: 60_000 }, () => {
           name: viewer.name,
           narrow: viewer.closest(".narrow") !== null,
           head: root.querySelector(".head") !== null,
+          noHeader: viewer.noHeader,
           shown: root.querySelector(".body, .note") !== null,
           held: viewer.classList.contains("held"),
           height: box.height / rem,
@@ -1286,6 +1287,7 @@ describe("components", { timeout: 60_000 }, () => {
         name: string;
         narrow: boolean;
         head: boolean;
+        noHeader: boolean;
         shown: boolean;
         held: boolean;
         height: number;
@@ -1297,12 +1299,23 @@ describe("components", { timeout: 60_000 }, () => {
       assert.ok(overflow <= 0, `${profile}: the states overflow the column by ${overflow}`);
       assert.equal(
         shown.length,
-        22,
-        `${profile}: nine states twice, the three fits, and the focus state`,
+        24,
+        `${profile}: ten states twice, the three fits, and the focus state`,
       );
-      for (const { name, narrow, head, shown: content, held, height, scrolls, outside } of shown) {
+      for (const {
+        name,
+        narrow,
+        head,
+        noHeader,
+        shown: content,
+        held,
+        height,
+        scrolls,
+        outside,
+      } of shown) {
         const where = `${profile}, ${name}${narrow ? " at 20rem" : ""}`;
-        assert.ok(head && content, `${where}: a head and a region or a note`);
+        assert.equal(head, !noHeader, `${where}: a head unless no-header`);
+        assert.ok(content, `${where}: a region or a note`);
         assert.equal(held, name === "run.log", `${where}: only run.log is held`);
         if (held) {
           assert.ok(Math.abs(height - 16) < 0.01, `${where}: held to ${height}rem, not 16rem`);
@@ -1319,6 +1332,11 @@ describe("components", { timeout: 60_000 }, () => {
       );
       const [json] = shown.filter(({ name, narrow }) => name === "run.json" && narrow);
       assert.ok(json.sideways, `${profile}: run.json's id line scrolls sideways at 20rem`);
+      assert.equal(
+        shown.filter(({ noHeader }) => noHeader).length,
+        2,
+        `${profile}: the no-header state twice`,
+      );
     }
   });
 

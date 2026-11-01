@@ -47,7 +47,9 @@ function pretty(content: string): Json {
 }
 
 /**
- * Shows one artifact: its name and content type over its content. Markdown renders through
+ * Shows one artifact: its name and content type over its content, or, with `noHeader`, its
+ * content alone, for a page that already shows the name and type in a header of its own; the
+ * content's region is named for the artifact either way. Markdown renders through
  * `markdown()`, JSON is parsed and printed with two-space indents, and other text is shown as it
  * is; JSON that doesn't parse shows its raw text under a note saying so, and a type that isn't
  * text shows a note in place of its bytes. Long content scrolls inside the viewer, in a region the
@@ -62,9 +64,10 @@ export class ArtifactViewer extends LitElement {
     content: { type: String },
     state: { type: String, reflect: true },
     message: { type: String },
+    noHeader: { type: Boolean, reflect: true, attribute: "no-header" },
   } satisfies PropertyDeclarations;
 
-  /** The artifact's name, shown in the viewer's head. */
+  /** The artifact's name, shown in the viewer's head, and naming its content's region. */
   declare name: string;
   /** The artifact's media type, parameters allowed; it chooses the view. */
   declare contentType: string;
@@ -74,6 +77,13 @@ export class ArtifactViewer extends LitElement {
   declare state: ArtifactState;
   /** Why the content failed to load, shown in the error state. */
   declare message: string;
+  /**
+   * Leaves out the head, the name and content type over the content, so the frame starts where
+   * the head would; the region keeps its name, `<name> content`. Reflected to the `no-header`
+   * attribute. A boolean attribute is true by its presence, so the option names the departure
+   * from the default, the head shown, as the platform's `novalidate` and `nomodule` do.
+   */
+  declare noHeader: boolean;
 
   // The JSON view's text, parsed once per content and type rather than on every render.
   #json: Json | null = null;
@@ -85,6 +95,7 @@ export class ArtifactViewer extends LitElement {
     this.content = "";
     this.state = "ready";
     this.message = "";
+    this.noHeader = false;
   }
 
   willUpdate(changed: PropertyValues<this>): void {
@@ -143,7 +154,7 @@ export class ArtifactViewer extends LitElement {
 
   render() {
     const head =
-      this.name || this.contentType
+      !this.noHeader && (this.name || this.contentType)
         ? html`<header class="head">
             ${this.name ? html`<span class="name">${this.name}</span>` : nothing}
             ${this.contentType ? html`<span class="type">${this.contentType}</span>` : nothing}
