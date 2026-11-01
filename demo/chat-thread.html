@@ -7,9 +7,13 @@
     <!-- The chat thread's specimen page, from dist/: an empty thread, a user and assistant
          exchange, a reply streaming inside an open code fence and another inside a half-built
          list, a refusal, an incomplete reply, a failed one, reasoning and tool calls, an unknown
-         item among known ones, and long content, each with verbose off, then on. The thread is as
-         tall as its content, so each shows at full size but the long content, which the page
-         holds to 16rem by demo.css's held class, so it scrolls.
+         item among known ones, and long content, each with verbose off, then on; then a reply
+         streamed into a held thread, word by word, the frame following its end, and the same with
+         the reader scrolled up part way, the frame keeping their place. The thread is as tall as
+         its content, so each shows at full size but the long content and the two streamed, which
+         the page holds to 16rem by demo.css's held class, so they scroll; a held thread opens at
+         its end. The stream runs once the page's fonts load, each word an update awaited in turn,
+         so a capture shows where it ends; the browser tier tests the following itself.
          Every state is labelled, then shown again in a section 20rem wide; the fit section holds
          a short exchange in three parents that size it to its content, an inline-block, a
          content-sized flex item, and a grid's auto track; and the focus section holds one
@@ -176,12 +180,39 @@
         ["Failed: the reply failed part way", failed],
         ["Reasoning and tool calls", tools],
         ["An unknown item and an unknown part among known ones, skipped", unknown],
-        ["Long content: held to 16rem by the page, scrolling inside the thread", long, "held"],
+        ["Long content: held to 16rem by the page, scrolling inside the thread, opened at its end", long, "held"],
       ].flatMap(([label, items, className = ""]) =>
         [false, true].map((verbose) => ({
           label: `${label}; verbose ${verbose ? "on" : "off"}`,
           build: thread({ items, verbose, className }),
         })),
+      );
+      // A reply streamed into a held thread after the long content and a new question, word by
+      // word, each word an update awaited in turn, once the fonts load so the lines are final.
+      // With up set, the reader scrolls up part way after the first few words, as one rereading
+      // the last answer does, and the frame keeps their place as the reply streams on below.
+      const reply = [
+        "Both stages completed for `run-01J9X4R7Q2M8ZK3T5V6W`. Stage 1 classified the document",
+        "and wrote its outputs; stage 2 summarized them into **summary.md**, 1.5 kB, and",
+        "**stages.csv**, 48 kB. Nothing failed, and the run's page lists every artifact it wrote.",
+      ].join(" ").split(" ");
+      const streamed = (up) => () => {
+        const element = thread({ items: [...long, user("And the run as a whole?")], className: "held" })();
+        element.updateComplete.then(async () => {
+          await document.fonts.ready;
+          const frame = element.shadowRoot.querySelector(".frame");
+          for (let count = 1; count <= reply.length; count++) {
+            if (up && count === 6) frame.scrollTop -= 160;
+            const text = reply.slice(0, count).join(" ");
+            element.items = [...long, user("And the run as a whole?"), assistant("msg_streamed", text, "in_progress")];
+            await element.updateComplete;
+          }
+        });
+        return element;
+      };
+      states.push(
+        { label: "A reply streaming into a held thread: the frame follows its end", build: streamed(false) },
+        { label: "A reply streaming, the reader scrolled up: the frame keeps their place", build: streamed(true) },
       );
       // The verbose items again, each details opened once the thread renders, so the capture shows
       // what each holds.

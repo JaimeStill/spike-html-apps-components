@@ -3,7 +3,10 @@
 // refusal labelled; each status labelled; unknown item and part types skipped; verbose hiding and
 // showing reasoning, function calls, and their outputs, collapsed, valid JSON formatted from its
 // own tokens and invalid JSON as it is; a streaming message re-rendered in place, the items above
-// it the same nodes; the verbose attribute reflected; and no event sent.
+// it the same nodes; the verbose attribute reflected; a held frame opening at its end and
+// following the newest item, as items are added and a streaming reply grows, only from its end or
+// on a user's message, scrolling instantly under any motion preference; a thread not held
+// scrolling no container of its consumer's; and no event sent.
 
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
@@ -30,6 +33,12 @@ interface Item {
   refusal: string | null;
   pre: string | null;
   empty: string | null;
+}
+
+/** A frame's scroll position: its scrollTop and the most it scrolls, rounded. */
+interface Where {
+  top: number;
+  end: number;
 }
 
 /** What window.read reads from a thread's shadow root. */
@@ -436,6 +445,164 @@ describe("chat thread", { timeout: 60_000 }, () => {
       articles: [result.articles[0], result.articles[0]],
       kept: true,
     });
+  });
+
+  // A held thread's follow cases. window.follow(steps, options) mounts a thread held to 10rem and
+  // shows each step's items in turn, awaiting each update, after scrolling the frame as the step
+  // says: "up", 40px up from where it is, or "end", to its end. It resolves to the frame's place
+  // after each step, read the moment the update completes, so a smooth scroll still under way
+  // would read short of its end.
+  const followed = (
+    steps: { items: unknown[]; scroll?: "up" | "end"; verbose?: boolean }[],
+  ): Promise<(Where & { behavior: string })[]> =>
+    page.evaluate(`(async () => {
+      const thread = document.createElement("sl-chat-thread");
+      thread.style.blockSize = "10rem";
+      document.querySelector("main").replaceChildren(thread);
+      await thread.updateComplete;
+      const frame = thread.shadowRoot.querySelector(".frame");
+      const places = [];
+      for (const { items, scroll, verbose } of ${JSON.stringify(steps)}) {
+        if (scroll === "up") frame.scrollTop -= 40;
+        if (scroll === "end") frame.scrollTop = frame.scrollHeight;
+        if (verbose !== undefined) thread.verbose = verbose;
+        thread.items = items;
+        await thread.updateComplete;
+        places.push({
+          top: Math.round(frame.scrollTop),
+          end: Math.round(frame.scrollHeight - frame.clientHeight),
+          behavior: getComputedStyle(frame).scrollBehavior,
+        });
+      }
+      return places;
+    })()`);
+
+  // A long conversation: turns of a question and a reply, each reply a few paragraphs.
+  const turns = (count: number) =>
+    Array.from({ length: count }, (_, turn) => [
+      user(`Question ${turn + 1}?`),
+      assistant(`msg_t${turn}`, `Answer ${turn + 1}.\n\nA second paragraph.\n\nA third.`),
+    ]).flat();
+  // A reply streaming word by word: its text after each of the words.
+  const words = "The run read the document, chunked it, and embedded every chunk in turn".split(
+    " ",
+  );
+  const streamed = (count: number) => words.slice(0, count).join(" ");
+
+  test("held, the thread opens at its end and follows the newest item as items are added", async () => {
+    const places = await followed([
+      { items: turns(4) },
+      { items: [...turns(4), user("And then?")] },
+      { items: [...turns(4), user("And then?"), assistant("msg_n", "Then it finished.")] },
+      { items: turns(6) },
+    ]);
+    assert.ok(places[0].end > 0, `the frame scrolls: ${JSON.stringify(places[0])}`);
+    for (const [index, { top, end }] of places.entries()) {
+      assert.equal(top, end, `step ${index}: at its end`);
+    }
+    assert.ok(places[3].end > places[0].end, "the items added to its scroll");
+  });
+
+  test("held, the thread follows a streaming reply as its text grows", async () => {
+    const history = turns(3);
+    const ask = user("How did the run go?");
+    const steps = [6, 8, 10, 12, 14].map((count) => ({
+      items: [...history, ask, assistant("msg_s", streamed(count).repeat(3), "in_progress")],
+    }));
+    const places = await followed([{ items: [...history, ask] }, ...steps]);
+    for (const [index, { top, end }] of places.entries()) {
+      assert.equal(top, end, `step ${index}: at its end`);
+    }
+    assert.ok(places.at(-1)!.end > places[1].end, "the reply's text grew the scroll");
+  });
+
+  test("scrolled up from the end, the thread keeps the reader's place; scrolled back to the end, it follows again", async () => {
+    const history = turns(4);
+    const ask = user("How did the run go?");
+    // The reply a paragraph longer at each step, so each step grows the scroll.
+    const reply = (count: number) =>
+      assistant("msg_s", Array(count).fill(streamed(words.length)).join("\n\n"), "in_progress");
+    const places = await followed([
+      { items: [...history, ask, reply(1)] },
+      { items: [...history, ask, reply(2)], scroll: "up" },
+      { items: [...history, ask, reply(3)] },
+      { items: [...history, ask, reply(4)], verbose: true },
+      { items: [...history, ask, reply(5)], scroll: "end" },
+      { items: [...history, ask, reply(6)] },
+    ]);
+    const [opened, released, kept, toggled, resumed, again] = places;
+    assert.equal(opened.top, opened.end, "it opens at its end");
+    assert.equal(released.top, opened.end - 40, "scrolled up, it keeps the reader's place");
+    assert.ok(released.end > opened.end, "the reply grew below the reader's place");
+    assert.equal(kept.top, released.top, "and keeps it as the reply grows");
+    assert.equal(toggled.top, released.top, "verbose turning keeps it too");
+    assert.equal(resumed.top, resumed.end, "scrolled back to its end, it follows");
+    assert.equal(again.top, again.end, "and goes on following");
+    assert.ok(again.end > resumed.end, "the reply went on growing");
+  });
+
+  test("a message the user sends resumes following, though the reader had scrolled up", async () => {
+    const history = turns(4);
+    const places = await followed([
+      { items: history },
+      { items: [...history, assistant("msg_x", "One more thought.")], scroll: "up" },
+      { items: [...history, assistant("msg_x", "One more thought."), user("Thanks. And next?")] },
+      {
+        items: [
+          ...history,
+          assistant("msg_x", "One more thought."),
+          user("Thanks. And next?"),
+          assistant("msg_y", "Next, the run publishes.", "in_progress"),
+        ],
+      },
+    ]);
+    const [, released, sent, replied] = places;
+    assert.ok(released.top < released.end, "scrolled up, it kept the reader's place");
+    assert.equal(sent.top, sent.end, "the user's message brought it to its end");
+    assert.equal(replied.top, replied.end, "and it follows the reply");
+  });
+
+  test("the thread follows without smooth scrolling, under reduced motion and without it", async () => {
+    const history = turns(4);
+    for (const value of ["reduce", "no-preference"]) {
+      await page.cdp("Emulation.setEmulatedMedia", {
+        features: [{ name: "prefers-reduced-motion", value }],
+      });
+      const places = await followed([
+        { items: history },
+        { items: [...history, user("Another?")] },
+        {
+          items: [...history, user("Another?"), assistant("msg_r", "Yes, another.", "in_progress")],
+        },
+      ]);
+      for (const [index, { top, end, behavior }] of places.entries()) {
+        assert.equal(behavior, "auto", `${value}, step ${index}: the frame scrolls instantly`);
+        assert.equal(top, end, `${value}, step ${index}: at its end once the update completes`);
+      }
+    }
+    await page.cdp("Emulation.setEmulatedMedia", { features: [] });
+  });
+
+  test("not held, the thread is as tall as its content and scrolls no container it doesn't own", async () => {
+    const scrolled: { frame: Where; pane: Where } = await page.evaluate(`(async () => {
+      const pane = document.createElement("div");
+      pane.style.cssText = "block-size: 10rem; overflow: auto";
+      const thread = pane.appendChild(document.createElement("sl-chat-thread"));
+      document.querySelector("main").replaceChildren(pane);
+      thread.items = ${JSON.stringify(turns(4))};
+      await thread.updateComplete;
+      thread.items = ${JSON.stringify(turns(6))};
+      await thread.updateComplete;
+      const frame = thread.shadowRoot.querySelector(".frame");
+      const where = (element) => ({
+        top: Math.round(element.scrollTop),
+        end: Math.round(element.scrollHeight - element.clientHeight),
+      });
+      return { frame: where(frame), pane: where(pane) };
+    })()`);
+    assert.deepEqual(scrolled.frame, { top: 0, end: 0 }, "its frame doesn't scroll");
+    assert.ok(scrolled.pane.end > 0, `the pane scrolls: ${JSON.stringify(scrolled.pane)}`);
+    assert.equal(scrolled.pane.top, 0, "the pane keeps its place: its consumer scrolls it");
   });
 
   test("the thread sends no event as its items and verbose change", async () => {

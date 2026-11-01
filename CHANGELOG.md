@@ -6,6 +6,18 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 
 ## [Unreleased]
 
+### Added
+
+- `sl-chat-thread` follows its newest item, as `sl-event-log` does. Held to a height by its
+  consumer, its frame scrolls to its end on each update, an item added or a streaming reply's text
+  grown, while the reader is at its end, within a pixel: a reader who scrolled up keeps their place
+  as the reply streams on, and one who scrolls back to the end is followed again. Unlike the log,
+  its first items open at the end, since a conversation reads from its newest, and a user's
+  message added at the end, the one the reader just sent, brings the frame to its end wherever the
+  reader was. The scroll is instant under any motion preference. It exposes no property: the
+  reader's scroll is the state. Unheld, the thread is as tall as its content and scrolls no
+  container of its consumer's, so a consumer that wants it followed holds it to a height.
+
 ## [0.8.0] - 2026-11-01
 
 ### Added

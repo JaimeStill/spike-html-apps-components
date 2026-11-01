@@ -4,7 +4,14 @@
 // their outputs, by the spec's JSON field names, so a response's output or a conversation's
 // history fits as it is.
 
-import { html, LitElement, nothing, type PropertyDeclarations, type TemplateResult } from "lit";
+import {
+  html,
+  LitElement,
+  nothing,
+  type PropertyDeclarations,
+  type PropertyValues,
+  type TemplateResult,
+} from "lit";
 import { repeat } from "lit/directives/repeat.js";
 
 import elements from "@jaimestill/spike-html-apps-foundation/baseline/elements.css" with { type: "css" };
@@ -126,6 +133,17 @@ const STATUS_LABELS: Partial<Record<ItemStatus, string>> = {
  * tells assistive technology how many items there are and where each sits. A log's live region
  * would announce every word of a streaming reply; a consumer that wants an announcement adds a
  * status of its own.
+ *
+ * When its consumer constrains its block size, the frame scrolls, and it follows the newest item,
+ * as the event log does: an update, an item added or a streaming reply's text grown, scrolls the
+ * frame to its end while the reader is at its end, within a pixel, so a reader who scrolled up
+ * keeps their place as the reply streams on, and one who scrolls back to the end is followed
+ * again. A conversation reads from its newest item, so the first items shown open at the end, and
+ * a user's message added to the end, the one the reader just sent, brings the frame to its end
+ * wherever the reader was. The scroll is instant, never smooth, under any motion preference. The
+ * thread follows only in its own frame: unconstrained, it is as tall as its content and its
+ * consumer's scroll moves it, which the thread never scrolls, so a consumer that wants it followed
+ * holds it to a height.
  */
 export class ChatThread extends LitElement {
   static styles = [reset, elements, styles];
@@ -140,10 +158,40 @@ export class ChatThread extends LitElement {
   /** Whether reasoning, function calls, and their outputs show; reflected to `verbose`. */
   declare verbose: boolean;
 
+  /** Whether the update in flight follows the newest item: the frame was at its end, or showed
+   * no items yet, or the update adds a user's message at the end. */
+  #follow = false;
+
   constructor() {
     super();
     this.items = [];
     this.verbose = false;
+  }
+
+  protected override willUpdate(changed: PropertyValues<this>) {
+    // The frame as the last update left it, before this one grows it: at its end, within a pixel,
+    // when it doesn't scroll at all too. No frame yet is the first render.
+    const frame = this.renderRoot.querySelector<HTMLElement>(".frame");
+    const before = changed.has("items")
+      ? ((changed.get("items") as readonly ThreadItem[] | undefined) ?? [])
+      : (this.items ?? []);
+    const items = this.items ?? [];
+    const newest = items.at(-1);
+    const sent =
+      items.length > before.length && newest?.type === "message" && newest.role === "user";
+    this.#follow =
+      (changed.has("items") || changed.has("verbose")) &&
+      (frame === null ||
+        before.length === 0 ||
+        sent ||
+        frame.scrollHeight - frame.clientHeight - frame.scrollTop <= 1);
+  }
+
+  protected override updated() {
+    if (!this.#follow) return;
+    this.#follow = false;
+    const frame = this.renderRoot.querySelector<HTMLElement>(".frame");
+    if (frame) frame.scrollTop = frame.scrollHeight;
   }
 
   // An item's status, labelled, when it has one worth saying: streaming carries its indicator.

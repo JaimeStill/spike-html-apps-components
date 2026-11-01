@@ -11,7 +11,9 @@
  * content. A consumer that constrains its block size, by a block-size or max-block-size on the
  * host or a sized flex or grid parent, holds it there: the frame shrinks to it and the list
  * scrolls inside, the browser's own scrollbar showing, and the list's padding shows past its last
- * item at the scroll's end.
+ * item at the scroll's end. Only that frame follows the newest item, from chat-thread.ts, so a
+ * consumer holds the thread to a height to have it followed. The frame sets no scroll-behavior:
+ * following is instant.
  *
  * The frame is a grid of one column, minmax(0, 1fr), around the list: under a min-content
  * constraint the track is zero, and under a max-content one it is the list's widest line, so in
