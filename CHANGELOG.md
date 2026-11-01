@@ -13,6 +13,12 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
   `{}` or `[]`. Each token is kept as written, so only the whitespace between tokens changes. It
   reads tokens without checking their grammar, so its caller decides whether the text is valid.
 
+### Removed
+
+- The unit tier's brotli budget check, which failed the check when the pack's runtime files, each
+  compressed alone with brotli, summed over 45,000 B. The layer's size is now measured, at the end
+  of a session's work, not enforced per commit.
+
 ### Fixed
 
 - `sl-artifact-viewer`'s valid JSON shows its own keys, order, and numbers: it is formatted from
