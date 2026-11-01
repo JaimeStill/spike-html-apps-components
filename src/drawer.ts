@@ -1,10 +1,11 @@
 // The drawer, Lit with a shadow root: docked inline as a complementary landmark, an aside, in a
 // wide layout, and a modal dialog covering the viewport, sliding in from the inline-start edge, in
-// a narrow one. The mode is the viewport's, by a media query on `dock`; a switch swaps only the
-// shadow root's wrapper and its slot, so the slotted content, the host's own children, is never
-// moved, disconnected, or re-created.
+// a narrow one. Both wrappers hold the same header, the label as the one heading that names them,
+// over a body holding the slot. The mode is the viewport's, by a media query on `dock`; a switch
+// swaps only the shadow root's wrapper and its slot, so the slotted content, the host's own
+// children, is never moved, disconnected, or re-created.
 
-import { html, LitElement, nothing, type PropertyDeclarations, type PropertyValues } from "lit";
+import { html, LitElement, type PropertyDeclarations, type PropertyValues } from "lit";
 
 import elements from "@jaimestill/spike-html-apps-foundation/baseline/elements.css" with { type: "css" };
 import reset from "@jaimestill/spike-html-apps-foundation/baseline/reset.css" with { type: "css" };
@@ -24,11 +25,13 @@ export type CloseDetail = Record<string, never>;
  * A drawer for a narrow layout. Its children sit in the default slot, in one of two shadow
  * wrappers, by the mode.
  *
- * Wider than `dock`, a CSS length (48rem by default), the drawer is docked: its children in an
- * `aside`, a complementary landmark named by `label`, laid out as an ordinary block in the host's
- * place, always shown, never taking focus; `open` stays false there, setting it true is undone,
- * and `show()`, `close()`, and `toggle()` do nothing.
- * At or below `dock` the drawer is closed until `show()`, `toggle()`, or `open` opens it, a
+ * At `dock`, a CSS length (48rem by default), and wider, the drawer is docked: its children in an
+ * `aside`, a complementary landmark, laid out as an ordinary block in the host's place, always
+ * shown, never taking focus; `open` stays false there, setting it true is undone, and `show()`,
+ * `close()`, and `toggle()` do nothing. Its header holds `label` as a visible `h2` that names the
+ * aside, with no Close button, and stays in view while the children scroll below it when the host
+ * is held shorter than they are; the children need no heading of their own.
+ * Below `dock` the drawer is closed until `show()`, `toggle()`, or `open` opens it, a
  * native dialog shown by `showModal()`: it covers the viewport edge to edge, sliding in from the
  * inline-start edge, the right in a right-to-left context, the page behind it inert, and focus
  * moves inside it. Its header holds `label` as a visible `h2` that names the dialog, and a Close
@@ -37,16 +40,17 @@ export type CloseDetail = Record<string, never>;
  * children scroll below it. The Close button, Escape, `close()`, `toggle()`, or `open` set false
  * closes it, and the dialog returns focus to the element that held it when it opened. Under
  * reduced motion it opens and closes at once. `open` in the markup, or set before the element is
- * connected, opens the drawer as the page loads at or below `dock`, sending `open`, and is undone
+ * connected, opens the drawer as the page loads below `dock`, sending `open`, and is undone
  * while docked, sending nothing.
  *
  * `open` and `close` go out each time the modal drawer opens or closes, however it was asked,
  * never on a switch between the modes. A switch, as the viewport crosses `dock`, closes an open
  * drawer silently: one that was open becomes docked, and docked content becomes a closed drawer.
  * Removing the element closes it silently too, setting `open` false, so one put back is closed
- * unless `open` is set again before. `dock` is read in a media query,
- * `(max-width: <dock>)`, where rem and em are the initial font size's; a length the query can't
- * read never matches, so the drawer stays docked.
+ * unless `open` is set again before. `dock` is read in a media query, `(width < <dock>)`, where
+ * rem and em are the initial font size's, so a viewport of exactly `dock` docks; a length the
+ * query can't read never matches, so the drawer stays docked.
+ * Each mode renders only its own header, so the shadow tree holds one heading at a time.
  */
 export class Drawer extends LitElement {
   static styles = [reset, elements, styles];
@@ -59,9 +63,9 @@ export class Drawer extends LitElement {
 
   /** Whether the modal drawer is open; reflected to `open`, and always false while docked. */
   declare open: boolean;
-  /** The width above which the drawer docks: a CSS length, read in a media query. */
+  /** The width at which the drawer docks, and wider: a CSS length, read in a media query. */
   declare dock: string;
-  /** The docked aside's accessible name, and the drawer's visible heading, which names it. */
+  /** The visible heading of the docked aside and of the drawer, which names each. */
   declare label: string;
 
   // The mode is a custom state, drawer or docked, which a host's page may style.
@@ -102,7 +106,7 @@ export class Drawer extends LitElement {
     this.#dialog?.close();
   }
 
-  /** Opens the modal drawer; at or below `dock` only. */
+  /** Opens the modal drawer; below `dock` only. */
   show(): void {
     // The query's change event lags a resize by a frame; its matches is current, so the mode is
     // read from it first, and a show() just after a resize opens the drawer the viewport calls for,
@@ -129,7 +133,7 @@ export class Drawer extends LitElement {
   /** Reads the mode from a new query on `dock`, listening for its changes. */
   #watch(): void {
     this.#query?.removeEventListener("change", this.#change);
-    this.#query = matchMedia(`(max-width: ${this.dock})`);
+    this.#query = matchMedia(`(width < ${this.dock})`);
     this.#query.addEventListener("change", this.#change);
     this.#change();
   }
@@ -192,8 +196,13 @@ export class Drawer extends LitElement {
   }
 
   render() {
+    // The docked aside's header is the dialog's without its Close button: one heading, the
+    // label, naming the wrapper in either mode.
     if (!this.#narrow) {
-      return html`<aside aria-label=${this.label || nothing}><slot></slot></aside>`;
+      return html`<aside aria-labelledby="title">
+        <header><h2 id="title">${this.label}</h2></header>
+        <div class="body"><slot></slot></div>
+      </aside>`;
     }
     // The label is in the Close button's name, visually hidden, so a translated text in the close
     // slot still names what the button closes.

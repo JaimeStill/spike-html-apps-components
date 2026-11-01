@@ -1,6 +1,7 @@
 // The components from this repository's dist/: conventions' 27 probe cases, the restyle case, the
 // adopted sheets, and the entry's formatting, on test/fixtures/components.html, on the lean entry
-// and in every profile on the full entry; each component in every profile, on
+// and in every profile on the full entry; the marks the accent and interaction hooks color, on
+// test/fixtures/components.html; each component in every profile, on
 // test/fixtures/profiles.html; and the entry's, the pagination's, the artifact viewer's, the chat
 // thread's, the composer's, the upload dropzone's, the stage timeline's, the event log's, the
 // search results', and the document list's geometry on their specimen pages under demo/, in every
@@ -429,8 +430,8 @@ describe("components", { timeout: 60_000 }, () => {
             // its step's column gap, the space between marker and text, and its label's font; the
             // event log, which holds no button but its data's toggle, its list's color and padding,
             // and its time's font, the interface font; the drawer, docked, which holds no button of its own
-            // there, its aside's color and padding, and its slotted button's font, the interface font,
-            // since it sets no font itself.
+            // there, its aside's color, its body's padding, and its slotted button's font, the
+            // interface font, since it sets no font itself.
             const drawer = tag === "sl-drawer";
             const viewer = tag === "sl-artifact-viewer";
             const thread = tag === "sl-chat-thread";
@@ -456,7 +457,9 @@ describe("components", { timeout: 60_000 }, () => {
               font: font.fontFamily,
               padding: timeline
                 ? parseFloat(getComputedStyle(element.shadowRoot.querySelector(".stage")).columnGap)
-                : parseFloat(style.paddingInlineStart),
+                : drawer
+                  ? parseFloat(getComputedStyle(element.shadowRoot.querySelector("aside > .body")).paddingInlineStart)
+                  : parseFloat(style.paddingInlineStart),
             };
             rendered.push({ ...choice, profile: JSON.stringify(choice), tag, width, height, look });
             element.remove();
@@ -962,10 +965,10 @@ describe("components", { timeout: 60_000 }, () => {
     }
   });
 
-  test("selected, reflected, frames the entry in the interaction color, moving nothing", async () => {
+  test("selected, reflected, frames the entry in the accent color, moving nothing", async () => {
     // A file's entry on the specimen page, unselected, then selected by property, then by
     // attribute removed: the attribute follows the property and the property the attribute; the
-    // frame is the border and an inset shadow in the interaction color only while selected; and
+    // frame is the border and an inset shadow in the accent color only while selected; and
     // the button and every part keep their boxes across the change.
     const page = await browser.open(`${server.origin}/demo/entry.html`);
     try {
@@ -988,18 +991,18 @@ describe("components", { timeout: 60_000 }, () => {
         await document.fonts.ready;
         const root = entry.shadowRoot;
         const button = root.querySelector(".entry");
-        // The interaction color as the button resolves it, read from a probe's color.
+        // The accent color as the button resolves it, read from a probe's color.
         const probe = root.appendChild(document.createElement("span"));
-        probe.style.color = "var(--interaction-color, var(--blue))";
-        const interaction = getComputedStyle(probe).color;
+        probe.style.color = "var(--accent-color, var(--magenta))";
+        const accent = getComputedStyle(probe).color;
         probe.remove();
         const look = () => {
           const style = getComputedStyle(button);
           return {
             attribute: entry.hasAttribute("selected"),
             property: entry.selected,
-            border: style.borderTopColor === interaction,
-            shadow: style.boxShadow.includes("inset") && style.boxShadow.includes(interaction),
+            border: style.borderTopColor === accent,
+            shadow: style.boxShadow.includes("inset") && style.boxShadow.includes(accent),
           };
         };
         const boxes = () => [button, ...root.querySelectorAll(".head > *, .meta > *")].map((part) => {
@@ -1032,7 +1035,7 @@ describe("components", { timeout: 60_000 }, () => {
   test("a selected entry focused by Tab shows its focus ring alone, and its frame once focus leaves", async () => {
     // The focus section's entry is selected; Tab from the section's mark focuses its button. While
     // its focus is visible the ring, the elements sheet's outline, is the one mark: the border is
-    // not the interaction color and there is no inset shadow, the border's width the same. Focus
+    // not the accent color and there is no inset shadow, the border's width the same. Focus
     // moved to another entry's button, the frame returns.
     const page = await browser.open(`${server.origin}/demo/entry.html`);
     try {
@@ -1047,17 +1050,17 @@ describe("components", { timeout: 60_000 }, () => {
       const look = `(() => {
         const entry = document.querySelector("#focus sl-entry");
         const button = entry.shadowRoot.querySelector(".entry");
-        // The interaction color as the button resolves it, read from a probe's color.
+        // The accent color as the button resolves it, read from a probe's color.
         const probe = entry.shadowRoot.appendChild(document.createElement("span"));
-        probe.style.color = "var(--interaction-color, var(--blue))";
-        const interaction = getComputedStyle(probe).color;
+        probe.style.color = "var(--accent-color, var(--magenta))";
+        const accent = getComputedStyle(probe).color;
         probe.remove();
         const style = getComputedStyle(button);
         return {
           selected: entry.selected,
           focused: entry.shadowRoot.activeElement === button && button.matches(":focus-visible"),
           ring: style.outlineStyle !== "none" && parseFloat(style.outlineWidth) > 0,
-          border: style.borderTopColor === interaction,
+          border: style.borderTopColor === accent,
           shadow: style.boxShadow.includes("inset"),
           width: style.borderTopWidth,
         };
@@ -1100,6 +1103,142 @@ describe("components", { timeout: 60_000 }, () => {
         },
         "focus on another entry",
       );
+    } finally {
+      await page.close();
+    }
+  });
+
+  test("the accent hook marks the active stage, the streaming dot, the selected frame, and progress; the interaction hook the drag-over and the focus ring", async () => {
+    // On the components page, in one subtree: a timeline with an active stage, a thread with a
+    // streaming message, a selected entry, a selected entry focused by Tab, and a dropzone with an
+    // upload in progress, a drag of files over its zone. Each mark is read as it resolves, at the
+    // hooks' fallbacks, then with --accent-color set on the subtree, then with
+    // --interaction-color set there instead: the state marks follow the accent hook alone, the
+    // drag-over and the focus ring the interaction hook alone. The focused entry's frame gives way
+    // to its ring, so the ring is read on it and the frame on the other.
+    const page = await browser.open(`${server.origin}/test/fixtures/components.html`);
+    try {
+      await page.cdp("Emulation.setFocusEmulationEnabled", { enabled: true });
+      await page.cdp("Emulation.setEmulatedMedia", {
+        features: [{ name: "prefers-reduced-motion", value: "no-preference" }],
+      });
+      await page.evaluate(`window.verdict.then(async () => {
+        await Promise.all(["stage-timeline", "chat-thread", "entry", "upload-dropzone"]
+          .map((name) => import("/dist/" + name + ".js")));
+        const file = (id) => ({
+          id, name: id + ".pdf", status: "ready", updated_at: "2026-10-31T09:00:00Z",
+          size: 1000, content_type: "application/pdf",
+        });
+        const subtree = document.createElement("div");
+        subtree.id = "subtree";
+        subtree.append(
+          Object.assign(document.createElement("sl-stage-timeline"), { stages: [
+            { name: "upload", position: 1, state: "complete", completedAt: null },
+            { name: "extraction", position: 2, state: "active", completedAt: null },
+          ] }),
+          Object.assign(document.createElement("sl-chat-thread"), { items: [
+            { type: "message", id: "m-1", role: "assistant", status: "in_progress",
+              content: [{ type: "output_text", text: "Reading" }] },
+          ] }),
+          Object.assign(document.createElement("sl-entry"), { item: file("framed"), selected: true }),
+          Object.assign(document.createElement("button"), { id: "focus-start", textContent: "start" }),
+          Object.assign(document.createElement("sl-entry"), { item: file("focused"), selected: true }),
+          Object.assign(document.createElement("sl-upload-dropzone"), { uploads: [
+            { id: "u-1", name: "report.pdf", size: 1000, sent: 400, state: "uploading" },
+          ] }),
+        );
+        document.querySelector("main").replaceChildren(subtree);
+        await Promise.all([...subtree.children].map((element) => element.updateComplete));
+        const dropzone = subtree.querySelector("sl-upload-dropzone");
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(new File(["x"], "dragged.pdf"));
+        dropzone.shadowRoot.querySelector(".zone").dispatchEvent(new DragEvent("dragenter", {
+          bubbles: true, cancelable: true, composed: true, dataTransfer,
+        }));
+        await dropzone.updateComplete;
+        subtree.querySelector("#focus-start").focus();
+      })`);
+      const tab = { key: "Tab", code: "Tab", windowsVirtualKeyCode: 9 };
+      await page.cdp("Input.dispatchKeyEvent", { type: "keyDown", ...tab });
+      await page.cdp("Input.dispatchKeyEvent", { type: "keyUp", ...tab });
+      // Each mark's colors as it resolves, and the two hooks as the subtree resolves them, read
+      // from a probe's color. The active stage's tint is compared with the same mix of the hook.
+      const read = (hook: string) =>
+        page.evaluate(`(() => {
+        const subtree = document.querySelector("#subtree");
+        subtree.removeAttribute("style");
+        ${hook ? `subtree.style.setProperty(${JSON.stringify(hook)}, "rgb(1, 2, 3)");` : ""}
+        const resolve = (property, value) => {
+          const probe = subtree.appendChild(document.createElement("span"));
+          probe.style[property] = value;
+          const resolved = getComputedStyle(probe)[property];
+          probe.remove();
+          return resolved;
+        };
+        const accent = resolve("color", "var(--accent-color, var(--magenta))");
+        const interaction = resolve("color", "var(--interaction-color, var(--blue))");
+        const tint = resolve(
+          "backgroundColor",
+          "color-mix(in srgb, var(--accent-color, var(--magenta)) 12%, transparent)",
+        );
+        const root = (selector) => subtree.querySelector(selector).shadowRoot;
+        const [framed, focused] = [...subtree.querySelectorAll("sl-entry")]
+          .map((entry) => entry.shadowRoot.querySelector(".entry"));
+        const timeline = root("sl-stage-timeline");
+        const marker = timeline.querySelector(".active .marker");
+        const style = getComputedStyle(marker);
+        const zone = root("sl-upload-dropzone").querySelector(".zone");
+        // The zone eases its border's color: the transition the hook's change starts, finished.
+        getComputedStyle(zone).borderTopColor;
+        for (const transition of zone.getAnimations()) transition.finish();
+        const is = (color) => color === accent ? "accent" : color === interaction ? "interaction" : color;
+        return {
+          distinct: accent !== interaction,
+          focused: focused.matches(":focus-visible"),
+          over: zone.classList.contains("over"),
+          marks: {
+            "the active marker's border": is(style.borderTopColor),
+            "the active marker's tint": style.backgroundColor === tint ? "accent" : style.backgroundColor,
+            "the active marker's glyph": is(style.color),
+            "the active marker's ring": is(getComputedStyle(marker, "::after").borderTopColor),
+            "the active label": is(getComputedStyle(timeline.querySelector(".active .label")).color),
+            "the streaming dot": is(getComputedStyle(
+              root("sl-chat-thread").querySelector(".status.in_progress"), "::before").backgroundColor),
+            "the selected frame's border": is(getComputedStyle(framed).borderTopColor),
+            "the selected frame's shadow": getComputedStyle(framed).boxShadow.includes(accent)
+              ? "accent" : getComputedStyle(framed).boxShadow,
+            "the upload's progress": is(getComputedStyle(
+              root("sl-upload-dropzone").querySelector("progress")).accentColor),
+            "the drag-over zone's border": is(getComputedStyle(zone).borderTopColor),
+            "the focus ring": is(getComputedStyle(focused).outlineColor),
+          },
+        };
+      })()`);
+      const expected = {
+        "the active marker's border": "accent",
+        "the active marker's tint": "accent",
+        "the active marker's glyph": "accent",
+        "the active marker's ring": "accent",
+        "the active label": "accent",
+        "the streaming dot": "accent",
+        "the selected frame's border": "accent",
+        "the selected frame's shadow": "accent",
+        "the upload's progress": "accent",
+        "the drag-over zone's border": "interaction",
+        "the focus ring": "interaction",
+      };
+      for (const hook of ["", "--accent-color", "--interaction-color"]) {
+        const shown: { distinct: boolean; focused: boolean; over: boolean; marks: object } =
+          await read(hook);
+        const { marks, ...state } = shown;
+        const where = hook ? `${hook} set on the subtree` : "at the fallbacks";
+        assert.deepEqual(
+          state,
+          { distinct: true, focused: true, over: true },
+          `${where}: the hooks differ, the entry is focused, and the zone is dragged over`,
+        );
+        assert.deepEqual(marks, expected, where);
+      }
     } finally {
       await page.close();
     }

@@ -75,10 +75,13 @@
   stroke-linecap: round;
   stroke-linejoin: round;
 }
+/* The active stage in the accent color, the foundation's hook for what is in progress: its
+   marker's border and glyph, a tint of it behind them, its ring, and its label. The complete and
+   failed stages take their status hues. */
 .active .marker {
-  border-color: var(--interaction-color, var(--blue));
-  background-color: color-mix(in srgb, var(--interaction-color, var(--blue)) 12%, transparent);
-  color: var(--interaction-color, var(--blue));
+  border-color: var(--accent-color, var(--magenta));
+  background-color: color-mix(in srgb, var(--accent-color, var(--magenta)) 12%, transparent);
+  color: var(--accent-color, var(--magenta));
   font-weight: 600;
 }
 .complete .marker {
@@ -98,7 +101,7 @@
     content: "";
     position: absolute;
     inset: calc(-1 * var(--line-m));
-    border: var(--line-m) solid var(--interaction-color, var(--blue));
+    border: var(--line-m) solid var(--accent-color, var(--magenta));
     border-radius: var(--radius-full);
     animation: ring 1.6s ease-out infinite;
   }
@@ -154,7 +157,7 @@
   white-space: nowrap;
 }
 .active .label {
-  color: var(--interaction-color, var(--blue));
+  color: var(--accent-color, var(--magenta));
 }
 .complete .label {
   color: var(--green);

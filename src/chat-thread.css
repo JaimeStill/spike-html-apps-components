@@ -132,8 +132,9 @@ summary {
 .refusal > .label {
   color: var(--orange);
 }
-/* The status beside the label: streaming quietly, with a dot that pulses unless motion is
-   reduced; incomplete and failed each in their own hue. */
+/* The status beside the label: streaming quietly, with a dot in the accent color, the
+   foundation's hook for what is in progress, that pulses unless motion is reduced; incomplete and
+   failed each in their own hue. */
 .status.in_progress::before {
   content: "";
   display: inline-block;
@@ -142,7 +143,7 @@ summary {
   inline-size: 0.5em;
   block-size: 0.5em;
   border-radius: var(--radius-full);
-  background-color: var(--interaction-color, var(--blue));
+  background-color: var(--accent-color, var(--magenta));
 }
 @media (prefers-reduced-motion: no-preference) {
   .status.in_progress::before {

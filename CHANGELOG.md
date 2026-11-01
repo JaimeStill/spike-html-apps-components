@@ -6,6 +6,32 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-31
+
+### Changed
+
+- `sl-drawer` docks at exactly `dock`: `dock` is the width at which it docks, read in the media
+  query `(width < <dock>)` in place of `(max-width: <dock>)`, so at exactly `dock` it now docks,
+  where it was a drawer before; it is a drawer only below `dock`. A page that wrote a value just
+  under its breakpoint, `47.99rem` for 48rem, to dock at it, can write the breakpoint itself. A
+  length the query can't read still leaves the drawer docked.
+- `sl-drawer`'s docked `aside` has the drawer's header: `label` as a visible `h2`, which names the
+  aside by `aria-labelledby` in place of `aria-label`, with no Close button. Each mode renders only
+  its own header, so the shadow tree holds one heading at a time, and the slotted content needs no
+  heading of its own; a page that gave the docked content a title of its own drops it. The aside
+  is a column, the header over the content, which scrolls below the header when the host is held
+  shorter than it, as the drawer's body does.
+- The active stage in `sl-stage-timeline` (its marker's border, tint, glyph, and ring, and its
+  label), the streaming dot in `sl-chat-thread`, and the selected frame in `sl-entry`, which
+  `sl-document-list`'s selected document shows, take the foundation's accent hook,
+  `var(--accent-color, var(--magenta))`, magenta by default, where they took the interaction
+  color, blue: each marks what is current, active, or in progress, not what can be acted on. The
+  focus ring, links, hover, and the upload dropzone's drag-over stay in the interaction color, so
+  a selected entry's frame and its focus ring now differ by hue as well. A page that set
+  `--interaction-color` to restyle these marks sets `--accent-color`.
+- The foundation peer is `^0.3.0`, where it was `^0.2.0`: the accent hook is v0.3.0's. In it the
+  upload dropzone's native progress bars follow the accent too.
+
 ## [0.5.0] - 2026-10-31
 
 ### Added
@@ -295,7 +321,8 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 - The release by tag: `v<version>`, whose tree is the pack, with the tarball on its GitHub
   release.
 
-[Unreleased]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.2.0...v0.3.0

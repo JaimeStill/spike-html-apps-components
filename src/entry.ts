@@ -94,7 +94,7 @@ function renderTime(updatedAt: string) {
  * shows nowhere, since the meta already tells the two apart to the eye: it sits visually hidden
  * between the head and the meta, so the button's accessible name, which a screen reader reads
  * once and in order, still says which it is, after the status. Activating it sends `open` with its
- * id and kind. `selected` frames the entry's button in the interaction color, a mark to the eye
+ * id and kind. `selected` frames the entry's button in the accent color, a mark to the eye
  * only: the consumer that selects it says so to assistive technology, as sl-document-list does
  * with aria-current on its item.
  */
