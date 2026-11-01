@@ -74,7 +74,8 @@ foundation's `page.css`:
 - `./json.js`: `formatJson(text)`, valid JSON text re-indented from its own tokens, two spaces an
   indent: its keys in their order, duplicates included, its number literals, and its strings with
   their escapes as written, only the whitespace between tokens changed. It never decides whether
-  the text is valid; its caller does, as the artifact viewer does with `JSON.parse`.
+  the text is valid; its caller does, as the artifact viewer and the chat thread do with
+  `JSON.parse`.
 - `./artifact-viewer.js`: `sl-artifact-viewer`, one artifact's content by its content type, as
   rendered Markdown, JSON, or preformatted text, scrolling inside the viewer, under
   a header of its name and content type that `no-header` (`noHeader`) leaves out, for a page whose
@@ -86,8 +87,9 @@ foundation's `page.css`:
 - `./chat-thread.js`: `sl-chat-thread`, a conversation's items in order, a structural subset of
   Open Responses: a user's text as plain text, the assistant's as rendered Markdown, a refusal
   labelled, and a streaming reply re-rendered in place; with `verbose`, reasoning, function calls,
-  and their outputs too, each collapsed in a native details. It exports its item types and sends
-  no event. It imports `./markdown.js`, so its page maps marked too.
+  and their outputs too, each collapsed in a native details, a call's arguments and its output
+  that are valid JSON formatted from their own tokens by `./json.js`. It exports its item types
+  and sends no event. It imports `./markdown.js`, so its page maps marked too.
 - `./composer.js`: `sl-composer`, a multi-line text field that grows to eight lines, and its
   send control, which a stop control replaces while `busy`; it dispatches `send` with the text,
   then clears the field, and `stop`. Its `send()` does what activating send does, so an app that

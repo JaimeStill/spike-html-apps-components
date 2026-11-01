@@ -10,6 +10,7 @@ import { repeat } from "lit/directives/repeat.js";
 import elements from "@jaimestill/spike-html-apps-foundation/baseline/elements.css" with { type: "css" };
 import reset from "@jaimestill/spike-html-apps-foundation/baseline/reset.css" with { type: "css" };
 import { define } from "@jaimestill/spike-html-apps-foundation/dom.js";
+import { formatJson } from "./json.ts";
 import { markdown } from "./markdown.ts";
 import styles from "./chat-thread.css" with { type: "css" };
 
@@ -90,13 +91,18 @@ export interface FunctionCallOutputItem {
 /** An item the thread shows; an item of any other type is skipped. */
 export type ThreadItem = MessageItem | ReasoningItem | FunctionCallItem | FunctionCallOutputItem;
 
-/** Text as shown: JSON pretty-printed with two-space indents when it parses, else as it is. */
+/**
+ * Text as shown: valid JSON formatted from its own tokens by `formatJson()`, two spaces an indent,
+ * else the text as it is. `JSON.parse` decides validity alone and its value is thrown away:
+ * printing the value would move integer-like keys first, rewrite numbers, and drop duplicate keys.
+ */
 function pretty(text: string): string {
   try {
-    return JSON.stringify(JSON.parse(text), null, 2);
+    JSON.parse(text);
   } catch {
     return text;
   }
+  return formatJson(text);
 }
 
 /** The label a status shows beside an item's kind; a completed item, or one without a status,

@@ -21,6 +21,10 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
   `9007199254740992`, and dropped all but the last of a duplicated key. Its strings keep their
   escapes as written. Whether the content is valid JSON is still decided by `JSON.parse`, and
   invalid JSON still shows as text under its note.
+- `sl-chat-thread`'s function call arguments and function output, when valid JSON, show their own
+  keys, order, numbers, and duplicates: they are formatted from their tokens by `formatJson()`,
+  where they were parsed and printed again, with the same misrepresentation the viewer had.
+  `JSON.parse` still decides validity alone, and text that doesn't parse still shows as it is.
 
 ## [0.7.0] - 2026-11-01
 
