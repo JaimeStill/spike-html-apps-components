@@ -371,7 +371,7 @@ describe("artifact viewer", { timeout: 60_000 }, () => {
     assert.deepEqual(view.notes, []);
   };
 
-  test("application/pdf shows in an iframe, titled, the frame's width, tall, and scrolling itself", async () => {
+  test("application/pdf shows in an iframe, titled, the frame's width, tall, the viewer's frame unscrolled", async () => {
     // chrome-headless-shell has no PDF viewer plugin, so the frame's pages never render here: the
     // test holds the iframe, its blob: src, its title, and its box, not the PDF's pages.
     const view = await native({ name: "summary.pdf", contentType: "application/pdf" }, "pdf");
@@ -512,7 +512,10 @@ describe("artifact viewer", { timeout: 60_000 }, () => {
   }
 
   test("the viewer revokes its URL as the content changes and as it disconnects, and makes one again as it reconnects", async () => {
-    const steps: { src: string | null; revoked: string[]; created: string[] }[] =
+    const {
+      steps,
+      served,
+    }: { steps: { src: string | null; revoked: string[]; created: string[] }[]; served: string[] } =
       await page.evaluate(`(async () => {
       const viewer = Object.assign(document.createElement("sl-artifact-viewer"),
         { name: "chart.png", contentType: "image/png", content: window.media.png() });
@@ -539,7 +542,10 @@ describe("artifact viewer", { timeout: 60_000 }, () => {
       await step(() => main.append(viewer));
       await step(() => { viewer.contentType = "image/webp"; });
       await step(() => { viewer.content = ""; });
-      return steps;
+      // Each URL revoked is gone: the browser no longer serves it.
+      const served = await Promise.all(steps.flatMap(({ revoked }) => revoked).map((url) =>
+        fetch(url).then(() => url, () => null)));
+      return { steps, served: served.filter(Boolean) };
     })()`);
     const [mounted, changed, removed, restored, retyped, cleared] = steps;
     assert.equal(mounted.created.length, 1, "connected, one URL is made");
@@ -561,6 +567,7 @@ describe("artifact viewer", { timeout: 60_000 }, () => {
     assert.deepEqual(cleared.revoked, [retyped.src], "no Blob, no URL");
     assert.deepEqual(cleared.created, []);
     assert.equal(cleared.src, null);
+    assert.deepEqual(served, [], "no URL revoked is still served");
   });
 
   test("a native type with no Blob yet shows the loading note; loading and error take no Blob's element", async () => {
