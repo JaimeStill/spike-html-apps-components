@@ -1729,9 +1729,10 @@ describe("components", { timeout: 60_000 }, () => {
 
   test("the stage timeline's specimen renders every state within 20rem, its names, labels, and times whole, in every profile", async () => {
     // Every timeline shows the emulator's five stages. At 20rem the states keep within the column,
-    // every part of each timeline inside its box across. Each label and time keeps one line, and
-    // each step but the last, which has no connector, is one height within a timeline, whatever
-    // its state, as is each detail line.
+    // every part of each timeline inside its box across, a failed stage's reason too. Each label
+    // and time keeps one line, and each step but the last, which has no connector, is one height
+    // within a timeline, whatever its state, as is each detail line; the failed stage's reason
+    // adds its own height below its detail line, so its step is measured without it.
     const measure = `() => {
       const list = document.querySelector(".narrow .states");
       const lines = ${LINES};
@@ -1742,7 +1743,7 @@ describe("components", { timeout: 60_000 }, () => {
         return {
           narrow: timeline.closest(".narrow") !== null,
           steps: steps.length,
-          outside: [...root.querySelectorAll(".stage, .marker, .name, .detail, .label, .when")]
+          outside: [...root.querySelectorAll(".stage, .marker, .name, .detail, .label, .when, .reason")]
             .filter((part) => {
               const rect = part.getBoundingClientRect();
               return rect.left < box.left - 0.5 || rect.right > box.right + 0.5;
@@ -1751,7 +1752,8 @@ describe("components", { timeout: 60_000 }, () => {
           broken: [...root.querySelectorAll(".name, .label > .shown, time")]
             .filter((part) => lines(part) > 1)
             .map((part) => part.textContent),
-          heights: [...new Set(steps.slice(0, -1).map((step) => Math.round(step.getBoundingClientRect().height)))],
+          heights: [...new Set(steps.slice(0, -1).map((step) => Math.round(
+            step.getBoundingClientRect().height - (step.querySelector(".reason")?.getBoundingClientRect().height ?? 0))))],
           details: [...new Set(steps.map((step) => Math.round(step.querySelector(".detail").getBoundingClientRect().height)))],
         };
       });

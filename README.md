@@ -89,10 +89,12 @@ foundation's `page.css`:
   its finished state; it dispatches `files-select` with an array of the files, and
   `upload-cancel` with an upload's id. It exports its upload type and binds no key.
 - `./stage-timeline.js`: `sl-stage-timeline`, a run's stages as a connected, ordered list of
-  steps in their positions' order, each its name, its state's label and marker, and its completion
-  time by the foundation's `formatDateTime`; the active stage is the current step, and a stage that
-  advances changes in place, moving nothing. It exports its stage type, holds nothing focusable,
-  and sends no event.
+  steps in their positions' order, each its name, its state's label and marker, and its time by
+  the foundation's `formatDateTime`, a complete stage's `completedAt` or a failed one's `failedAt`;
+  a failed stage's `reason` shows under its label, part of its step for assistive technology, and
+  wraps to the timeline's width without widening it. The active stage is the current step, and a
+  stage that advances changes in place, moving nothing. It exports its stage type, holds nothing
+  focusable, and sends no event.
 - `./event-log.js`: `sl-event-log`, events as a log in the order given, each its type, its time by
   the foundation's `formatDateTime`, its source, subject, and id, and its data pretty-printed in a
   native details, collapsed; events appended leave those shown in place, and a constrained log

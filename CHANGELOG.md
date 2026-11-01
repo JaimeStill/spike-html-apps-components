@@ -16,6 +16,14 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
   no gap, in every state, and every state keeps its accessible name, `<name> content`, so what
   it shows stays tied to its artifact without the header. The default, the header shown, is
   unchanged.
+- `sl-stage-timeline`'s `TimelineStage` takes a failed stage's `failedAt`, when it failed, and
+  `reason`, why, as a run's stage carries `failed_at` and `reason`. A failed stage shows
+  `failedAt` in its time's slot, and its reason on a line under its label, in the muted text with
+  the label in the failure's red, inside its list item, so assistive technology reads it with the
+  stage's name, state, and time. A long reason wraps to the timeline's width, never widening it,
+  the markers and the text column aligned. A failed stage with no `failedAt` still shows its
+  `completedAt`, so a consumer that passed the failure's time there keeps working; every other
+  state, and a reason on any stage but a failed one, is unchanged.
 
 ### Fixed
 

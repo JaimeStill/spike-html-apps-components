@@ -1,6 +1,6 @@
 // The stage timeline, Lit with a shadow root: a run's stages as a connected, ordered list of steps,
-// each its name, its state in words and by its marker, and when it completed. It knows no SDK and
-// no domain: the app maps its run's stages onto the shape below. It is display-only: it sends no
+// each its name, its state in words and by its marker, and when it completed or failed, a failed
+// stage with why. It knows no SDK and no domain: the app maps its run's stages onto the shape below. It is display-only: it sends no
 // event, holds nothing focusable, and binds no key.
 
 import { html, LitElement, nothing, svg, type PropertyDeclarations } from "lit";
@@ -20,14 +20,20 @@ export type StageState = "pending" | "active" | "complete" | "failed";
 
 /**
  * A stage as the timeline shows it, a shape of its own that the app fills: its name, its 1-based
- * position among the run's stages, its state, and, once it completed, when: an RFC 3339 string, as
- * a run's JSON carries it, or a Date. null or absent shows no time.
+ * position among the run's stages, its state, and, once it completed, when; once it failed, when
+ * and why. Each time is an RFC 3339 string, as a run's JSON carries it, or a Date; null or absent
+ * shows no time. A time is named for what it marks, as a run's stage names its own, so a stage
+ * maps field for field: a failed stage shows `failedAt`, or `completedAt` when it has none, the
+ * slot a failure's time took before `failedAt`; every other state shows `completedAt`. `reason`
+ * shows only with a failed stage, and an empty one shows nothing.
  */
 export interface TimelineStage {
   name: string;
   position: number;
   state: StageState;
   completedAt?: string | Date | null;
+  failedAt?: string | Date | null;
+  reason?: string | null;
 }
 
 /** Each state's label, which tells the states apart in words as well as by marker and color. */
@@ -38,8 +44,8 @@ const labels: Record<StageState, string> = {
   failed: "Failed",
 };
 
-/** The completion time's format: the date, and the clock to the second, since a run's stages
- * complete seconds apart. */
+/** A stage's time's format: the date, and the clock to the second, since a run's stages complete
+ * seconds apart. */
 const timeFormat: Intl.DateTimeFormatOptions = { dateStyle: "medium", timeStyle: "medium" };
 
 /** A time as wide as any the format writes in the page's locale, two-digit day and hour, which
@@ -50,20 +56,26 @@ const widest = new Date(2026, 4, 28, 22, 58, 58);
 const check = svg`<path d="M3.5 8.5l3 3 6-7" />`;
 const cross = svg`<path d="M4.5 4.5l7 7M11.5 4.5l-7 7" />`;
 
-/** The stage's completion time as a Date, or null when it has none or it doesn't parse. */
-function completion(stage: TimelineStage): Date | null {
-  if (stage.completedAt === undefined || stage.completedAt === null) return null;
-  const date = new Date(stage.completedAt);
+/** The time the stage's state shows, a failed stage's failure, else its completion, as a Date; or
+ * null when it has none or it doesn't parse. */
+function timeOf(stage: TimelineStage): Date | null {
+  const at = stage.state === "failed" ? (stage.failedAt ?? stage.completedAt) : stage.completedAt;
+  if (at === undefined || at === null) return null;
+  const date = new Date(at);
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
 /**
  * A run's stages as an ordered list of steps, connected top to bottom, in their positions' order.
- * Each step shows its name; under it, its state's label and its completion time, formatted by the
- * foundation's formatDateTime; and before it a marker, its position for a pending or active stage,
- * a check for a complete one, a cross for a failed one. The active stage is the list's current
- * step. A stage that advances changes in place: its label and its time each have a slot as wide as
- * the widest they hold, so nothing moves as a state changes.
+ * Each step shows its name; under it, its state's label and its time, a complete stage's
+ * completion or a failed one's failure, formatted by the foundation's formatDateTime; under that, a
+ * failed stage's reason, when it has one; and before it a marker, its position for a pending or
+ * active stage, a check for a complete one, a cross for a failed one. The reason is the step's own
+ * text, in its list item, so assistive technology reads it with the stage's name, label, and time.
+ * The active stage is the list's current step. A stage that advances changes in place: its label
+ * and its time each have a slot as wide as the widest they hold, so nothing moves as a state
+ * changes; a failure's reason, the one line a state adds, adds it below the step's detail line,
+ * wrapping to the timeline's width and never widening it.
  */
 export class StageTimeline extends LitElement {
   static styles = [reset, elements, styles];
@@ -92,7 +104,8 @@ export class StageTimeline extends LitElement {
   }
 
   #stage(stage: TimelineStage) {
-    const date = completion(stage);
+    const date = timeOf(stage);
+    const reason = stage.state === "failed" && stage.reason ? stage.reason : null;
     // The label's slot stacks every label, the stage's own shown and the rest hidden, so it is as
     // wide as the widest; the time's slot stacks the stage's time, when it has one, over the
     // widest time hidden, so it holds its width with or without one.
@@ -122,6 +135,7 @@ export class StageTimeline extends LitElement {
           <span class="hold" aria-hidden="true">${formatDateTime(widest, undefined, timeFormat)}</span>
         </span>
       </span>
+      ${reason === null ? nothing : html`<span class="reason">${reason}</span>`}
     </li>`;
   }
 

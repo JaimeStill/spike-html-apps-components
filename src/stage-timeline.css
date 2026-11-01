@@ -7,13 +7,15 @@
  *
  * The timeline draws no frame: it is a list of steps, as tall as its stages, with no cap. Each step
  * is a grid of two columns, the marker's and the step's text. The marker sits on the name's line;
- * under the name, the detail line holds the state's label and the completion time, of the small
- * step; under that, a gap, which the connector spans with the detail line, from under this
- * step's marker to above the next one's. The last step has no connector and no gap. The label's and
+ * under the name, the detail line holds the state's label and the stage's time, of the small
+ * step; under that, a failed stage's reason, a row no other step fills; under that, a gap, which
+ * the connector spans with the detail line and the reason, from under this step's marker to above
+ * the next one's. The last step has no connector and no gap. The label's and
  * the time's slots each hold the width of the widest they show, so a stage's lines keep their
  * places and widths as its state changes, and a narrow column wraps every step's detail line
  * between its label and its time alike. In a shrink-to-fit parent the timeline is as wide as its
- * widest line, a name or a detail line laid out whole, up to the parent's width.
+ * widest line, a name or a detail line laid out whole, up to the parent's width; a reason wraps to
+ * that width and never sets it.
  */
 
 :host {
@@ -27,19 +29,19 @@
 .stage {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  grid-template-rows: auto auto var(--space-s);
+  grid-template-rows: auto auto auto var(--space-s);
   column-gap: var(--space-xs);
   margin: 0;
 }
 .stage:last-child {
-  grid-template-rows: auto auto;
+  grid-template-rows: auto auto auto;
 }
 /* The connector: a line in the marker's column, under this step's marker and down to the next
-   step's, short of each by a small step. */
+   step's, past a failed step's reason, short of each by a small step. */
 .stage:not(:last-child)::after {
   content: "";
   grid-column: 1;
-  grid-row: 2 / 4;
+  grid-row: 2 / 5;
   justify-self: center;
   inline-size: var(--line-m);
   margin-block: var(--space-3xs);
@@ -169,4 +171,16 @@
 .when {
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+}
+/* A failed stage's reason, under the detail line at the name's start, in the detail's size and
+   muted color: the label above it carries the failure's hue. Its inline size is contained, so it
+   adds nothing to the step's width and wraps to the column the names and detail lines set,
+   breaking inside a run too long for its line. */
+.reason {
+  grid-column: 2;
+  grid-row: 3;
+  contain: inline-size;
+  font-size: var(--text-s);
+  color: var(--fg-2);
+  overflow-wrap: anywhere;
 }
