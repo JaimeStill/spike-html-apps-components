@@ -114,7 +114,7 @@ export class Entry extends LitElement {
   static properties = {
     item: { attribute: false },
     selected: { type: Boolean, reflect: true },
-    statusTone: { attribute: "status-tone", reflect: true },
+    statusTone: { type: String, reflect: true, attribute: "status-tone" },
   } satisfies PropertyDeclarations;
 
   /** The directory or file shown; nothing renders while it is null. */
