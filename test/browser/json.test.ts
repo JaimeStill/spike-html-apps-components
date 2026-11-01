@@ -28,9 +28,7 @@ describe("json", { timeout: 60_000 }, () => {
     browser = await launch();
     page = await browser.open(`${server.origin}/test/fixtures/components.html`);
     await page.evaluate(`window.verdict.then(async () => {
-      const json = await import("/dist/json.js");
-      window.formatJson = json.formatJson;
-      window.maxDepth = json.MAX_DEPTH;
+      window.formatJson = (await import("/dist/json.js")).formatJson;
     })`);
   });
   after(async () => {
@@ -133,10 +131,6 @@ describe("json", { timeout: 60_000 }, () => {
   /** Two spaces a level, as formatJson indents. */
   const indent = (depth: number): string => "  ".repeat(depth);
 
-  test("MAX_DEPTH is 64", async () => {
-    assert.equal(await page.evaluate("window.maxDepth"), 64);
-  });
-
   test("formats every level of text nested 64 deep", async () => {
     const text = "[".repeat(64) + "1" + "]".repeat(64);
     const opening = Array.from({ length: 64 }, (_, depth) => `${indent(depth)}[`);
@@ -158,6 +152,22 @@ describe("json", { timeout: 60_000 }, () => {
     const expected = [...opening, ...object, `${indent(63)}}`, ...closing].join("\n");
     const output = await formatted(text);
     assert.equal(output, expected);
+    assert.equal(tokensOf(output), tokensOf(text), "only whitespace between tokens changed");
+  });
+
+  test("keeps a container at depth 65 whole when its strings hold quotes and brackets", async () => {
+    // At depth 65, an object whose key holds an opening brace, an escaped quote before closing
+    // brackets, and an escaped backslash before a string's real end; then, back at 64, a string
+    // holding the brackets that would close it. A count fooled by any of them ends the kept
+    // container early or late, and the text after it shows indented differently or not at all.
+    const kept = String.raw`{"{k\"": [ "\"]}", "\\", {"[" :"}]"} ] }`;
+    const after = String.raw`"]]}\"["`;
+    const text = "[".repeat(64) + `${kept},${after}` + "]".repeat(64);
+    const opening = Array.from({ length: 64 }, (_, depth) => `${indent(depth)}[`);
+    const closing = Array.from({ length: 64 }, (_, depth) => `${indent(63 - depth)}]`);
+    const inner = [`${indent(64)}${kept},`, `${indent(64)}${after}`];
+    const output = await formatted(text);
+    assert.equal(output, [...opening, ...inner, ...closing].join("\n"));
     assert.equal(tokensOf(output), tokensOf(text), "only whitespace between tokens changed");
   });
 
