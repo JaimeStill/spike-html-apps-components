@@ -539,6 +539,72 @@ describe("upload dropzone", { timeout: 60_000 }, () => {
     }
   });
 
+  test("a cancel control focused by Tab keeps its whole focus outline clear of the bar and the bytes, and the item its height as the upload finishes", async () => {
+    // The uploading item first, under the zone, then a finished one, at 20rem and at 40rem. The
+    // outline's box is the control's grown by the outline's width and offset, as the foundation's
+    // :focus-visible draws it; it must leave at least a px of space above the bar and the bytes.
+    // Then the same element's upload finishes, the control gone and its label in its place, and
+    // the item keeps its height.
+    for (const width of ["20rem", "40rem"]) {
+      await mount({ uploads: [uploads[0], uploads[1]] });
+      await page.evaluate(
+        `document.querySelector("sl-upload-dropzone").style.inlineSize = "${width}"`,
+      );
+      await page.evaluate("window.part('.pick').focus()");
+      await press("Tab", 9);
+      assert.equal((await read()).focused, "cancel", `${width}: Tab reaches the cancel control`);
+      const shown: {
+        visible: boolean;
+        ring: number;
+        outline: Edges;
+        bar: Edges;
+        bytes: Edges;
+        height: number;
+      } = await page.evaluate(`(() => {
+        const edges = (element) => {
+          const { left, right, top, bottom } = element.getBoundingClientRect();
+          return { left, right, top, bottom };
+        };
+        const item = window.part(".upload");
+        const cancel = item.querySelector(".cancel");
+        const style = getComputedStyle(cancel);
+        const ring = style.outlineStyle === "none" ? 0
+          : parseFloat(style.outlineWidth) + parseFloat(style.outlineOffset);
+        const box = edges(cancel);
+        return {
+          visible: cancel.matches(":focus-visible"),
+          ring,
+          outline: {
+            left: box.left - ring, right: box.right + ring,
+            top: box.top - ring, bottom: box.bottom + ring,
+          },
+          bar: edges(item.querySelector("progress")),
+          bytes: edges(item.querySelector(".bytes")),
+          height: item.getBoundingClientRect().height,
+        };
+      })()`);
+      assert.ok(shown.visible && shown.ring > 0, `${width}: the focus outline drawn`);
+      for (const part of ["bar", "bytes"] as const) {
+        const other = shown[part];
+        const apart =
+          other.top - shown.outline.bottom >= 1 ||
+          other.left - shown.outline.right >= 1 ||
+          shown.outline.left - other.right >= 1;
+        assert.ok(
+          apart,
+          `${width}: the outline clears the ${part}: ${JSON.stringify([shown.outline, other])}`,
+        );
+      }
+      const finished: number = await page.evaluate(`(async () => {
+        const dropzone = document.querySelector("sl-upload-dropzone");
+        dropzone.uploads = [{ ...dropzone.uploads[0], sent: dropzone.uploads[0].size, state: "done" }, dropzone.uploads[1]];
+        await dropzone.updateComplete;
+        return window.part(".upload").getBoundingClientRect().height;
+      })()`);
+      assert.equal(finished, shown.height, `${width}: the item's height as the upload finishes`);
+    }
+  });
+
   test("an upload's detail sits under its name at its start; a label is centered on the item, a bar spans it", async () => {
     // Every state at 20rem and at 40rem. Each item's detail line starts where its name does,
     // below it; a finished item's label ends the item, centered on its two lines; an uploading

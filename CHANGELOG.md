@@ -6,6 +6,23 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-11-01
+
+### Fixed
+
+- `sl-drawer`'s heading, its `label`, is at `--text-l`, the foundation's h4 size, in the docked
+  aside and in the drawer. It took the baseline `h2`'s `--text-2xl`, a page section's size, and
+  competed with the page's own headings. Its weight, leading, and font are unchanged.
+- `sl-drawer`'s scrolling body keeps a focused control's whole focus outline in view. Focus
+  scrolled the control flush with the body's top or bottom edge, which cut off the outline's
+  4px there; the body's scroll padding now matches its padding, `--space-s`, so focus stops a
+  padding short of the edge, as the content sits at rest.
+- `sl-upload-dropzone`'s focused Cancel button no longer draws its focus outline over the
+  progress bar and the bytes sent below it. An upload's two lines sat `--space-3xs` apart; they
+  now sit apart by the outline's reach, `--line-m` plus the foundation's 2px offset, and
+  `--space-3xs` beyond it. Every upload is that much taller, in every state, so one that finishes
+  keeps its height.
+
 ## [0.6.0] - 2026-10-31
 
 ### Changed
@@ -321,7 +338,8 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 - The release by tag: `v<version>`, whose tree is the pack, with the tarball on its GitHub
   release.
 
-[Unreleased]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.3.0...v0.4.0
