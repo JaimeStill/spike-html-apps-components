@@ -18,6 +18,14 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
   reader's scroll is the state. Unheld, the thread is as tall as its content and scrolls no
   container of its consumer's, so a consumer that wants it followed holds it to a height.
 
+### Fixed
+
+- `sl-composer` no longer leaves focus on a disabled control. Stop activated with the field empty,
+  by the keyboard or a pointer, became a disabled send once the app cleared `busy`, and kept focus
+  there, where it took no key and some browsers drop focus to the body. When the button turns
+  disabled while it holds focus, focus now moves to the field, where the reader writes next. With
+  a draft in the field, send is enabled and keeps focus, as before.
+
 ## [0.8.0] - 2026-11-01
 
 ### Added
