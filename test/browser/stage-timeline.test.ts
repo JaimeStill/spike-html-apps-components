@@ -325,15 +325,16 @@ describe("stage timeline", { timeout: 60_000 }, () => {
 
   test("at 20rem, a long reason wraps inside the step's text column, the markers and text aligned", async () => {
     // A reason of many words and one unbroken run longer than the column: it wraps onto lines of
-    // its own at the name's start, inside the timeline's box, the list never scrolling sideways;
-    // every marker keeps its column, and every name its start; the step below starts after the
-    // reason's last line and its gap.
+    // its own at the name's start, filling the column to the step's end, inside the timeline's box,
+    // the list never scrolling sideways; every marker keeps its column, and every name its start;
+    // the step below starts after the reason's last line and its gap.
     const long = `${reason}; the extractor gave up after reading /var/lib/pipeline/uploads/0193a5d2-7c10-7e4f-9a1b-2c3d4e5f6071/fail-at-extraction.txt and three retries`;
     await mount(failedRun(long));
     const measured: {
       lines: number;
       inside: boolean;
       start: boolean;
+      fills: boolean;
       overflow: number;
       markers: number[];
       names: number[];
@@ -354,6 +355,7 @@ describe("stage timeline", { timeout: 60_000 }, () => {
         lines: Math.round(rect.height / lineHeight),
         inside: rect.left >= box.left - 0.5 && rect.right <= box.right + 0.5,
         start: Math.abs(rect.left - root.querySelector(".failed .name").getBoundingClientRect().left) < 0.5,
+        fills: Math.abs(rect.right - root.querySelector(".failed").getBoundingClientRect().right) < 0.5,
         overflow: list.scrollWidth - list.clientWidth,
         markers: left(".marker"),
         names: left(".name"),
@@ -363,6 +365,7 @@ describe("stage timeline", { timeout: 60_000 }, () => {
     assert.ok(measured.lines > 2, `the reason on ${measured.lines} lines`);
     assert.ok(measured.inside, "the reason inside the timeline's box");
     assert.ok(measured.start, "the reason's lines at the name's start");
+    assert.ok(measured.fills, "the reason's lines to the step's end");
     assert.ok(measured.overflow <= 0, `the list overflows by ${measured.overflow}`);
     assert.equal(measured.markers.length, 1, `markers at ${measured.markers}`);
     assert.equal(measured.names.length, 1, `names at ${measured.names}`);
@@ -438,34 +441,66 @@ describe("stage timeline", { timeout: 60_000 }, () => {
   });
 
   test("in a parent that sizes it to its content, the timeline keeps its width as stages advance, a failure's reason too", async () => {
-    // The reason wraps to the width the names and detail lines give the timeline, never widening
-    // it: a failure in a sized-to-content parent moves nothing sideways.
+    // In each parent that sizes it to its content, an inline-block, a content-sized flex item, and
+    // a grid's auto track: the reason wraps to the width the names and detail lines give the
+    // timeline, never widening it, so a failure moves nothing sideways; and it fills the step's
+    // text column, from the name's start to the step's end, its containment collapsing it in none.
     await mount(run("pending", "pending", "pending", "pending", "pending"));
-    const widths: number[] = await page.evaluate(`(async () => {
+    const measured: { parent: string; widths: number[]; reason: number; column: number }[] =
+      await page.evaluate(`(async () => {
       const timeline = document.querySelector("sl-stage-timeline");
-      const parent = document.createElement("div");
-      parent.style.display = "inline-block";
-      timeline.replaceWith(parent);
-      parent.append(timeline);
-      const widths = [];
-      for (const stages of ${JSON.stringify([
-        run("pending", "pending", "pending", "pending", "pending"),
-        run("complete", "complete", "active", "pending", "pending"),
-        run("complete", "complete", "complete", "complete", "complete"),
-        run("complete", "complete", "failed", "pending", "pending"),
-        failedRun(reason.repeat(3)),
-      ])}) {
-        timeline.stages = stages;
-        await timeline.updateComplete;
-        widths.push(timeline.getBoundingClientRect().width);
+      const parents = {
+        "inline-block": "display: inline-block",
+        flex: "display: flex; align-items: flex-start",
+        grid: "display: grid; grid-template-columns: auto 1fr",
+      };
+      const results = [];
+      for (const [parent, style] of Object.entries(parents)) {
+        const wrapper = document.createElement("div");
+        wrapper.style.cssText = style;
+        timeline.replaceWith(wrapper);
+        wrapper.append(timeline);
+        if (parent === "flex") timeline.style.flex = "none";
+        const widths = [];
+        for (const stages of ${JSON.stringify([
+          run("pending", "pending", "pending", "pending", "pending"),
+          run("complete", "complete", "active", "pending", "pending"),
+          run("complete", "complete", "complete", "complete", "complete"),
+          run("complete", "complete", "failed", "pending", "pending"),
+          failedRun(reason.repeat(3)),
+        ])}) {
+          timeline.stages = stages;
+          await timeline.updateComplete;
+          widths.push(timeline.getBoundingClientRect().width);
+        }
+        const step = timeline.shadowRoot.querySelector(".failed");
+        results.push({
+          parent,
+          widths,
+          reason: step.querySelector(".reason").getBoundingClientRect().width,
+          column: step.getBoundingClientRect().right - step.querySelector(".name").getBoundingClientRect().left,
+        });
+        timeline.style.flex = "";
+        wrapper.replaceWith(timeline);
       }
-      return widths;
+      return results;
     })()`);
-    assert.ok(widths[0] > 0, `${widths[0]} wide`);
     assert.deepEqual(
-      widths,
-      widths.map(() => widths[0]),
+      measured.map(({ parent }) => parent),
+      ["inline-block", "flex", "grid"],
     );
+    for (const { parent, widths, reason, column } of measured) {
+      assert.ok(widths[0] > 0, `${parent}: ${widths[0]} wide`);
+      assert.deepEqual(
+        widths,
+        widths.map(() => widths[0]),
+        parent,
+      );
+      assert.ok(
+        Math.abs(reason - column) < 0.5,
+        `${parent}: the reason ${reason} wide in a ${column} column`,
+      );
+    }
   });
 
   test("the timeline holds nothing focusable: Tab passes over it", async () => {
