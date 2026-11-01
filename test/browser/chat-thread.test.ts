@@ -269,6 +269,12 @@ describe("chat thread", { timeout: 60_000 }, () => {
     assert.equal(view.items[1].pre, '{\n  "9": 9007199254740993,\n  "1": -0\n}');
   });
 
+  test("arguments nested too deep for their indents to fit in a string show as they are", async () => {
+    const args = "[".repeat(20_000) + "1" + "]".repeat(20_000);
+    const view = await shown({ verbose: true, items: [{ ...call, arguments: args }] });
+    assert.equal(view.items[0].pre, args);
+  });
+
   test("arguments that don't parse show raw; empty arguments and output say so; output parts join", async () => {
     const view = await shown({
       verbose: true,

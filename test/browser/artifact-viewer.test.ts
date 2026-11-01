@@ -206,6 +206,14 @@ describe("artifact viewer", { timeout: 60_000 }, () => {
     });
   }
 
+  test("valid JSON nested too deep for its indents to fit in a string shows as it is", async () => {
+    // 20,000 levels are 40 kB of text, but their indents alone would be some 800 million spaces.
+    const content = "[".repeat(20_000) + "1" + "]".repeat(20_000);
+    const view = await shown({ name: "deep.json", contentType: "application/json", content });
+    assert.equal(view.region?.text, content);
+    assert.deepEqual(view.notes, []);
+  });
+
   test("JSON that doesn't parse shows its raw text under a labelled note", async () => {
     const content = '{"id": "run-1", "status": complete,}';
     const view = await shown({ name: "broken.json", contentType: "application/json", content });

@@ -83,14 +83,19 @@ type Json = { ok: true; text: string } | { ok: false; reason: string };
 
 // JSON.parse decides validity alone, and its value is thrown away: printing the value would move
 // integer-like keys first, rewrite numbers, and drop duplicate keys, so the text shown is the
-// content's own tokens, re-indented by formatJson.
+// content's own tokens, re-indented by formatJson. Its indents grow with the square of the depth,
+// so a short text nested some ten thousand deep can't fit in a string: it shows as it is.
 function pretty(content: string): Json {
   try {
     JSON.parse(content);
   } catch (error) {
     return { ok: false, reason: error instanceof Error ? error.message : String(error) };
   }
-  return { ok: true, text: formatJson(content) };
+  try {
+    return { ok: true, text: formatJson(content) };
+  } catch {
+    return { ok: true, text: content };
+  }
 }
 
 /**

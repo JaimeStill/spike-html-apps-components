@@ -3,12 +3,9 @@
 // value and printed again, so the keys keep their order, duplicates included, numbers keep their
 // literals, and strings keep their escapes; only the whitespace between tokens changes.
 
-// The indent of each depth, built once per depth as the walk first reaches it.
-const indents: string[] = [""];
-
+// The indent of a depth, two spaces a level.
 function indent(depth: number): string {
-  for (let next = indents.length; next <= depth; next++) indents[next] = indents[next - 1] + "  ";
-  return indents[depth];
+  return "  ".repeat(depth);
 }
 
 // JSON's whitespace between tokens: space, tab, line feed, and carriage return.
@@ -28,7 +25,8 @@ function endsValue(code: number): boolean {
  * mark, appears as the text wrote it and in its order; whitespace outside strings is the only
  * thing that changes. The text must be valid JSON, as `JSON.parse` accepts it: the walk reads
  * tokens without checking their grammar, so it never decides whether the text is valid, and its
- * output for text that isn't is unspecified.
+ * output for text that isn't is unspecified. Its indents grow with the square of the depth, so
+ * text nested some ten thousand deep throws a RangeError, its output past the longest string.
  */
 export function formatJson(text: string): string {
   const out: string[] = [];
