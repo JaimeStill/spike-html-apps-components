@@ -43,7 +43,8 @@ export interface ArtifactViewOf {
 /**
  * The view a content type shows in, and the content it takes, so a consumer knows what to fetch.
  * Only the type and subtype count, read without case and without parameters, so
- * `Text/Markdown; charset=utf-8` is Markdown. Text, a string: text/markdown renders as Markdown;
+ * `Text/Markdown; charset=utf-8` is Markdown, and a type and subtype must each be an HTTP token, so
+ * `image/png,text/html` is no image. Text, a string: text/markdown renders as Markdown;
  * application/json, or any type whose subtype ends in +json, as JSON; any other text/ type, text/html
  * among them, as preformatted text, never as a page. A Blob: application/pdf in a frame, and an
  * image/, audio/, or video/ type in its element, but image/svg+xml, a document that can run script
@@ -60,14 +61,20 @@ function essenceOf(contentType: string): string {
   return contentType.split(";", 1)[0].trim().toLowerCase();
 }
 
+// A valid essence: a type and a subtype of HTTP token characters alone. The object URL's bytes
+// carry the essence, and a browser that can't parse it as one type sniffs them, or reads it as a
+// list and takes its last type, so `image/png,text/html` opened from an img loads as a page.
+const ESSENCE = /^[-!#$%&'*+.^_`|~0-9a-z]+\/[-!#$%&'*+.^_`|~0-9a-z]+$/;
+
 function viewFor(essence: string): ArtifactView {
+  if (!ESSENCE.test(essence)) return "unsupported";
   if (essence === "text/markdown") return "markdown";
-  if (essence === "application/json" || /^[^/]+\/[^/]+\+json$/.test(essence)) return "json";
-  if (/^text\/[^/]+$/.test(essence)) return "text";
+  if (essence === "application/json" || essence.endsWith("+json")) return "json";
+  if (essence.startsWith("text/")) return "text";
   if (essence === "application/pdf") return "pdf";
   if (essence === "image/svg+xml") return "unsupported";
-  const media = /^(image|audio|video)\/[^/]+$/.exec(essence);
-  return media ? (media[1] as ArtifactView) : "unsupported";
+  const [type] = essence.split("/", 1);
+  return type === "image" || type === "audio" || type === "video" ? type : "unsupported";
 }
 
 /** JSON content as shown: formatted from its tokens, or, when it doesn't parse, the parser's

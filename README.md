@@ -100,6 +100,7 @@ foundation's `page.css`:
   | video/*                                         | a video with controls, the viewer's width         | Blob    |
   | anything else                                   | a note, and a Blob given as a download link       | none    |
 
+  A type or subtype that isn't an HTTP token, `image/png,text/html` among them, is anything else.
   A native type with no Blob yet, a string included, shows the loading note; a text type given a
   Blob shows as empty, as `""` does.
 - `./chat-thread.js`: `sl-chat-thread`, a conversation's items in order, a structural subset of

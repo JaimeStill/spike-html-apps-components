@@ -20,10 +20,12 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
   viewer's width. `text/html` still shows as text, never as a page. A type it can't show, given a
   Blob, adds a link that downloads it under the artifact's name. The `content-type` decides the
   view, and the object URL's bytes are typed by it, never by the Blob (an unsupported type's as
-  `application/octet-stream`), so a disagreeing Blob never loads as a page. The viewer owns the
-  URL: it makes it while connected, revokes it as the content or its type changes and as it
-  disconnects, and makes it again on reconnecting. A native type with no Blob yet shows the
-  loading note. A string content for a text type is unchanged.
+  `application/octet-stream`), so a disagreeing Blob never loads as a page. A type or subtype
+  that isn't an HTTP token is unsupported, whatever it starts with, since a browser sniffs bytes
+  of a type it can't parse, or reads `image/png,text/html` as the list's last type, a page. The
+  viewer owns the URL: it makes it while connected, revokes it as the content or its type changes
+  and as it disconnects, and makes it again on reconnecting. A native type with no Blob yet shows
+  the loading note. A string content for a text type is unchanged.
 
 ### Changed
 

@@ -272,7 +272,7 @@ describe("artifact viewer", { timeout: 60_000 }, () => {
       const { viewOf } = await import("/dist/artifact-viewer.js");
       const types = ["text/markdown", "application/ld+json", "text/html; charset=utf-8",
         "Application/PDF", "image/png", "image/svg+xml", "audio/wav", "VIDEO/WEBM; codecs=vp9",
-        "application/zip", "", "image"];
+        "application/zip", "", "image", "image/png,text/html", "image/x y", "text/plain,x"];
       return Object.fromEntries(types.map((type) => [type, viewOf(type)]));
     })()`);
     assert.deepEqual(results, {
@@ -287,6 +287,9 @@ describe("artifact viewer", { timeout: 60_000 }, () => {
       "application/zip": { view: "unsupported", content: "none" },
       "": { view: "unsupported", content: "none" },
       image: { view: "unsupported", content: "none" },
+      "image/png,text/html": { view: "unsupported", content: "none" },
+      "image/x y": { view: "unsupported", content: "none" },
+      "text/plain,x": { view: "unsupported", content: "none" },
     });
   });
 
@@ -383,22 +386,56 @@ describe("artifact viewer", { timeout: 60_000 }, () => {
     assert.equal(held.frame.scrolls, false);
   });
 
-  test("a Blob whose own type disagrees shows by the content type, its bytes typed by it", async () => {
-    // A PDF's Blob typed text/html would load as a page in the app's origin: the content type
-    // decides the view, and the URL's bytes carry that type, never the Blob's.
-    const view: { element: string | null; created: { type: string } } =
+  test("no view's object URL, opened as a document of its own, loads a Blob as a page", async () => {
+    // Each Blob is a page typed text/html, which, loaded in the app's origin, would set ran on the
+    // frame's parent. Each view's URL, a native element's src or the download link's href, is
+    // opened in a frame, as "Open image in new tab" or the link opened rather than downloaded
+    // would; a URL the test makes of the Blob itself first shows that such a page would run.
+    const opened: Record<string, { url: string | null; ran: boolean; type: string | null }> =
       await page.evaluate(`(async () => {
-      const viewer = Object.assign(document.createElement("sl-artifact-viewer"), {
-        name: "x.pdf", contentType: "application/pdf; name=x",
-        content: new Blob(["<script>window.pwned = 1</script>"], { type: "text/html" }),
-      });
-      document.querySelector("main").replaceChildren(viewer);
-      await viewer.updateComplete;
-      return { element: viewer.shadowRoot.querySelector(".media")?.localName ?? null,
-        created: window.urls.created.at(-1) };
+      const page = () => new Blob(["<script>parent.ran = true</script>"], { type: "text/html" });
+      const open = async (url) => {
+        window.ran = false;
+        const frame = document.createElement("iframe");
+        frame.src = url;
+        const loaded = new Promise((resolve) => frame.addEventListener("load", resolve));
+        document.body.append(frame);
+        await Promise.race([loaded, new Promise((resolve) => setTimeout(resolve, 1000))]);
+        frame.remove();
+        return { url, ran: window.ran, type: (await fetch(url)).headers.get("content-type") };
+      };
+      const opened = { control: await open(URL.createObjectURL(page())) };
+      for (const contentType of ["application/pdf; name=x", "image/png", "audio/wav",
+        "video/webm", "image/svg+xml", "application/zip", "image/png,text/html"]) {
+        const viewer = Object.assign(document.createElement("sl-artifact-viewer"),
+          { name: "x", contentType, content: page() });
+        document.querySelector("main").replaceChildren(viewer);
+        await viewer.updateComplete;
+        const root = viewer.shadowRoot;
+        const url = root.querySelector(".media")?.getAttribute("src") ??
+          root.querySelector(".download")?.getAttribute("href");
+        opened[contentType] = url ? await open(url) : { url: null, ran: false, type: null };
+      }
+      return opened;
     })()`);
-    assert.equal(view.element, "iframe");
-    assert.equal(view.created.type, "application/pdf");
+    assert.deepEqual(
+      [opened.control.ran, opened.control.type],
+      [true, "text/html"],
+      "a page's own URL runs",
+    );
+    for (const [contentType, type] of [
+      ["application/pdf; name=x", "application/pdf"],
+      ["image/png", "image/png"],
+      ["audio/wav", "audio/wav"],
+      ["video/webm", "video/webm"],
+      ["image/svg+xml", "application/octet-stream"],
+      ["application/zip", "application/octet-stream"],
+      ["image/png,text/html", "application/octet-stream"],
+    ]) {
+      const { url, ran, type: served } = opened[contentType];
+      assert.match(url ?? "", /^blob:/, `${contentType} shows a URL`);
+      assert.deepEqual([ran, served], [false, type], `${contentType}'s URL is no page`);
+    }
   });
 
   test("image/* shows in an img, its alt the name, at its natural size, never upscaled, narrowed with its aspect", async () => {
