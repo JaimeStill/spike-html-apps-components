@@ -1,7 +1,8 @@
 // The artifact viewer, Lit with a shadow root: one artifact's content, by its content type, as
 // rendered Markdown, JSON formatted from its own tokens, or preformatted text, in a region that
 // scrolls; or, from a Blob, as the browser renders it natively: a PDF in a frame, an image, audio,
-// or video.
+// or video; or, for a type that names no view, as text when its bytes are text. Only content that
+// is binary by those rules can't be shown.
 
 import { html, LitElement, nothing, type PropertyDeclarations, type PropertyValues } from "lit";
 
@@ -21,15 +22,16 @@ export const tagName = "sl-artifact-viewer";
  */
 export type ArtifactState = "loading" | "error" | "ready";
 
-/** How a content type shows: which of the viewer's views takes it. */
-export type ArtifactView =
-  "markdown" | "json" | "text" | "pdf" | "image" | "audio" | "video" | "unsupported";
-
 /**
- * The content a view takes: `text`, a string; `blob`, a Blob; or `none`, nothing, since the view
- * shows a note, though a Blob given to it is offered as a download.
+ * How a content type shows: which of the viewer's views takes it. `unknown` is a type that names
+ * no view, its bytes deciding: a Blob of them shows as text when they are text, and as a note that
+ * it can't be shown, with a link that downloads it, when they aren't.
  */
-export type ArtifactContent = "text" | "blob" | "none";
+export type ArtifactView =
+  "markdown" | "json" | "text" | "pdf" | "image" | "audio" | "video" | "unknown";
+
+/** The content a view takes: `text`, a string; or `blob`, a Blob. */
+export type ArtifactContent = "text" | "blob";
 
 // The views whose content is a string.
 const TEXT_VIEWS = new Set<ArtifactView>(["markdown", "json", "text"]);
@@ -43,17 +45,19 @@ export interface ArtifactViewOf {
 /**
  * The view a content type shows in, and the content it takes, so a consumer knows what to fetch.
  * Only the type and subtype count, read without case and without parameters, so
- * `Text/Markdown; charset=utf-8` is Markdown, and a type and subtype must each be an HTTP token, so
- * `image/png,text/html` is no image. Text, a string: text/markdown renders as Markdown;
+ * `Text/Markdown; charset=utf-8` is Markdown. Text, a string: text/markdown renders as Markdown;
  * application/json, or any type whose subtype ends in +json, as JSON; any other text/ type, text/html
- * among them, as preformatted text, never as a page. A Blob: application/pdf in a frame, and an
- * image/, audio/, or video/ type in its element, but image/svg+xml, a document that can run script
- * when opened on its own. Anything else, an empty type included, is unsupported, its content none.
+ * among them, and each of `TEXT_TYPES`, as preformatted text, never as a page or a URL. A Blob:
+ * application/pdf in a frame, and an image/, audio/, or video/ type in its element, but
+ * image/svg+xml, a document that can run script when opened on its own, which shows its source as
+ * text. A native view's type and subtype must each be an HTTP token, so `image/png,text/html` is no
+ * image; a text/ type is text however it is written, `text/plain,x` included, since text never
+ * gets a URL. Anything else, an empty type included, is `unknown`: its content is a Blob, and the
+ * viewer, which can see its bytes where this can't, shows it as text when they are text.
  */
 export function viewOf(contentType: string): ArtifactViewOf {
   const view = viewFor(essenceOf(contentType));
-  const content = TEXT_VIEWS.has(view) ? "text" : view === "unsupported" ? "none" : "blob";
-  return { view, content };
+  return { view, content: TEXT_VIEWS.has(view) ? "text" : "blob" };
 }
 
 // A content type's essence: its type and subtype, lowercased, without parameters.
@@ -66,15 +70,70 @@ function essenceOf(contentType: string): string {
 // list and takes its last type, so `image/png,text/html` opened from an img loads as a page.
 const ESSENCE = /^[-!#$%&'*+.^_`|~0-9a-z]+\/[-!#$%&'*+.^_`|~0-9a-z]+$/;
 
+/**
+ * The types other than text/ ones that show as their source, as preformatted text: XML, and any
+ * subtype ending in +xml, image/svg+xml and application/xhtml+xml among them; JavaScript; YAML,
+ * and any subtype ending in +yaml; TOML; CSV; newline-delimited JSON, which isn't one JSON text;
+ * SQL; and shell scripts.
+ */
+export const TEXT_TYPES: readonly string[] = [
+  "application/xml",
+  "application/javascript",
+  "application/ecmascript",
+  "application/yaml",
+  "application/x-yaml",
+  "application/toml",
+  "application/csv",
+  "application/x-ndjson",
+  "application/sql",
+  "application/x-sh",
+  "application/x-shellscript",
+];
+
 function viewFor(essence: string): ArtifactView {
-  if (!ESSENCE.test(essence)) return "unsupported";
+  if (!ESSENCE.test(essence)) return essence.startsWith("text/") ? "text" : "unknown";
   if (essence === "text/markdown") return "markdown";
   if (essence === "application/json" || essence.endsWith("+json")) return "json";
   if (essence.startsWith("text/")) return "text";
+  if (TEXT_TYPES.includes(essence) || essence.endsWith("+xml") || essence.endsWith("+yaml"))
+    return "text";
   if (essence === "application/pdf") return "pdf";
-  if (essence === "image/svg+xml") return "unsupported";
   const [type] = essence.split("/", 1);
-  return type === "image" || type === "audio" || type === "video" ? type : "unsupported";
+  return type === "image" || type === "audio" || type === "video" ? type : "unknown";
+}
+
+/**
+ * The bytes an unknown type's Blob is judged by: its first MiB. They are text when they decode as
+ * UTF-8, a sequence cut at the MiB's end aside, and hold no C0 control character but tab, line
+ * feed, form feed, and carriage return, so a NUL among them is binary. Text past the MiB shows as
+ * decoded, an invalid sequence there as U+FFFD.
+ */
+export const SNIFF_BYTES = 1024 * 1024;
+
+// Whether the text holds a C0 control character text never does: any but tab, line feed, form
+// feed, and carriage return.
+function hasControl(text: string): boolean {
+  for (let at = 0; at < text.length; at++) {
+    const code = text.charCodeAt(at);
+    if (code < 0x20 && code !== 0x09 && code !== 0x0a && code !== 0x0c && code !== 0x0d)
+      return true;
+  }
+  return false;
+}
+
+// A Blob's bytes as text, or null when the bytes are binary or can't be read.
+async function textOf(blob: Blob): Promise<string | null> {
+  try {
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    const head = bytes.subarray(0, SNIFF_BYTES);
+    const decided = new TextDecoder("utf-8", { fatal: true }).decode(head, {
+      stream: bytes.length > SNIFF_BYTES,
+    });
+    if (hasControl(decided)) return null;
+    return bytes.length > SNIFF_BYTES ? new TextDecoder().decode(bytes) : decided;
+  } catch {
+    return null;
+  }
 }
 
 /** JSON content as shown: formatted from its tokens, or, when it doesn't parse, the parser's
@@ -103,8 +162,8 @@ function pretty(content: string): Json {
  * `noHeader`, its content alone, for a page that already shows the name and type in a header of
  * its own. Markdown renders through `markdown()`; valid JSON is formatted from its own tokens by
  * `formatJson()`, two spaces an indent, so its keys, their order, duplicates, numbers, and
- * strings show as written, never parsed and printed again; and other text, text/html included, is
- * shown as it is. JSON that doesn't parse shows its raw text under a note saying so, and empty
+ * strings show as written, never parsed and printed again; and other text, text/html, XML, and
+ * SVG's source included, is shown as it is, never as a page and from no URL. JSON that doesn't parse shows its raw text under a note saying so, and empty
  * content a note saying so. Long content scrolls inside the viewer, in a region the keyboard
  * reaches.
  *
@@ -112,9 +171,12 @@ function pretty(content: string): Json {
  * own viewer, as tall as the viewer allows; an image no wider than the viewer and never past its
  * natural size; audio, and video, which keeps its aspect, the viewer's width, with their controls.
  * The `content-type` decides the view, never the Blob's own type, and the bytes are shown as that
- * type. Until the Blob is given, the view shows the loading note. Any other type shows a note in
- * place of its bytes, with, when a Blob is given, a link that downloads it under the artifact's
- * name. The viewer owns each object URL it shows: it makes one for the Blob it holds while
+ * type. Until the Blob is given, the view shows the loading note. An unknown type's Blob shows the
+ * loading note until its bytes are read, then as text when they are text, by `SNIFF_BYTES`'s rule,
+ * and only when they aren't, a note in place of them and a link that downloads them under the
+ * artifact's name; a string given for an unknown type shows as text unless it holds a control
+ * character text doesn't, and as the note, with no link, if it does. `updateComplete` waits for
+ * the read. The viewer owns each object URL it shows: it makes one for the Blob it holds while
  * connected, and revokes it when the content or its type changes and when it disconnects.
  *
  * In every state, header or not, one region named `<name> content` holds what the viewer shows:
@@ -140,8 +202,8 @@ export class ArtifactViewer extends LitElement {
   declare name: string;
   /** The artifact's media type, parameters allowed; it chooses the view. */
   declare contentType: string;
-  /** The artifact's content: a string for a text type, a Blob for a native or an unsupported one,
-   * as `viewOf()` says. A native type with no Blob shows the loading note, and a text type given
+  /** The artifact's content: a string for a text type, a Blob for a native or an unknown one, as
+   * `viewOf()` says. A native type with no Blob shows the loading note, and a text type given
    * a Blob shows as empty, as `""` does. */
   declare content: string | Blob;
   /** Loading, error, or ready; reflected to the `state` attribute. */
@@ -157,6 +219,11 @@ export class ArtifactViewer extends LitElement {
   #url = "";
   #blob: Blob | null = null;
   #type = "";
+  // An unknown type's Blob as read: its text, or null when its bytes are binary; and the read
+  // under way, which updateComplete waits for.
+  #read: { blob: Blob; text: string | null } | null = null;
+  #reading: Promise<void> | null = null;
+  #readingBlob: Blob | null = null;
 
   constructor() {
     super();
@@ -182,21 +249,62 @@ export class ArtifactViewer extends LitElement {
   willUpdate(changed: PropertyValues<this>): void {
     if (changed.has("content") || changed.has("contentType")) {
       const text = typeof this.content === "string" ? this.content : "";
-      this.#json = viewOf(this.contentType).view === "json" ? pretty(text) : null;
+      const { view } = viewOf(this.contentType);
+      this.#json = view === "json" ? pretty(text) : null;
+      if (view === "unknown" && this.content instanceof Blob) this.#readBlob(this.content);
     }
     this.#sync();
   }
 
+  // Reads an unknown type's Blob once, unless it is read or being read already; when the read
+  // ends, the viewer updates with it if the Blob is still its content.
+  #readBlob(blob: Blob): void {
+    if (this.#read?.blob === blob || this.#readingBlob === blob) return;
+    this.#readingBlob = blob;
+    this.#reading = (async () => {
+      const text = await textOf(blob);
+      if (this.content === blob) {
+        this.#read = { blob, text };
+        this.requestUpdate();
+      }
+      // A read begun since is the one still under way.
+      if (this.#readingBlob === blob) {
+        this.#reading = null;
+        this.#readingBlob = null;
+      }
+    })();
+  }
+
+  // Complete once a Blob being read is shown as its bytes decide, as well as rendered.
+  protected override async getUpdateComplete(): Promise<boolean> {
+    let complete = await super.getUpdateComplete();
+    while (this.#reading) {
+      await this.#reading;
+      complete = await super.getUpdateComplete();
+    }
+    return complete;
+  }
+
+  // The unknown type's Blob as read, when the content is still that Blob: its text, or null.
+  get #sniffed(): { text: string | null } | null {
+    return this.#read && this.#read.blob === this.content ? this.#read : null;
+  }
+
   // The object URL for the Blob, while connected and while its view shows a Blob, made of a slice
   // typed by the content type, so the browser renders the bytes as the view does, whatever the
-  // Blob says: a PDF's frame never loads the bytes as a page. An unsupported type's bytes are
-  // application/octet-stream, so its link, opened rather than downloaded, never renders them. A
-  // URL no longer wanted is revoked first.
+  // Blob says: a PDF's frame never loads the bytes as a page. An unknown type's Blob has one only
+  // once its bytes are read as binary, for its download link, and its bytes are then
+  // application/octet-stream, so the link, opened rather than downloaded, never renders them; text
+  // shows in the pre, from no URL. A URL no longer wanted is revoked first.
   #sync(): void {
     const { view, content } = viewOf(this.contentType);
-    const blob =
-      this.isConnected && this.content instanceof Blob && content !== "text" ? this.content : null;
-    const type = view === "unsupported" ? "application/octet-stream" : essenceOf(this.contentType);
+    const wanted =
+      this.isConnected &&
+      this.content instanceof Blob &&
+      content === "blob" &&
+      (view !== "unknown" || this.#sniffed?.text === null);
+    const blob = wanted ? (this.content as Blob) : null;
+    const type = view === "unknown" ? "application/octet-stream" : essenceOf(this.contentType);
     if (blob === this.#blob && type === this.#type) return;
     if (this.#url) URL.revokeObjectURL(this.#url);
     this.#blob = blob;
@@ -278,18 +386,7 @@ export class ArtifactViewer extends LitElement {
     }
     const { view, content: kind } = viewOf(this.contentType);
     const name = this.name || "Artifact";
-    if (view === "unsupported") {
-      return this.#alone(
-        this.#note(
-          "unsupported",
-          "This content type can't be shown.",
-          this.contentType ? `${this.contentType} isn't text.` : "It has no content type.",
-          this.#url
-            ? html`<a class="download" href=${this.#url} download=${this.name}>Download ${name}</a>`
-            : nothing,
-        ),
-      );
-    }
+    if (view === "unknown") return this.#unknown(name);
     if (kind === "blob") {
       if (!this.#url) return this.#alone(this.#note("loading", "Loading…"));
       if (this.#blob?.size === 0)
@@ -312,6 +409,34 @@ export class ArtifactViewer extends LitElement {
       default:
         return html`<div class="frame">${this.#region(content)}</div>`;
     }
+  }
+
+  // An unknown type's content, its bytes deciding: a Blob shows the loading note until it is read,
+  // then its text, or, binary, the note that it can't be shown, with its download link. A string
+  // shows as text when it holds no control character text never does, and as the note otherwise.
+  #unknown(name: string) {
+    let text: string | null;
+    if (this.content instanceof Blob) {
+      if (this.content.size === 0)
+        return this.#alone(this.#note("empty", "This artifact is empty."));
+      const sniffed = this.#sniffed;
+      if (!sniffed) return this.#alone(this.#note("loading", "Loading…"));
+      text = sniffed.text;
+    } else {
+      if (this.content === "") return this.#alone(this.#note("empty", "This artifact is empty."));
+      text = hasControl(this.content) ? null : this.content;
+    }
+    if (text !== null) return html`<div class="frame">${this.#region(text)}</div>`;
+    return this.#alone(
+      this.#note(
+        "unsupported",
+        "This content type can't be shown.",
+        this.contentType ? `${this.contentType} isn't text.` : "It has no content type.",
+        this.#url
+          ? html`<a class="download" href=${this.#url} download=${this.name}>Download ${name}</a>`
+          : nothing,
+      ),
+    );
   }
 
   render() {

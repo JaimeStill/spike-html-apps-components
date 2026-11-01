@@ -32,15 +32,27 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
   viewer owns the URL: it makes it while connected, revokes it as the content or its type changes
   and as it disconnects, and makes it again on reconnecting. A native type with no Blob yet shows
   the loading note. A string content for a text type is unchanged.
+- `sl-artifact-viewer` shows text whenever the content is text, "can't be shown" its last resort.
+  The textual application types, exported as `TEXT_TYPES` (application/xml, application/javascript,
+  application/ecmascript, application/yaml, application/x-yaml, application/toml,
+  application/csv, application/x-ndjson, application/sql, application/x-sh, and
+  application/x-shellscript), and any subtype ending in +xml or +yaml, `image/svg+xml` and
+  `application/xhtml+xml` among them, show their source as text, from a string and from no URL. A
+  text/ type is text however it is written, `text/plain,x` included. Any other type, an unknown or
+  a malformed one, takes a Blob, and the viewer reads its bytes: its first MiB, `SNIFF_BYTES`,
+  decoded as UTF-8 with no C0 control character but tab, line feed, form feed, and carriage
+  return, shows as text, and only bytes that fail that, a NUL among them, show the note and a
+  download typed `application/octet-stream`. The loading note shows until the read ends, and
+  `updateComplete` waits for it.
 
 ### Changed
 
 - `viewOf(contentType)` returns `{ view, content }` in place of the view alone: `view` adds
-  `pdf`, `image`, `audio`, and `video`, and `content` says what the view takes, `text`, `blob`, or
-  `none`, so a consumer fetches text for a text type and a Blob for a native one. A caller that
-  compared its result to `"unsupported"` compares `viewOf(type).view`, or decides on `content`;
-  `image/*` other than SVG, `audio/*`, `video/*`, and `application/pdf` are no longer
-  `unsupported`.
+  `pdf`, `image`, `audio`, and `video`, and `unknown` replaces `unsupported`, a type that names no
+  view, whose Blob's bytes decide; `content` says what the view takes, `text` or `blob`, so a
+  consumer fetches text for a text type and a Blob for any other. A caller that compared its
+  result to `"unsupported"` decides on `viewOf(type).content`; `image/svg+xml` is now `text`, and
+  `image/*` other than SVG, `audio/*`, `video/*`, and `application/pdf` are native.
 
 ### Removed
 

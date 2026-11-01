@@ -85,8 +85,9 @@ foundation's `page.css`:
   is in a region named `<name> content`, header or not. Valid JSON is formatted from its own
   tokens by `./json.js`, never parsed and printed again, so it shows its own keys, their order,
   and its numbers; JSON that doesn't parse shows as text under a note. `viewOf(contentType)` gives
-  a type's `view` and the `content` it takes, `text`, `blob`, or `none`, so a consumer knows what
-  to fetch. The `content-type` decides the view, never a Blob's own type, and the Blob's bytes are
+  a type's `view` and the `content` it takes, `text` or `blob`, so a consumer knows what to
+  fetch. A text view is always safe, never a URL and never a document, so the viewer shows text
+  whenever the content is text: "can't be shown" is left for bytes that aren't. The `content-type` decides the view, never a Blob's own type, and the Blob's bytes are
   shown as that type. The viewer owns the object URL of the Blob it holds: it makes it while
   connected and revokes it as the content or its type changes and as it disconnects. It sends no
   event. It imports `./markdown.js`, so its page maps marked too.
@@ -96,15 +97,26 @@ foundation's `page.css`:
   | text/markdown                                   | rendered Markdown, scrolling                      | string  |
   | application/json, or a subtype ending in +json  | JSON formatted from its tokens, scrolling         | string  |
   | any other text/ type, text/html included        | preformatted text, as it is, never run as a page  | string  |
+  | a textual application type, `TEXT_TYPES`        | its source as preformatted text                   | string  |
+  | a subtype ending in +xml or +yaml, SVG included | its source as preformatted text                   | string  |
   | application/pdf                                 | an iframe, the browser's own PDF viewer           | Blob    |
   | image/*, but image/svg+xml                      | an img, at its natural size or narrower, its alt  | Blob    |
   | audio/*                                         | an audio with controls, the viewer's width        | Blob    |
   | video/*                                         | a video with controls, the viewer's width         | Blob    |
-  | anything else                                   | a note, and a Blob given as a download link       | none    |
+  | anything else, `unknown`                        | text if its bytes are; else a note and a download | Blob    |
 
-  A type or subtype that isn't an HTTP token, `image/png,text/html` among them, is anything else.
-  A native type with no Blob yet, a string included, shows the loading note; a text type given a
-  Blob shows as empty, as `""` does.
+  `TEXT_TYPES` is application/xml, application/javascript, application/ecmascript,
+  application/yaml, application/x-yaml, application/toml, application/csv, application/x-ndjson,
+  application/sql, application/x-sh, and application/x-shellscript. A native type's type and
+  subtype must each be an HTTP token, so `image/png,text/html` is anything else; a text/ type is
+  text however it is written, `text/plain,x` included, since text never gets a URL. An unknown
+  type's Blob is text when its first MiB, `SNIFF_BYTES`, decodes as UTF-8 and holds no C0 control
+  character but tab, line feed, form feed, and carriage return; past the MiB it shows as decoded.
+  Binary bytes show the note, with a link that downloads them typed `application/octet-stream`.
+  The viewer reads the Blob itself, showing the loading note until it has, and its
+  `updateComplete` waits for the read. A string given for an unknown type shows as text unless it
+  holds such a control character. A native type with no Blob yet, a string included, shows the
+  loading note; a text type given a Blob shows as empty, as `""` does.
 - `./chat-thread.js`: `sl-chat-thread`, a conversation's items in order, a structural subset of
   Open Responses: a user's text as plain text, the assistant's as rendered Markdown, a refusal
   labelled, and a streaming reply re-rendered in place; with `verbose`, reasoning, function calls,

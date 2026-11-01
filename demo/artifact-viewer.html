@@ -7,9 +7,10 @@
     <!-- The artifact viewer's specimen page, from dist/: a Markdown document, JSON, JSON whose
          keys, numbers, and duplicates a parse would change, invalid JSON,
          plain text, text/html shown as text, content long enough to scroll, the native views of
-         test/fixtures/media.js's Blobs, a PDF, an image, audio, and video, a type it can't show,
-         as a note and with a Blob's download link, loading, an error, and empty content; then with no-header, so the content or the note shows alone, the
-         Markdown document, loading, the error, invalid JSON, the type that isn't text, and the
+         test/fixtures/media.js's Blobs, a PDF, an image, audio, and video, XML, YAML, and SVG
+         shown as their source, an unknown type whose bytes are text, an unknown type whose bytes
+         are binary, as a note and with a Blob's download link, loading, an error, and empty content; then with no-header, so the content or the note shows alone, the
+         Markdown document, loading, the error, invalid JSON, the bytes that aren't text, and the
          empty content.
          The viewer is as tall as its content, so each shows at full size but the long content,
          which the page holds to 16rem by demo.css's held class, so it scrolls.
@@ -154,16 +155,49 @@
             build: () => make("sl-artifact-viewer", { name: "clip.webm", contentType: "video/webm", content: media.webm() }),
           },
           {
-            label: "Unsupported: application/zip, a note in place of its bytes",
-            build: viewer({ name: "bundle.zip", contentType: "application/zip" }),
+            label: "XML: application/xml, its source as text",
+            build: viewer({
+              name: "run.xml",
+              contentType: "application/xml",
+              content: '<?xml version="1.0" encoding="utf-8"?>\n<run id="run-01J9X">\n  <stage name="classify" outputs="3"/>\n  <stage name="summarize" outputs="1"/>\n</run>',
+            }),
           },
           {
-            label: "Unsupported, with its Blob: application/zip, the note and a link that downloads it",
+            label: "YAML: application/yaml, its source as text",
+            build: viewer({
+              name: "pipeline.yaml",
+              contentType: "application/yaml",
+              content: "pipeline:\n  stages:\n    - name: classify\n      retries: 2\n    - name: summarize\n      model: small",
+            }),
+          },
+          {
+            label: "SVG: image/svg+xml, its source as text, never rendered, from no URL",
+            build: viewer({
+              name: "badge.svg",
+              contentType: "image/svg+xml",
+              content: '<svg xmlns="http://www.w3.org/2000/svg" width="80" height="20">\n  <rect width="80" height="20" rx="3" fill="#2b6f8f"/>\n  <text x="40" y="14" text-anchor="middle" fill="#fff">passing</text>\n</svg>',
+            }),
+          },
+          {
+            label: "Unknown, its bytes text: application/x-run-trace from a Blob of UTF-8, shown as text",
+            build: () =>
+              make("sl-artifact-viewer", {
+                name: "run.trace",
+                contentType: "application/x-run-trace",
+                content: new Blob(["16:40:58.112  classify   start\n16:41:00.004  classify   done   3 outputs\n16:41:05.220  summarize  done   1 output"]),
+              }),
+          },
+          {
+            label: "Unknown, its bytes binary: application/zip, a note in place of a string that isn't text",
+            build: viewer({ name: "bundle.zip", contentType: "application/zip", content: "PK\u0003\u0004" }),
+          },
+          {
+            label: "Unknown, its bytes binary, from a Blob: application/zip, the note and a link that downloads it",
             build: () =>
               make("sl-artifact-viewer", {
                 name: "bundle.zip",
                 contentType: "application/zip",
-                content: new Blob(["PK"], { type: "application/zip" }),
+                content: new Blob([new Uint8Array([0x50, 0x4b, 0x03, 0x04, 0x14, 0x00])], { type: "application/zip" }),
               }),
           },
           {
@@ -195,8 +229,8 @@
             build: viewer({ name: "broken.json", contentType: "application/json", content: '{"id": "run-01J9X", "status": complete,}', noHeader: true }),
           },
           {
-            label: "No header, unsupported: the note names the type, its frame named bundle.zip content",
-            build: viewer({ name: "bundle.zip", contentType: "application/zip", noHeader: true }),
+            label: "No header, bytes that aren't text: the note names the type, its frame named bundle.zip content",
+            build: viewer({ name: "bundle.zip", contentType: "application/zip", content: "PK\u0003\u0004", noHeader: true }),
           },
           {
             label: "No header, an image: its frame named chart.png content",
