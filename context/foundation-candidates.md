@@ -15,6 +15,11 @@ components' sheets in the same change, and leaves this note.
   as its cancel control. Both restate the elements sheet's padding and border, so a change there
   would drift from them. Shape: a token, or the control's block padding and border as tokens a
   component can compute n lines from.
+- **The focus outline's reach.** The elements sheet's `:focus-visible` outline is `--line-m`
+  wide at a literal `2px` offset, with no token for either sum. `upload-dropzone.css` spaces an
+  upload's lines by `calc(var(--line-m) + 2px + var(--space-3xs))` so a focused Cancel's outline
+  clears the bar below it, restating the offset, which would drift from a change there. Shape: the
+  offset as a token, or a token for the outline's whole reach past a control's box.
 - **Status colors.** Complete or done in `--green`: `stage-timeline.css`, `upload-dropzone.css`.
   Failed or error in `--red`: `stage-timeline.css`, `upload-dropzone.css`, `chat-thread.css`, and
   the error state's label in `artifact-viewer.css`, `search-results.css`, and `document-list.css`.
