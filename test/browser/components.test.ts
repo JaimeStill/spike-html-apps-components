@@ -1230,13 +1230,14 @@ describe("components", { timeout: 60_000 }, () => {
       for (const hook of ["", "--accent-color", "--interaction-color"]) {
         const shown: { distinct: boolean; focused: boolean; over: boolean; marks: object } =
           await read(hook);
+        const { marks, ...state } = shown;
         const where = hook ? `${hook} set on the subtree` : "at the fallbacks";
         assert.deepEqual(
-          { ...shown, marks: undefined },
-          { distinct: true, focused: true, over: true, marks: undefined },
+          state,
+          { distinct: true, focused: true, over: true },
           `${where}: the hooks differ, the entry is focused, and the zone is dragged over`,
         );
-        assert.deepEqual(shown.marks, expected, where);
+        assert.deepEqual(marks, expected, where);
       }
     } finally {
       await page.close();

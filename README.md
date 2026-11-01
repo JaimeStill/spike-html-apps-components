@@ -112,14 +112,14 @@ foundation's `page.css`:
   holds `label` as the `h2` naming it, with no Close button, the content scrolling below it in a
   host held short; the content needs no heading of its own. Below it they sit in a modal dialog,
   closed until `show()`, `toggle()`, or `open` opens it, `open` in the markup as the page loads
-  too, covering the viewport and sliding in from the inline-start edge; docked, `open` in the markup is reverted to false. Its header
-  holds `label` as an `h2` that names the dialog, staying in view while the content scrolls, and
-  a Close button named "Close" and the label, its text replaceable through the `close` slot for a
-  translation. The Close button, Escape, `close()`, or `toggle()` closes it, and focus returns to
-  what opened it. It dispatches `open` and `close` as the modal drawer opens and closes, never as
-  the viewport crosses `dock`, which swaps only the wrapper, so the slotted content is never
-  moved, disconnected, or re-created: an open drawer docks, and docked content becomes a closed
-  drawer. It slides only when the reader allows motion.
+  too, covering the viewport and sliding in from the inline-start edge; docked, `open` in the
+  markup is reverted to false. Its header holds `label` as an `h2` that names the dialog, staying
+  in view while the content scrolls, and a Close button named "Close" and the label, its text
+  replaceable through the `close` slot for a translation. The Close button, Escape, `close()`, or
+  `toggle()` closes it, and focus returns to what opened it. It dispatches `open` and `close` as
+  the modal drawer opens and closes, never as the viewport crosses `dock`, which swaps only the
+  wrapper, so the slotted content is never moved, disconnected, or re-created: an open drawer
+  docks, and docked content becomes a closed drawer. It slides only when the reader allows motion.
 - `./*.css`: each component's sheet, which its module imports itself.
 
 `demo/components.html` puts the status badge, the entry, and the pagination on one page, with its
