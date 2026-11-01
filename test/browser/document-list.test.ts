@@ -2,11 +2,12 @@
 // composition, one sl-pagination around one sl-entry per document, the pagination's properties
 // handed through and its attributes converted as the pagination's are, each entry's item mapped
 // from its document; the selected document marked, for assistive technology and to the eye by its
-// entry's frame, moving no entry; the status line, one polite region, in every state, empty,
-// loading, error, and ready, on the summary's line when there is one and a line of its own when
-// not, the state reflected, a page kept busy while loading and moving nowhere; the entry's open
-// and the pagination's page-change and page-size-change reaching a listener on the list once each,
-// the very events their parts sent, bubbling and composed; and no event as the properties change.
+// entry's frame, moving no entry; a document's status tone handed to its entry; the status line,
+// one polite region, in every state, empty, loading, error, and ready, on the summary's line when
+// there is one and a line of its own when not, the state reflected, a page kept busy while loading
+// and moving nowhere; the entry's open and the pagination's page-change and page-size-change
+// reaching a listener on the list once each, the very events their parts sent, bubbling and
+// composed; and no event as the properties change.
 
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
@@ -252,6 +253,52 @@ describe("document list", { timeout: 60_000 }, () => {
     assert.match(
       entries[2].text,
       /^interview-notes\.txt running file 7\.2 kB text\/plain; charset=utf-8 /,
+    );
+  });
+
+  test("a document's status tone passes through to its entry, which shows its status in the tone's hue; none leaves it muted", async () => {
+    // The first document's run failed, the second's completed, the third's runs on with no tone
+    // given; then the page's documents are replaced, the failed one now complete, and its entry
+    // follows. Each entry's statusTone, and its status's text and hue, named against the hues
+    // resolved in its root.
+    const toned = [
+      { ...documents[0], status: "failed 3/5", status_tone: "failed" },
+      { ...documents[1], status_tone: "complete" },
+      documents[2],
+    ];
+    const shown = () =>
+      page.evaluate(`(async () => {
+        const list = document.querySelector("sl-document-list");
+        await window.settled(list);
+        return [...list.shadowRoot.querySelectorAll("sl-entry")].map((entry) => {
+          const root = entry.shadowRoot;
+          const resolve = (value) => {
+            const probe = root.appendChild(document.createElement("span"));
+            probe.style.color = value;
+            const resolved = getComputedStyle(probe).color;
+            probe.remove();
+            return resolved;
+          };
+          const hues = { green: resolve("var(--green)"), red: resolve("var(--red)"), muted: resolve("var(--fg-2)") };
+          const status = root.querySelector(".status");
+          const color = getComputedStyle(status).color;
+          return [entry.statusTone, status.textContent,
+            Object.keys(hues).find((hue) => hues[hue] === color) ?? color];
+        });
+      })()`);
+    await mount({ ...paging, items: toned });
+    assert.deepEqual(await shown(), [
+      ["failed", "failed 3/5", "red"],
+      ["complete", "complete", "green"],
+      [null, "running", "muted"],
+    ]);
+    await update({
+      items: [{ ...toned[0], status: "complete", status_tone: "complete" }, ...toned.slice(1)],
+    });
+    assert.deepEqual(
+      (await shown())[0],
+      ["complete", "complete", "green"],
+      "the replaced document's entry",
     );
   });
 

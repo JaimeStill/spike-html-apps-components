@@ -307,6 +307,82 @@ describe("components", { timeout: 60_000 }, () => {
     }
   });
 
+  test("the entry's status takes its status tone's hue, the components' status hues, its text kept; no tone, or one it doesn't know, stays muted", async () => {
+    // On the lean page, an entry per tone, then one with none and one with a tone outside the
+    // vocabulary: each status's color as it resolves, against each hue resolved in the entry's
+    // root, at the accent hook's fallback and then with --accent-color set on the page; each
+    // entry's status-tone attribute, reflected from the property, and its status's text. One entry
+    // given its tone by the attribute reads it back as the property.
+    const page = await open(runs[0]);
+    try {
+      const read = (hook: boolean) =>
+        page.evaluate(`(async () => {
+        await import("/dist/entry.js");
+        const main = document.querySelector("main");
+        if (!main.querySelector("sl-entry")) {
+          for (const tone of ["active", "complete", "incomplete", "failed", null, "danger"]) {
+            const entry = document.createElement("sl-entry");
+            entry.item = { id: "d-" + tone, name: "designs", status: tone === "failed" ? "failed 3/5" : String(tone),
+              updated_at: "2026-10-12T16:41:07Z" };
+            entry.statusTone = tone;
+            main.append(entry);
+          }
+          const byAttribute = document.createElement("sl-entry");
+          byAttribute.setAttribute("status-tone", "failed");
+          byAttribute.item = { id: "d-attr", name: "designs", status: "failed", updated_at: "2026-10-12T16:41:07Z" };
+          main.append(byAttribute);
+        }
+        ${hook ? `main.style.setProperty("--accent-color", "rgb(1, 2, 3)");` : ""}
+        const entries = [...main.querySelectorAll("sl-entry")];
+        await Promise.all(entries.map((entry) => entry.updateComplete));
+        const root = entries[0].shadowRoot;
+        const resolve = (value) => {
+          const probe = root.appendChild(document.createElement("span"));
+          probe.style.color = value;
+          const resolved = getComputedStyle(probe).color;
+          probe.remove();
+          return resolved;
+        };
+        const hues = {
+          accent: resolve("var(--accent-color, var(--magenta))"),
+          green: resolve("var(--green)"),
+          orange: resolve("var(--orange)"),
+          red: resolve("var(--red)"),
+          muted: resolve("var(--fg-2)"),
+        };
+        const named = (color) => Object.keys(hues).find((hue) => hues[hue] === color) ?? color;
+        return {
+          distinct: new Set(Object.values(hues)).size === Object.keys(hues).length,
+          entries: entries.map((entry) => {
+            const status = entry.shadowRoot.querySelector(".status");
+            return [entry.statusTone, entry.getAttribute("status-tone"), status.textContent,
+              named(getComputedStyle(status).color)];
+          }),
+        };
+      })()`);
+      for (const hook of [false, true]) {
+        const where = hook ? "--accent-color set" : "at the accent hook's fallback";
+        const shown: { distinct: boolean; entries: unknown[][] } = await read(hook);
+        assert.ok(shown.distinct, `${where}: the hues differ`);
+        assert.deepEqual(
+          shown.entries,
+          [
+            ["active", "active", "active", "accent"],
+            ["complete", "complete", "complete", "green"],
+            ["incomplete", "incomplete", "incomplete", "orange"],
+            ["failed", "failed", "failed 3/5", "red"],
+            [null, null, "null", "muted"],
+            ["danger", "danger", "danger", "muted"],
+            ["failed", "failed", "failed", "red"],
+          ],
+          where,
+        );
+      }
+    } finally {
+      await page.close();
+    }
+  });
+
   /** A component as the profiles case renders it in one profile: the profile's every facet, the
    * component's tag and box, and its look, the color, font, and padding it shows. */
   interface Rendered {
@@ -1249,22 +1325,24 @@ describe("components", { timeout: 60_000 }, () => {
   const VIEWERS = `(section) => [...document.querySelectorAll(section + " sl-artifact-viewer")]`;
 
   test("the artifact viewer's specimen renders every state, at full size or held, within 20rem, in every profile", async () => {
-    // Every viewer shows its head and a region or a note. The viewer is as tall as its content,
-    // so no region scrolls down but run.log's, which the page holds to 16rem, and it does; at
-    // 20rem the states keep within the column, every part of each viewer inside its box, and a
-    // JSON line too long for the column scrolls its region sideways, never wrapping.
+    // Every viewer but the no-header ones shows its header, and every one a region or a note. The
+    // viewer is as tall as its content, so no region scrolls down but run.log's, which the page
+    // holds to 16rem, and it does; at 20rem the states keep within the column, every part of each
+    // viewer inside its box, and a JSON line too long for the column scrolls its region sideways,
+    // never wrapping.
     const measure = `() => {
       const list = document.querySelector(".narrow .states");
       const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
       const shown = (${VIEWERS})("main").map((viewer) => {
         const root = viewer.shadowRoot;
         const box = viewer.getBoundingClientRect();
-        const parts = [...root.querySelectorAll(".head, .name, .type, .frame, .note, .body")];
+        const parts = [...root.querySelectorAll(".header, .name, .type, .frame, .note, .body")];
         const region = root.querySelector(".body");
         return {
           name: viewer.name,
           narrow: viewer.closest(".narrow") !== null,
-          head: root.querySelector(".head") !== null,
+          header: root.querySelector(".header") !== null,
+          noHeader: viewer.noHeader,
           shown: root.querySelector(".body, .note") !== null,
           held: viewer.classList.contains("held"),
           height: box.height / rem,
@@ -1285,7 +1363,8 @@ describe("components", { timeout: 60_000 }, () => {
       States<{
         name: string;
         narrow: boolean;
-        head: boolean;
+        header: boolean;
+        noHeader: boolean;
         shown: boolean;
         held: boolean;
         height: number;
@@ -1297,12 +1376,23 @@ describe("components", { timeout: 60_000 }, () => {
       assert.ok(overflow <= 0, `${profile}: the states overflow the column by ${overflow}`);
       assert.equal(
         shown.length,
-        22,
-        `${profile}: nine states twice, the three fits, and the focus state`,
+        36,
+        `${profile}: sixteen states twice, the three fits, and the focus state`,
       );
-      for (const { name, narrow, head, shown: content, held, height, scrolls, outside } of shown) {
+      for (const {
+        name,
+        narrow,
+        header,
+        noHeader,
+        shown: content,
+        held,
+        height,
+        scrolls,
+        outside,
+      } of shown) {
         const where = `${profile}, ${name}${narrow ? " at 20rem" : ""}`;
-        assert.ok(head && content, `${where}: a head and a region or a note`);
+        assert.equal(header, !noHeader, `${where}: a header unless no-header`);
+        assert.ok(content, `${where}: a region or a note`);
         assert.equal(held, name === "run.log", `${where}: only run.log is held`);
         if (held) {
           assert.ok(Math.abs(height - 16) < 0.01, `${where}: held to ${height}rem, not 16rem`);
@@ -1319,6 +1409,11 @@ describe("components", { timeout: 60_000 }, () => {
       );
       const [json] = shown.filter(({ name, narrow }) => name === "run.json" && narrow);
       assert.ok(json.sideways, `${profile}: run.json's id line scrolls sideways at 20rem`);
+      assert.equal(
+        shown.filter(({ noHeader }) => noHeader).length,
+        12,
+        `${profile}: the six no-header states twice`,
+      );
     }
   });
 
@@ -1710,9 +1805,10 @@ describe("components", { timeout: 60_000 }, () => {
 
   test("the stage timeline's specimen renders every state within 20rem, its names, labels, and times whole, in every profile", async () => {
     // Every timeline shows the emulator's five stages. At 20rem the states keep within the column,
-    // every part of each timeline inside its box across. Each label and time keeps one line, and
-    // each step but the last, which has no connector, is one height within a timeline, whatever
-    // its state, as is each detail line.
+    // every part of each timeline inside its box across, a failed stage's reason too. Each label
+    // and time keeps one line, and each step but the last, which has no connector, is one height
+    // within a timeline, whatever its state, as is each detail line; the failed stage's reason
+    // adds its own height below its detail line, so its step is measured without it.
     const measure = `() => {
       const list = document.querySelector(".narrow .states");
       const lines = ${LINES};
@@ -1723,7 +1819,7 @@ describe("components", { timeout: 60_000 }, () => {
         return {
           narrow: timeline.closest(".narrow") !== null,
           steps: steps.length,
-          outside: [...root.querySelectorAll(".stage, .marker, .name, .detail, .label, .when")]
+          outside: [...root.querySelectorAll(".stage, .marker, .name, .detail, .label, .when, .reason")]
             .filter((part) => {
               const rect = part.getBoundingClientRect();
               return rect.left < box.left - 0.5 || rect.right > box.right + 0.5;
@@ -1732,7 +1828,8 @@ describe("components", { timeout: 60_000 }, () => {
           broken: [...root.querySelectorAll(".name, .label > .shown, time")]
             .filter((part) => lines(part) > 1)
             .map((part) => part.textContent),
-          heights: [...new Set(steps.slice(0, -1).map((step) => Math.round(step.getBoundingClientRect().height)))],
+          heights: [...new Set(steps.slice(0, -1).map((step) => Math.round(
+            step.getBoundingClientRect().height - (step.querySelector(".reason")?.getBoundingClientRect().height ?? 0))))],
           details: [...new Set(steps.map((step) => Math.round(step.querySelector(".detail").getBoundingClientRect().height)))],
         };
       });
@@ -2225,8 +2322,8 @@ describe("components", { timeout: 60_000 }, () => {
       assert.ok(overflow <= 0, `${profile}: the states overflow the column by ${overflow}`);
       assert.equal(
         shown.length,
-        20,
-        `${profile}: eight states twice, the three fits, and the focus state`,
+        22,
+        `${profile}: nine states twice, the three fits, and the focus state`,
       );
       for (const [
         index,

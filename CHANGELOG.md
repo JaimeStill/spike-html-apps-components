@@ -6,6 +6,44 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-01
+
+### Added
+
+- `sl-artifact-viewer`'s `noHeader` property, reflected to the `no-header` boolean attribute,
+  leaves out the viewer's header, the artifact's name and content type over its content, for a
+  page that shows them in a header of its own. The frame then starts where the header did, with
+  no gap, in every state, and every state keeps its accessible name, `<name> content`, so what
+  it shows stays tied to its artifact without the header. The default, the header shown, is
+  unchanged.
+- `sl-stage-timeline`'s `TimelineStage` takes a failed stage's `failedAt`, when it failed, and
+  `reason`, why, as a run's stage carries `failed_at` and `reason`. A failed stage shows
+  `failedAt` in its time's slot, and its reason on a line under its label, in the muted text with
+  the label in the failure's red, inside its list item, so assistive technology reads it with the
+  stage's name, state, and time. A long reason wraps to the timeline's width, never widening it,
+  the markers and the text column aligned. A failed stage with no `failedAt` still shows its
+  `completedAt`, so a consumer that passed the failure's time there keeps working; every other
+  state, and a reason on any stage but a failed one, is unchanged.
+- `sl-entry`'s `statusTone` property, reflected to the `status-tone` attribute, shows the status
+  in a status hue, by the components' own status vocabulary and hues: `active` in the accent
+  hook, `var(--accent-color, var(--magenta))`, as the timeline's active stage; `complete` in
+  `--green`; `incomplete` in `--orange`, as the chat thread's incomplete item; and `failed` in
+  `--red`. Only the color changes, so a tone moves nothing, and the status's text still says the
+  state. With no tone, or a value outside the four, the status stays muted in `--fg-2`, as
+  before; the item's shape is unchanged.
+- `sl-document-list`'s `DocumentItem` takes an optional `status_tone`, which the list hands to
+  the document's entry as its `statusTone`, so a failed run's status shows in red and a complete
+  one's in green. A document without one shows its status muted, as before.
+
+### Fixed
+
+- `sl-artifact-viewer` names every state for its artifact, as it named the ready content's
+  region. The loading, error, and unsupported notes, which sat in no named container, are now in
+  a region named `<name> content`, the frame around the note; invalid JSON's note describes its
+  raw text's region, by `aria-describedby`. Empty content of a supported type shows a note, "This
+  artifact is empty.", in that named frame, in place of an empty scrolling region; empty JSON,
+  which showed an invalid JSON note over an empty region, shows it too.
+
 ## [0.6.1] - 2026-11-01
 
 ### Fixed
@@ -338,7 +376,8 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 - The release by tag: `v<version>`, whose tree is the pack, with the tarball on its GitHub
   release.
 
-[Unreleased]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.6.1...HEAD
+[Unreleased]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.6.1...v0.7.0
 [0.6.1]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.4.0...v0.5.0

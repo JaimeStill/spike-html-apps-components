@@ -72,12 +72,27 @@
   overflow-wrap: anywhere;
 }
 /* The status is a quiet label, the smallest size, muted. Its auto margin takes the line's space the
-   name leaves, so it sits at the line's end, on the name's line or on its own; it never breaks. */
+   name leaves, so it sits at the line's end, on the name's line or on its own; it never breaks.
+   A status tone, the host's status-tone attribute, gives it the hue the components give that
+   state elsewhere: in progress the accent hook's, complete green, incomplete orange, failed red.
+   Only its color changes, so a tone moves nothing; its text still says the state. */
 .status {
   margin-inline-start: auto;
   font-size: var(--text-xs);
   color: var(--fg-2);
   white-space: nowrap;
+}
+:host([status-tone="active"]) .status {
+  color: var(--accent-color, var(--magenta));
+}
+:host([status-tone="complete"]) .status {
+  color: var(--green);
+}
+:host([status-tone="incomplete"]) .status {
+  color: var(--orange);
+}
+:host([status-tone="failed"]) .status {
+  color: var(--red);
 }
 /* The kind, "file" or "directory", names the entry for assistive technology and takes no space:
    out of the grid's flow, a pixel inside the button, which holds it, and clipped to nothing, so it

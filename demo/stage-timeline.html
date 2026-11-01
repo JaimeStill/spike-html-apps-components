@@ -6,14 +6,15 @@
     <title>stage timeline specimen</title>
     <!-- The stage timeline's specimen page, from dist/: a run's five stages, as the emulator names
          them, all pending; part way, two complete and the third in progress; complete; and failed,
-         the third failing after two completed. Every state is labelled, then shown again in a
-         section 20rem wide; the fit section holds the part-way timeline in three parents that size
-         it to their content, an inline-block, a content-sized flex item, and a grid's auto track.
-         The timeline holds nothing focusable, so the page has no focus section. It draws no frame
-         of its own, and main is unframed: no specimen frame around it, so the capture shows it as a
-         page holds it. The page links the installed foundation's full entry, page-full.css, and
-         imports register-full.js, so a profile applies by attribute on the root; its import map is
-         components.html's, so it runs served only: mise run demo, or mise run screenshots. -->
+         the third failing after two completed, at its time and with the emulator's reason. Every
+         state is labelled, then shown again in a section 20rem wide; the fit section holds the
+         part-way timeline in three parents that size it to their content, an inline-block, a
+         content-sized flex item, and a grid's auto track. The timeline holds nothing focusable, so
+         the page has no focus section. It draws no frame of its own, and main is unframed: no
+         specimen frame around it, so the capture shows it as a page holds it. The page links the
+         installed foundation's full entry, page-full.css, and imports register-full.js, so a
+         profile applies by attribute on the root; its import map is components.html's, so it runs
+         served only: mise run demo, or mise run screenshots. -->
     <link rel="stylesheet" href="/deps/@jaimestill/spike-html-apps-foundation/dist/page-full.css" />
     <link rel="stylesheet" href="demo.css" />
     <script type="importmap">
@@ -58,14 +59,23 @@
       const pending = run(["pending", "pending", "pending", "pending", "pending"]);
       const partWay = run(["complete", "complete", "active", "pending", "pending"]);
       const complete = run(["complete", "complete", "complete", "complete", "complete"]);
-      const failed = run(["complete", "complete", "failed", "pending", "pending"]);
+      // The failed stage at its failure time, with the reason the emulator's fail rule gives.
+      const failed = run(["complete", "complete", "failed", "pending", "pending"]).map((stage) =>
+        stage.state === "failed"
+          ? {
+              ...stage,
+              failedAt: times[stage.position - 1],
+              reason: 'emulated failure: the document\'s name matches the fail rule "fail-at-*:extraction"',
+            }
+          : stage,
+      );
 
       const timeline = (stages) => () => make("sl-stage-timeline", { stages });
       specimens([
         { label: "All pending: the run has not started", build: timeline(pending) },
         { label: "Part way: two complete, extraction in progress", build: timeline(partWay) },
         { label: "Complete: every stage, each with its time", build: timeline(complete) },
-        { label: "Failed: extraction failed after two completed", build: timeline(failed) },
+        { label: "Failed: extraction failed after two completed, with its time and reason", build: timeline(failed) },
       ]);
       // The part-way timeline in each parent that sizes it to its content, by the parent's class
       // in demo.css.
@@ -87,7 +97,8 @@
       <h1>Stage timeline</h1>
       <p>
         <code>sl-stage-timeline</code>, a run's stages as a connected list of steps, each its name,
-        its state, and when it completed, in each of the run's states.
+        its state, and when it completed or failed, a failed stage with why, in each of the run's
+        states.
       </p>
 
       <section id="states">

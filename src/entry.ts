@@ -40,6 +40,14 @@ export interface FileItem extends DirectoryItem {
 /** What the entry shows: a directory, or a file, told apart by its `content_type`. */
 export type EntryItem = DirectoryItem | FileItem;
 
+/**
+ * The hue the entry's status takes, by the components' status vocabulary: `active`, in progress,
+ * the accent hook's, as sl-stage-timeline's active stage; `complete`, green, as its complete
+ * stage; `incomplete`, orange, as sl-chat-thread's incomplete item; and `failed`, red, as a failed
+ * stage, item, or upload. The status's text says the state; the tone marks it to the eye.
+ */
+export type StatusTone = "active" | "complete" | "incomplete" | "failed";
+
 /** `open`'s detail: the entry's id and kind. */
 export interface OpenDetail {
   id: string;
@@ -96,7 +104,9 @@ function renderTime(updatedAt: string) {
  * once and in order, still says which it is, after the status. Activating it sends `open` with its
  * id and kind. `selected` frames the entry's button in the accent color, a mark to the eye
  * only: the consumer that selects it says so to assistive technology, as sl-document-list does
- * with aria-current on its item.
+ * with aria-current on its item. `statusTone`, reflected to the `status-tone` attribute, shows the
+ * status in a status hue; with none, or a value outside StatusTone, it stays muted. The tone is the
+ * consumer's reading of the status, not the item's data, so the item keeps its API's shape.
  */
 export class Entry extends LitElement {
   static styles = [reset, elements, styles];
@@ -104,17 +114,21 @@ export class Entry extends LitElement {
   static properties = {
     item: { attribute: false },
     selected: { type: Boolean, reflect: true },
+    statusTone: { type: String, reflect: true, attribute: "status-tone" },
   } satisfies PropertyDeclarations;
 
   /** The directory or file shown; nothing renders while it is null. */
   declare item: EntryItem | null;
   /** Frames the entry as the selected one; reflected to the `selected` attribute. */
   declare selected: boolean;
+  /** The status's hue, or null for the muted default; reflected to the `status-tone` attribute. */
+  declare statusTone: StatusTone | null;
 
   constructor() {
     super();
     this.item = null;
     this.selected = false;
+    this.statusTone = null;
   }
 
   #open(): void {

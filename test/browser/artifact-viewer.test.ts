@@ -2,7 +2,8 @@
 // content type takes, its parameters and case aside; JSON pretty-printed, and invalid JSON's raw
 // text under its note; a type that isn't text as a note, never its bytes; the loading and error
 // states; long content scrolling inside the viewer, by the keyboard once Tab reaches its region;
-// and no event sent.
+// with noHeader, no header, the region's name kept, and no gap where the header was; every state's
+// container named for the artifact, with noHeader or without; and no event sent.
 
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
@@ -29,6 +30,16 @@ interface View {
   rendered: string[];
 }
 
+/** A node of the page's accessibility tree, as Accessibility.getFullAXTree gives it. */
+interface AXNode {
+  nodeId: string;
+  ignored: boolean;
+  role?: { value: string };
+  name?: { value: string };
+  description?: { value: string };
+  childIds?: string[];
+}
+
 describe("artifact viewer", { timeout: 60_000 }, () => {
   let server: Server;
   let browser: Browser;
@@ -38,7 +49,7 @@ describe("artifact viewer", { timeout: 60_000 }, () => {
     browser = await launch();
     page = await browser.open(`${server.origin}/test/fixtures/components.html`);
     // window.shown(fields) renders a viewer of the fields into main, resolving to what its shadow
-    // root shows: the head's name and type, each note's label and detail, the region's element,
+    // root shows: the header's name and type, each note's label and detail, the region's element,
     // text, and tabindex, and whether a heading, list, or table rendered.
     await page.evaluate(`window.verdict.then(async () => {
       await import("/dist/artifact-viewer.js");
@@ -293,6 +304,169 @@ describe("artifact viewer", { timeout: 60_000 }, () => {
       assert.ok(gaps.inline >= 0.5, `${where}: ${gaps.inline}rem past the content's inline end`);
       assert.ok(gaps.block >= 0.5, `${where}: ${gaps.block}rem past the content's block end`);
     }
+  });
+
+  // The viewer's layout and its region's names in the accessibility tree, for the fields: whether
+  // a header renders and shows, the header's and the frame's tops from the host's, and the names of
+  // the regions exposed.
+  const laidOut = async (
+    fields: Record<string, unknown>,
+  ): Promise<{
+    header: boolean;
+    headerTop: number | null;
+    frameTop: number;
+    regions: string[];
+  }> => {
+    await shown(fields);
+    const box: { header: boolean; headerTop: number | null; frameTop: number } =
+      await page.evaluate(`(() => {
+      const viewer = document.querySelector("sl-artifact-viewer");
+      const root = viewer.shadowRoot;
+      const top = viewer.getBoundingClientRect().top;
+      const header = root.querySelector("header");
+      return {
+        header: header !== null && header.checkVisibility(),
+        headerTop: header && header.getBoundingClientRect().top - top,
+        frameTop: root.querySelector(".frame").getBoundingClientRect().top - top,
+      };
+    })()`);
+    const { nodes }: { nodes: AXNode[] } = await page.cdp("Accessibility.getFullAXTree", {});
+    const regions = nodes
+      .filter((node) => !node.ignored && node.role?.value === "region")
+      .map((node) => node.name?.value ?? "");
+    return { ...box, regions };
+  };
+
+  for (const contentType of ["text/markdown", "application/json", "text/plain"]) {
+    test(`${contentType}: with noHeader, no header shows, the region keeps its name, and the frame starts where the header did`, async () => {
+      const fields = { name: "notes.md", contentType, content: "[1]" };
+      const headed = await laidOut(fields);
+      assert.equal(headed.header, true, "without noHeader, the header shows");
+      assert.ok(headed.frameTop > 0, `without noHeader, the frame sits ${headed.frameTop} below`);
+      assert.deepEqual(headed.regions, ["notes.md content"]);
+      const bare = await laidOut({ ...fields, noHeader: true });
+      assert.equal(bare.header, false, "no header renders");
+      assert.equal(bare.headerTop, null, "no header element");
+      assert.ok(
+        Math.abs(bare.frameTop - (headed.headerTop ?? NaN)) <= 0.5,
+        `the frame's top, ${bare.frameTop}, is the header's, ${headed.headerTop}`,
+      );
+      assert.deepEqual(bare.regions, headed.regions, "the region's accessible name is unchanged");
+    });
+  }
+
+  // The regions the accessibility tree exposes, each with its name, its description, and the text
+  // of the static text nodes beneath it, joined by spaces.
+  const regions = async (): Promise<{ name: string; description: string; text: string }[]> => {
+    const { nodes }: { nodes: AXNode[] } = await page.cdp("Accessibility.getFullAXTree", {});
+    const byId = new Map(nodes.map((node) => [node.nodeId, node]));
+    const text = (node: AXNode): string[] =>
+      node.role?.value === "StaticText"
+        ? [node.name?.value ?? ""]
+        : (node.childIds ?? []).flatMap((id) => {
+            const child = byId.get(id);
+            return child ? text(child) : [];
+          });
+    return nodes
+      .filter((node) => !node.ignored && node.role?.value === "region")
+      .map((node) => ({
+        name: node.name?.value ?? "",
+        description: node.description?.value ?? "",
+        text: text(node).join(" "),
+      }));
+  };
+
+  // Each state that isn't a region's content alone, with what its named container holds: its
+  // text, and the invalid JSON's note as the description of the raw text's region.
+  const states: {
+    state: string;
+    fields: Record<string, unknown>;
+    holds: string[];
+    description: RegExp;
+  }[] = [
+    {
+      state: "loading",
+      fields: { contentType: "text/markdown", content: "# stale", state: "loading" },
+      holds: ["Loading…"],
+      description: /^$/,
+    },
+    {
+      state: "error",
+      fields: {
+        contentType: "text/markdown",
+        state: "error",
+        message: "The pipeline returned 404.",
+      },
+      holds: ["Couldn't load this artifact.", "The pipeline returned 404."],
+      description: /^$/,
+    },
+    {
+      state: "invalid JSON",
+      fields: { contentType: "application/json", content: '{"id": run-1}' },
+      holds: ['{"id": run-1}'],
+      description: /^Invalid JSON, shown as text\. .*JSON/,
+    },
+    {
+      state: "unsupported",
+      fields: { contentType: "image/png", content: "-the-bytes-" },
+      holds: ["This content type can't be shown.", "image/png isn't text."],
+      description: /^$/,
+    },
+    {
+      state: "empty",
+      fields: { contentType: "text/plain", content: "" },
+      holds: ["This artifact is empty."],
+      description: /^$/,
+    },
+  ];
+  for (const { state, fields, holds, description } of states) {
+    test(`${state}: the state's container is named for the artifact, with noHeader or without, and noHeader leaves no header and no gap`, async () => {
+      for (const noHeader of [false, true]) {
+        const where = `${state}${noHeader ? ", noHeader" : ""}`;
+        const box = await laidOut({ name: "report.md", ...fields, noHeader });
+        assert.equal(box.header, !noHeader, `${where}: a header unless noHeader`);
+        if (noHeader) {
+          assert.equal(box.headerTop, null, `${where}: no header element`);
+          assert.ok(
+            Math.abs(box.frameTop) <= 0.5,
+            `${where}: the frame starts ${box.frameTop} down`,
+          );
+        }
+        const named = await regions();
+        assert.deepEqual(
+          named.map(({ name }) => name),
+          ["report.md content"],
+          `${where}: one region, named for the artifact`,
+        );
+        for (const part of holds) {
+          assert.ok(named[0].text.includes(part), `${where}: "${named[0].text}" holds "${part}"`);
+        }
+        assert.match(named[0].description, description, `${where}: its description`);
+      }
+    });
+  }
+
+  test("the no-header attribute sets noHeader, and noHeader reflects to it", async () => {
+    const view = await page.evaluate(`(async () => {
+      const main = document.querySelector("main");
+      main.innerHTML =
+        '<sl-artifact-viewer no-header name="a.json" content-type="application/json" content="[1]"></sl-artifact-viewer>';
+      const viewer = main.firstElementChild;
+      await viewer.updateComplete;
+      const read = () => ({
+        noHeader: viewer.noHeader,
+        attribute: viewer.hasAttribute("no-header"),
+        header: viewer.shadowRoot.querySelector("header") !== null,
+      });
+      const set = read();
+      viewer.noHeader = false;
+      await viewer.updateComplete;
+      return { set, cleared: read() };
+    })()`);
+    assert.deepEqual(view, {
+      set: { noHeader: true, attribute: true, header: false },
+      cleared: { noHeader: false, attribute: false, header: true },
+    });
   });
 
   test("the viewer sends no event as its properties change", async () => {

@@ -16,9 +16,9 @@ the one copy serves both, so a restyle of the foundation's sheets by package nam
 components' shadow roots too. Install both by their tags:
 
 ```
-npm install --allow-git=root github:JaimeStill/spike-html-apps-components#v0.6.1 github:JaimeStill/spike-html-apps-foundation#v0.3.0
-pnpm add github:JaimeStill/spike-html-apps-components#v0.6.1 github:JaimeStill/spike-html-apps-foundation#v0.3.0
-bun add github:JaimeStill/spike-html-apps-components#v0.6.1 github:JaimeStill/spike-html-apps-foundation#v0.3.0
+npm install --allow-git=root github:JaimeStill/spike-html-apps-components#v0.7.0 github:JaimeStill/spike-html-apps-foundation#v0.3.0
+pnpm add github:JaimeStill/spike-html-apps-components#v0.7.0 github:JaimeStill/spike-html-apps-foundation#v0.3.0
+bun add github:JaimeStill/spike-html-apps-components#v0.7.0 github:JaimeStill/spike-html-apps-foundation#v0.3.0
 ```
 
 Or by their release tarballs:
@@ -55,13 +55,15 @@ foundation's `page.css`:
 ```
 
 - `./status-badge.js`: `sl-status-badge`, a label; a click dispatches `badge-select`.
-- `./entry.js`: `sl-entry`, one directory or file of a document hierarchy, as a button, its name
-  the primary text and its status a quiet label, over a meta line of a file's size and content
-  type and the time, its kind named to assistive technology alone; it dispatches `open`, and
-  `selected`, reflected, frames it in the accent color, moving nothing. It formats a file's
-  size and its updated time with the foundation's `formatBytes` and `formatDateTime`. It sizes to
-  its content in any parent, a shrink-to-fit one too, and stays inside its box down to 16rem, its
-  supported minimum width.
+- `./entry.js`: `sl-entry`, one directory or file of a document hierarchy, as a button, its name the
+  primary text and its status a quiet label, over a meta line of a file's size and content type and
+  the time, its kind named to assistive technology alone; it dispatches `open`, and `selected`,
+  reflected, frames it in the accent color, moving nothing. `status-tone` (`statusTone`), reflected,
+  shows the status in the components' status hues: `active` the accent hook's, `complete` green,
+  `incomplete` orange, `failed` red; with none it stays muted. It formats a file's size and its
+  updated time with the foundation's `formatBytes` and `formatDateTime`. It sizes to its content in
+  any parent, a shrink-to-fit one too, and stays inside its box down to 16rem, its supported minimum
+  width.
 - `./pagination.js`: `sl-pagination`, a page of entries between its summary and its controls, a
   `status` slot running on after the summary's text; it dispatches `page-change` and
   `page-size-change`.
@@ -70,8 +72,11 @@ foundation's `page.css`:
   to an http, https, or mailto URL or a relative one. It is the one module that imports marked,
   which an import map then maps too.
 - `./artifact-viewer.js`: `sl-artifact-viewer`, one artifact's content by its content type, as
-  rendered Markdown, pretty-printed JSON, or preformatted text, scrolling inside the viewer; it
-  sends no event. It imports `./markdown.js`, so its page maps marked too.
+  rendered Markdown, pretty-printed JSON, or preformatted text, scrolling inside the viewer, under
+  a header of its name and content type that `no-header` (`noHeader`) leaves out, for a page whose
+  own header shows them. Every state, its content or its loading, error, invalid JSON,
+  unsupported, or empty note, is in a region named `<name> content`, header or not. It sends no
+  event. It imports `./markdown.js`, so its page maps marked too.
 - `./chat-thread.js`: `sl-chat-thread`, a conversation's items in order, a structural subset of
   Open Responses: a user's text as plain text, the assistant's as rendered Markdown, a refusal
   labelled, and a streaming reply re-rendered in place; with `verbose`, reasoning, function calls,
@@ -86,10 +91,12 @@ foundation's `page.css`:
   its finished state; it dispatches `files-select` with an array of the files, and
   `upload-cancel` with an upload's id. It exports its upload type and binds no key.
 - `./stage-timeline.js`: `sl-stage-timeline`, a run's stages as a connected, ordered list of
-  steps in their positions' order, each its name, its state's label and marker, and its completion
-  time by the foundation's `formatDateTime`; the active stage is the current step, and a stage that
-  advances changes in place, moving nothing. It exports its stage type, holds nothing focusable,
-  and sends no event.
+  steps in their positions' order, each its name, its state's label and marker, and its time by
+  the foundation's `formatDateTime`, a complete stage's `completedAt` or a failed one's `failedAt`;
+  a failed stage's `reason` shows under its label, part of its step for assistive technology, and
+  wraps to the timeline's width without widening it. The active stage is the current step, and a
+  stage that advances changes in place, moving nothing. It exports its stage type, holds nothing
+  focusable, and sends no event.
 - `./event-log.js`: `sl-event-log`, events as a log in the order given, each its type, its time by
   the foundation's `formatDateTime`, its source, subject, and id, and its data pretty-printed in a
   native details, collapsed; events appended leave those shown in place, and a constrained log
@@ -101,10 +108,11 @@ foundation's `page.css`:
   states. It exports its match type and binds no key.
 - `./document-list.js`: `sl-document-list`, a page of documents composed of the components above,
   an `sl-entry` per document inside one `sl-pagination`, whose properties it takes under the same
-  names and hands through; it frames the selected document's entry, and has empty, loading, and
-  error states, said on the pagination's summary line when it shows one. The entry's `open` and
-  the pagination's `page-change` and `page-size-change` reach its listener as their parts sent
-  them; it dispatches none of its own. It exports its document type and binds no key.
+  names and hands through; it frames the selected document's entry, hands a document's
+  `status_tone` to its entry as its status tone, and has empty, loading, and error states, said
+  on the pagination's summary line when it shows one. The entry's `open` and the pagination's
+  `page-change` and `page-size-change` reach its listener as their parts sent them; it dispatches
+  none of its own. It exports its document type and binds no key.
 - `./drawer.js`: `sl-drawer`, its children in the default slot, in one of two shadow wrappers by
   the viewport. At `dock`, a CSS length, 48rem by default, and wider, read in the media query
   `(width < <dock>)` so that exactly `dock` docks, they sit in an `aside` docked inline as an

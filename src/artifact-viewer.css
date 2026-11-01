@@ -2,14 +2,15 @@
  * The artifact viewer's layout in a shadow root: artifact-viewer.ts adopts this sheet into its
  * root after the foundation's reset and elements sheets (baseline/reset.css and elements.css),
  * which give the pre and the rendered Markdown their look. It holds the viewer's layout, its
- * head's type, and its one frame: the frame holds the region, a note, or the invalid JSON note
+ * header's type, and its one frame: the frame holds the region, a note, or the invalid JSON note
  * over its region, so every view and every state sits in the same box, and the pre that is the
  * region gives up its own border to it. It reads only the foundation's baseline tokens, which a
  * shadow root takes by inheritance from the page's entry. Unlayered, it sits above the adopted
  * layers in the root.
  *
- * The host is a flex column: the head, then the frame, itself a flex column of a note and the
- * region. Unconstrained, the viewer is as tall as its content. A consumer that constrains its
+ * The host is a flex column: the header, then the frame, itself a flex column of a note and the
+ * region. With no-header the header isn't rendered, its margin with it, so the frame starts at
+ * the host's top, in every state. Unconstrained, the viewer is as tall as its content. A consumer that constrains its
  * block size, by a block-size or max-block-size on the host or a sized flex or grid parent, holds
  * it there: the region fills the frame's share and shrinks to it, and long content scrolls inside
  * the one frame.
@@ -24,10 +25,10 @@
   display: flex;
   flex-direction: column;
 }
-/* The head: the name, then the content type at the line's end, in a row that wraps, as the
+/* The header: the name, then the content type at the line's end, in a row that wraps, as the
    entry's head does. Each breaks anywhere, having no space to break at, so a narrow viewer keeps
    both inside its box. */
-.head {
+.header {
   flex: none;
   display: flex;
   flex-wrap: wrap;
@@ -107,8 +108,8 @@
   inline-size: var(--space-s);
   block-size: 1px;
 }
-/* A note: the loading, error, invalid, and unsupported states' label, and its detail on the line
-   below, a band in the frame. Over the invalid JSON's region, a line parts the two. */
+/* A note: the loading, error, invalid, unsupported, and empty states' label, and its detail on the
+   line below, a band in the frame. Over the invalid JSON's region, a line parts the two. */
 .note {
   flex: none;
   display: grid;
