@@ -324,18 +324,28 @@ describe("artifact viewer", { timeout: 60_000 }, () => {
     assert.deepEqual(view, { pre: 1024 * 1024 + 2, notes: [], made: 0 });
   });
 
+  // In the page, a Blob of the parts whose bytes, read by any of a Blob's reads or a slice's, are
+  // held until release() lets them go, as `const { blob, release } = held(parts)`.
+  const held = `(parts) => {
+    let release;
+    const gate = new Promise((resolve) => { release = resolve; });
+    class Held extends Blob {
+      slice(...args) { return new Held([super.slice(...args)]); }
+      async arrayBuffer() { await gate; return super.arrayBuffer(); }
+      async bytes() { await gate; return super.bytes(); }
+      async text() { await gate; return super.text(); }
+      stream() { throw new Error("held"); }
+    }
+    return { blob: new Held(parts), release };
+  }`;
+
   test("an unknown type's Blob shows loading until read, and its download URL goes when text replaces it", async () => {
     const steps: { notes: string[]; pre: string | null; href: string | null; revoked: string[] }[] =
       await page.evaluate(`(async () => {
       // A PNG whose bytes are held until the test lets them be read.
-      let release;
-      const held = new Promise((resolve) => { release = resolve; });
-      const png = window.media.png();
-      class Held extends Blob {
-        async arrayBuffer() { await held; return png.arrayBuffer(); }
-      }
+      const { blob, release } = (${held})([window.media.png()]);
       const viewer = Object.assign(document.createElement("sl-artifact-viewer"),
-        { name: "x", contentType: "application/x-unknown", content: new Held([png]) });
+        { name: "x", contentType: "application/x-unknown", content: blob });
       const steps = [];
       const step = () => {
         const root = viewer.shadowRoot;
@@ -362,6 +372,40 @@ describe("artifact viewer", { timeout: 60_000 }, () => {
     assert.match(binary.href ?? "", /^blob:/);
     assert.deepEqual([text.notes, text.pre, text.href], [[], "now text", null]);
     assert.ok(text.revoked.includes(binary.href ?? ""), "the download's URL is revoked");
+  });
+
+  test("an unknown type's Blob read after its content changed never shows over the new content", async () => {
+    const shown: { notes: string[]; pre: string | null; href: string | null }[] =
+      await page.evaluate(`(async () => {
+      // A binary Blob and a text one, each held; the first given, then replaced by the second,
+      // and the first's read let go only after the second's has shown.
+      const binary = (${held})([window.media.png()]);
+      const text = (${held})(["the new text"]);
+      const viewer = Object.assign(document.createElement("sl-artifact-viewer"),
+        { name: "x", contentType: "application/x-unknown", content: binary.blob });
+      document.querySelector("main").replaceChildren(viewer);
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      viewer.content = text.blob;
+      text.release();
+      await viewer.updateComplete;
+      const read = () => {
+        const root = viewer.shadowRoot;
+        return { notes: [...root.querySelectorAll(".note")].map((note) => note.classList[1]),
+          pre: root.querySelector("pre")?.textContent ?? null,
+          href: root.querySelector(".download")?.getAttribute("href") ?? null };
+      };
+      const before = read();
+      binary.release();
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      await viewer.updateComplete;
+      return [before, read()];
+    })()`);
+    const now = { notes: [], pre: "the new text", href: null };
+    assert.deepEqual(
+      shown,
+      [now, now],
+      "the new content's text, before and after the old read ends",
+    );
   });
 
   test("valid JSON nested 20,000 deep shows its outer 64 levels formatted, the rest as written", async () => {

@@ -121,16 +121,15 @@ function hasControl(text: string): boolean {
   return false;
 }
 
-// A Blob's bytes as text, or null when the bytes are binary or can't be read.
+// A Blob's bytes as text, or null when the bytes are binary or can't be read. Only the first MiB
+// is read to decide, so a large binary Blob is never read whole.
 async function textOf(blob: Blob): Promise<string | null> {
   try {
-    const bytes = new Uint8Array(await blob.arrayBuffer());
-    const head = bytes.subarray(0, SNIFF_BYTES);
-    const decided = new TextDecoder("utf-8", { fatal: true }).decode(head, {
-      stream: bytes.length > SNIFF_BYTES,
-    });
+    const more = blob.size > SNIFF_BYTES;
+    const head = await blob.slice(0, SNIFF_BYTES).arrayBuffer();
+    const decided = new TextDecoder("utf-8", { fatal: true }).decode(head, { stream: more });
     if (hasControl(decided)) return null;
-    return bytes.length > SNIFF_BYTES ? new TextDecoder().decode(bytes) : decided;
+    return more ? await blob.text() : decided;
   } catch {
     return null;
   }
@@ -163,9 +162,9 @@ function pretty(content: string): Json {
  * its own. Markdown renders through `markdown()`; valid JSON is formatted from its own tokens by
  * `formatJson()`, two spaces an indent, so its keys, their order, duplicates, numbers, and
  * strings show as written, never parsed and printed again; and other text, text/html, XML, and
- * SVG's source included, is shown as it is, never as a page and from no URL. JSON that doesn't parse shows its raw text under a note saying so, and empty
- * content a note saying so. Long content scrolls inside the viewer, in a region the keyboard
- * reaches.
+ * SVG's source included, is shown as it is, never as a page and from no URL. JSON that doesn't
+ * parse shows its raw text under a note saying so, and empty content a note saying so. Long
+ * content scrolls inside the viewer, in a region the keyboard reaches.
  *
  * A PDF, an image, audio, or video shows from a Blob, natively: a PDF in an iframe, the browser's
  * own viewer, as tall as the viewer allows; an image no wider than the viewer and never past its
