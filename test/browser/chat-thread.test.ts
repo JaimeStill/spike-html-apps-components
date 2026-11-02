@@ -8,8 +8,9 @@
 // it the same nodes; the verbose attribute reflected; a held frame opening at its end and following
 // the newest item, as items are added and a streaming reply grows, only from its end or on a user's
 // message, alone or with the reply's first text, the reader scrolling by the wheel, under a page
-// zoom too, and scrolling instantly; a thread not held scrolling no container of its consumer's;
-// and no event sent.
+// zoom too, and scrolling instantly; a details opened at a held frame's end followed, under reduced
+// motion too, and a reader scrolled up keeping their place; a thread not held scrolling no
+// container of its consumer's; and no event sent.
 
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
@@ -800,6 +801,54 @@ describe("chat thread", { timeout: 60_000 }, () => {
     for (const [index, { top, end }] of places.entries()) {
       assert.equal(top, end, `step ${index}: at its end once the update completes`);
     }
+  });
+
+  // A held thread's details opened at its end, by a click on its summary, the native toggle, with
+  // no update of the thread's: opened(scroll) mounts a held, verbose thread whose last item is a
+  // call with long arguments, scrolled up by the wheel first when asked, and resolves to the
+  // frame's place before the click and two frames after it.
+  const opened = async (scroll?: "up") => {
+    const args = JSON.stringify(
+      Object.fromEntries(Array.from({ length: 12 }, (_, key) => [`key_${key}`, key])),
+    );
+    const items = [...turns(4), { ...call, arguments: args }];
+    const [, before] = await followed([
+      { items, verbose: true },
+      { items, ...(scroll ? { scroll } : {}) },
+    ]);
+    const after: Where = await page.evaluate(`new Promise((resolve) => {
+      [...window.held.querySelectorAll("summary")].at(-1).click();
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve({
+        top: Math.round(window.held.scrollTop),
+        end: Math.round(window.held.scrollHeight - window.held.clientHeight),
+      })));
+    })`);
+    return { before, after };
+  };
+
+  test("held at its end, a details opened in the last item keeps the frame's end in view", async () => {
+    const { before, after } = await opened();
+    assert.equal(before.top, before.end, "at its end before the click");
+    assert.ok(after.end > before.end, `the details grew the scroll: ${JSON.stringify(after)}`);
+    assert.equal(after.top, after.end, "and the frame followed it to its end");
+  });
+
+  test("scrolled up by the reader, a details opened at the end keeps their place", async () => {
+    const { before, after } = await opened("up");
+    assert.ok(before.top < before.end, `the wheel scrolled it up: ${JSON.stringify(before)}`);
+    assert.ok(after.end > before.end, "the details grew the scroll");
+    assert.equal(after.top, before.top, "and the reader's place is kept");
+  });
+
+  test("under reduced motion, a details opened at the end keeps the frame's end in view", async () => {
+    await page.cdp("Emulation.setEmulatedMedia", {
+      features: [{ name: "prefers-reduced-motion", value: "reduce" }],
+    });
+    const { before, after } = await opened();
+    await page.cdp("Emulation.setEmulatedMedia", { features: [] });
+    assert.equal(before.top, before.end, "at its end before the click");
+    assert.ok(after.end > before.end, "the details grew the scroll");
+    assert.equal(after.top, after.end, "and the frame followed it to its end");
   });
 
   test("not held, the thread is as tall as its content and scrolls no container it doesn't own", async () => {

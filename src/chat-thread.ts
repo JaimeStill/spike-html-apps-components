@@ -126,11 +126,12 @@ const STATUS_LABELS: Partial<Record<ItemStatus, string>> = {
  * its scroll position, snapped to the device pixel, leave up to two pixels between, and more
  * under a CSS zoom below 1, where a device pixel is more than a CSS one; within one CSS pixel, the
  * follow would stop by itself at a zoom of 0.9 or 1.1. A browser without `currentCSSZoom` is taken
- * as unzoomed.
+ * as unzoomed. `height` is the scroll height to measure against, the frame's own by default, or
+ * the one it had before its content grew.
  */
-function atEnd(frame: HTMLElement): boolean {
+function atEnd(frame: HTMLElement, height = frame.scrollHeight): boolean {
   const zoom = Math.min((frame.currentCSSZoom as number | undefined) ?? 1, 1);
-  return frame.scrollHeight - frame.clientHeight - frame.scrollTop <= 2 / zoom;
+  return height - frame.clientHeight - frame.scrollTop <= 2 / zoom;
 }
 
 /**
@@ -154,10 +155,22 @@ function atEnd(frame: HTMLElement): boolean {
  * up keeps their place as the reply streams on, and one who scrolls back to the end is followed
  * again. A conversation reads from its newest item, so the first items shown open at the end, and a
  * user's message added to the end, the one the reader just sent, alone or with the reply's first
- * text, brings the frame to its end wherever the reader was. The scroll is instant, never smooth,
- * under any motion preference. The thread follows only in its own frame: unconstrained, it is as
- * tall as its content and its consumer's scroll moves it, which the thread never scrolls, so a
- * consumer that wants it followed holds it to a height.
+ * text, brings the frame to its end wherever the reader was. Content at the end that grows with no
+ * update, a details the reader opens in the last item or an image that loads, is followed the
+ * same way: while the reader is at the frame's end, its end stays in view, and a reader who
+ * scrolled up keeps their place. The scroll is instant, never smooth, under any motion preference.
+ * The thread follows only in its own frame: unconstrained, it is as tall as its content and its
+ * consumer's scroll moves it, which the thread never scrolls, so a consumer that wants it followed
+ * holds it to a height.
+ *
+ * Growth with no update is seen by a ResizeObserver on the frame's content, the list or the empty
+ * note, rather than by the details' toggle event: it sees every cause of growth, an image's load
+ * as well as a disclosure, and the details toggle natively, unwatched. Its callback runs after
+ * layout, when the growth is already in the frame's scroll height, so the reader's place is
+ * measured against the scroll height the content had when last seen, by the last update or the
+ * last callback. A scroll listener keeping whether the reader was at the end would be wrong: the
+ * frame's scroll event can be dispatched after the content grows and before the callback runs,
+ * and read the grown height.
  */
 export class ChatThread extends LitElement {
   static styles = [reset, elements, styles];
@@ -176,10 +189,43 @@ export class ChatThread extends LitElement {
    * no items yet, or the update adds a user's message. */
   #follow = false;
 
+  /** The frame's scroll height when its content was last seen, by the last update or the last
+   * resize: the end the reader was at, or not, before the content grew with no update. */
+  #height = 0;
+
+  /** The frame's content the observer watches: the list, or the empty note before any item. */
+  #content: Element | null = null;
+
+  // The content grown or shrunk: its end kept in view while the reader was at the end it had. A
+  // reader at the end of content that shrank is at its new end already, the browser's clamp. The
+  // scroll leaves the content's size alone, so it never loops the observer.
+  #resized = new ResizeObserver(() => {
+    const frame = this.renderRoot.querySelector<HTMLElement>(".frame");
+    if (!frame) return;
+    if (atEnd(frame, this.#height)) this.#end();
+    this.#height = frame.scrollHeight;
+  });
+
   constructor() {
     super();
     this.items = [];
     this.verbose = false;
+  }
+
+  override connectedCallback() {
+    super.connectedCallback();
+    if (this.#content) this.#resized.observe(this.#content);
+  }
+
+  override disconnectedCallback() {
+    super.disconnectedCallback();
+    this.#resized.disconnect();
+  }
+
+  // The frame scrolled to its end, instantly: the follow's one scroll.
+  #end() {
+    const frame = this.renderRoot.querySelector<HTMLElement>(".frame");
+    if (frame) frame.scrollTop = frame.scrollHeight;
   }
 
   protected override willUpdate(changed: PropertyValues<this>) {
@@ -200,10 +246,21 @@ export class ChatThread extends LitElement {
   }
 
   protected override updated() {
-    if (!this.#follow) return;
-    this.#follow = false;
+    if (this.#follow) {
+      this.#follow = false;
+      this.#end();
+    }
     const frame = this.renderRoot.querySelector<HTMLElement>(".frame");
-    if (frame) frame.scrollTop = frame.scrollHeight;
+    if (!frame) return;
+    // The content as this update left it, followed or not; and observed anew when the list
+    // replaced the empty note, or the note the list.
+    this.#height = frame.scrollHeight;
+    const content = frame.firstElementChild;
+    if (content !== this.#content) {
+      if (this.#content) this.#resized.unobserve(this.#content);
+      this.#content = content;
+      if (content) this.#resized.observe(content);
+    }
   }
 
   // An item's status, labelled, when it has one worth saying: streaming carries its indicator.
