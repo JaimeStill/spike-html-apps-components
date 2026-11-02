@@ -922,31 +922,45 @@ describe("components", { timeout: 60_000 }, () => {
     }
   });
 
-  test("the page number's field fits a two- and a three-digit page inside its padding, at one width for every page, in mono and sans, regular and compact", async () => {
-    // Every pagination on the page, pages 13 and 100 of 100 among them, in each section. The
-    // value's width, measured in the field's own font, fits the field's content box, its client
-    // width less its inline padding, and the field scrolls none of it; and every field, its page
-    // one, two, or three digits or none, is one width, so the field never jumps as the page changes.
+  test("the page number's field fits a two- and a three-digit page inside its padding, at one width for every page to 999, and grows past it, in mono and sans, regular and compact", async () => {
+    // Every pagination on the page, pages 13 and 100 of 100 among them, in each section, and one
+    // added on page 1000 of 1000. The value's width, measured in the field's own font, fits the
+    // field's content box, its border box less its inline padding and border, and the field
+    // scrolls none of it; every field on the page, its page one, two, or three digits or none, is
+    // one width, so the field never jumps as the page changes; and page 1000's field is wider.
     const over = ["mono", "sans"].flatMap((type) =>
       ["regular", "compact"].flatMap((space) => schemes.map((scheme) => ({ type, space, scheme }))),
     );
-    const measure = `() => {
+    const measure = `async () => {
       const context = document.createElement("canvas").getContext("2d");
-      return { shown: [...document.querySelectorAll("sl-pagination")].map((pagination) => {
+      const field = (pagination) => {
         const input = pagination.shadowRoot.querySelector(".page-input");
         const style = getComputedStyle(input);
+        const width = input.getBoundingClientRect().width;
+        const edges = ["paddingInlineStart", "paddingInlineEnd", "borderInlineStartWidth", "borderInlineEndWidth"];
         context.font = style.font;
         return {
           value: input.value,
-          width: input.getBoundingClientRect().width,
+          width,
           text: context.measureText(input.value).width,
-          content: input.clientWidth - parseFloat(style.paddingInlineStart) - parseFloat(style.paddingInlineEnd),
+          content: edges.reduce((content, edge) => content - parseFloat(style[edge]), width),
           scrolled: input.scrollWidth - input.clientWidth,
         };
-      }) };
+      };
+      const shown = [...document.querySelectorAll("sl-pagination")].map(field);
+      const list = document.querySelector("#states .states");
+      const beyond = list.appendChild(Object.assign(document.createElement("sl-pagination"), { page: 1000, size: 3, total: 3000 }));
+      await beyond.updateComplete;
+      try {
+        return { shown, beyond: field(beyond) };
+      } finally {
+        beyond.remove();
+      }
     }`;
-    for (const { profile, shown } of await measureSpecimen<{
-      shown: { value: string; width: number; text: number; content: number; scrolled: number }[];
+    type Field = { value: string; width: number; text: number; content: number; scrolled: number };
+    for (const { profile, shown, beyond } of await measureSpecimen<{
+      shown: Field[];
+      beyond: Field;
     }>("pagination", measure, over)) {
       const values = new Set(shown.map(({ value }) => value));
       assert.ok(values.has("13") && values.has("100"), `${profile}: pages 13 and 100 shown`);
@@ -955,7 +969,12 @@ describe("components", { timeout: 60_000 }, () => {
         Math.max(...widths) - Math.min(...widths) <= 0.5,
         `${profile}: the fields ${widths.join(", ")} wide`,
       );
-      for (const { value, text, content, scrolled } of shown) {
+      assert.equal(beyond.value, "1000", `${profile}: the added pagination on page 1000`);
+      assert.ok(
+        beyond.width > Math.max(...widths) + 1,
+        `${profile}: page 1000's field ${beyond.width} wide, the others' ${Math.max(...widths)}`,
+      );
+      for (const { value, text, content, scrolled } of [...shown, beyond]) {
         const where = `${profile}, page "${value}"`;
         assert.ok(text <= content, `${where}: the value ${text} wide, the content box ${content}`);
         assert.ok(scrolled <= 0, `${where}: the field scrolls its value by ${scrolled}`);
