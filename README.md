@@ -16,9 +16,9 @@ the one copy serves both, so a restyle of the foundation's sheets by package nam
 components' shadow roots too. Install both by their tags:
 
 ```
-npm install --allow-git=root github:JaimeStill/spike-html-apps-components#v0.10.1 github:JaimeStill/spike-html-apps-foundation#v0.3.0
-pnpm add github:JaimeStill/spike-html-apps-components#v0.10.1 github:JaimeStill/spike-html-apps-foundation#v0.3.0
-bun add github:JaimeStill/spike-html-apps-components#v0.10.1 github:JaimeStill/spike-html-apps-foundation#v0.3.0
+npm install --allow-git=root github:JaimeStill/spike-html-apps-components#v0.10.2 github:JaimeStill/spike-html-apps-foundation#v0.3.0
+pnpm add github:JaimeStill/spike-html-apps-components#v0.10.2 github:JaimeStill/spike-html-apps-foundation#v0.3.0
+bun add github:JaimeStill/spike-html-apps-components#v0.10.2 github:JaimeStill/spike-html-apps-foundation#v0.3.0
 ```
 
 Or by their release tarballs:
@@ -144,10 +144,10 @@ foundation's `page.css`:
   stage that advances changes in place, moving nothing. It exports its stage type, holds nothing
   focusable, and sends no event.
 - `./event-log.js`: `sl-event-log`, events as a log in the order given, each its type, its time by
-  the foundation's `formatDateTime` when it has one, its source, subject, and id, and its data
-  pretty-printed in a native details, collapsed; events appended leave those shown in place, and a
-  constrained log scrolls inside, following the newest only from its end. It exports its event
-  type, a CloudEvents subset, and sends no event.
+  the foundation's `formatDateTime` when it has one, its source, subject, and id, each labelled on
+  a line of its own, and its data pretty-printed in a native details, collapsed; events appended
+  leave those shown in place, and a constrained log scrolls inside, following the newest only from
+  its end. It exports its event type, a CloudEvents subset, and sends no event.
 - `./search-results.js`: `sl-search-results`, a search's matches under a status line, each a
   native button of its document's name, the field it matched in, and its snippet, marked
   case-insensitively as text for the query the matches were set with; its count names that query

@@ -12,14 +12,14 @@
  * the browser's own scrollbar showing, and the list's padding shows past its last event at the
  * scroll's end.
  *
- * Each event is three lines, divided from the next by a rule: its type, with its time at the
- * line's end; its source, subject, and id, each labelled, small and muted; and its data's details.
- * A line wraps between its parts, never inside one, so a type, a time, an id, or a source stays
- * whole; a subject or an id longer than its line ends in an ellipsis, never broken; an opened
- * data's pre keeps its whole lines and scrolls sideways. The frame is a grid of one column,
- * minmax(0, 1fr), so in a shrink-to-fit parent the log takes its content's width, up to the
- * parent's: its widest type and time, since the metadata line is contained across, and wraps at
- * the width the rest give it.
+ * Each event is its lines, divided from the next by a rule: its type, with its time at the line's
+ * end; its source, its subject, and its id, each labelled, small and muted, and each on a line of
+ * its own at every width; and its data's details. A line wraps between its parts, never inside
+ * one, so a type, a time, an id, or a source stays whole; a subject or an id longer than its line
+ * ends in an ellipsis, never broken; an opened data's pre keeps its whole lines and scrolls
+ * sideways. The frame is a grid of one column, minmax(0, 1fr), so in a shrink-to-fit parent the
+ * log takes its content's width, up to the parent's: its widest type and time, since the metadata
+ * is contained across, and wraps at the width the rest give it.
  */
 
 :host {
@@ -83,13 +83,12 @@
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-/* The metadata: each label and its value a pair, the pairs wrapping between them, each whole. A
-   container across, so it takes the width the type and the time give the log rather than set it. */
+/* The metadata: each label and its value a pair, one column of them, so each pair takes a line of
+   its own at every width. A container across, so it takes the width the type and the time give the
+   log rather than set it. */
 .meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--space-2xs) var(--space-s);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   container-type: inline-size;
   font-size: var(--text-xs);
   color: var(--fg-2);
@@ -99,14 +98,23 @@
   flex-wrap: wrap;
   align-items: baseline;
   gap: 0 var(--space-3xs);
-  min-inline-size: 0;
+}
+/* The step between pairs. Where each pair is one line, it is the smaller step, as between the lines
+   within one item, the event's own lines among them. It is each pair's margin after the first, not
+   the metadata's gap, because the metadata is the container the query below reads, and a container
+   query styles only what is inside its container. */
+.pair + .pair {
+  margin-block-start: var(--space-3xs);
 }
 /* The metadata as its own container queries it: narrower than a pair of a UUID and its label, each
-   pair takes a line of its own, its label over its value. */
+   pair's label sits over its value. Each pair is then two lines, and the larger step between pairs
+   keeps each label grouped with its own value rather than with the next pair's. */
 @container (inline-size < 30rem) {
   .pair {
-    flex: 1 0 100%;
     flex-direction: column;
+  }
+  .pair + .pair {
+    margin-block-start: var(--space-2xs);
   }
 }
 .meta dt {

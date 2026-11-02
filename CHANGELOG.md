@@ -6,6 +6,17 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 
 ## [Unreleased]
 
+## [0.10.2] - 2026-11-02
+
+### Changed
+
+- `sl-event-log` shows each event's source, subject, and id each on a line of its own, at every
+  width. They were labelled pairs in one row that wrapped between them, so a wide log set the
+  three on one line and a narrow one stacked them. Each pair keeps its label, the subject is still
+  left out when the event names none, a subject or an id longer than its line still ends in an
+  ellipsis with its whole text in its title, and a narrow log still sets each label over its
+  value. The type and its time, the data's details, and the keyed rows are unchanged.
+
 ## [0.10.1] - 2026-11-02
 
 ### Fixed
@@ -546,7 +557,8 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 - The release by tag: `v<version>`, whose tree is the pack, with the tarball on its GitHub
   release.
 
-[Unreleased]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.10.1...HEAD
+[Unreleased]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.10.2...HEAD
+[0.10.2]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.10.1...v0.10.2
 [0.10.1]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.10.0...v0.10.1
 [0.10.0]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.9.1...v0.10.0
 [0.9.1]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.9.0...v0.9.1

@@ -76,11 +76,12 @@ function atEnd(frame: HTMLElement): boolean {
  * Shows events as a log, in the order given, oldest first: each its type and its time, formatted
  * by the foundation's formatDateTime, absolute and to the second, or its type alone when it has no
  * time or one that doesn't parse, the line holding no room for one; under them its source, subject,
- * and id, each labelled, a subject or an id longer than its line cut with an ellipsis, its whole
- * text kept and shown in its title; and its data pretty-printed in a native details, collapsed
- * until opened. An event without data says so in the details' place. Each event is keyed by its
- * source and id, the pair CloudEvents makes unique, so events appended to the list leave those
- * shown in their own nodes and places, and a details the reader opened stays open.
+ * and id, each labelled and each on a line of its own, a subject or an id longer than its line cut
+ * with an ellipsis, its whole text kept and shown in its title; and its data pretty-printed in a
+ * native details, collapsed until opened. An event without data says so in the details' place.
+ * Each event is keyed by its source and id, the pair CloudEvents makes unique, so events appended
+ * to the list leave those shown in their own nodes and places, and a details the reader opened
+ * stays open.
  *
  * The frame is a log, a live region: polite, so an arrival never interrupts, and additions only,
  * so a new event is read once and a re-render or a removal is not. Events are discrete and arrive
