@@ -26,15 +26,18 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
   function name and call id now move to the next line whole, as inline code in a reply does, and
   break anywhere only when longer than the line, inside the frame; where they fit, the line is as
   before.
-- `sl-search-results` marks the matches it shows, and counts them, for the query they answer. One
-  `query` drove the status line and the marks, so a consumer searching anew, setting the new query
-  and `loading` while the last query's matches stay listed, re-marked those with the new query,
-  marking what the search never matched, and a query set before `loading` read "3 matches for" the
-  new query for a moment in the live region. The marks and the count's "N matches for “…”" now
-  take the query as it is when `items` is set, in the same update or before it; a query set alone
-  re-marks nothing and leaves the count's line as it was, so the live region reads no change.
-  "Searching for “…”" and "No matches for “…”" still name the query as it is. A consumer that sets
-  the query and the matches together, as before, sees no change, and needs no new property.
+- `sl-search-results` marks the matches it shows, and names in its status line, the query they
+  answer. One `query` drove the status line and the marks, so a consumer searching anew, setting
+  the new query and `loading` while the last query's matches stay listed, re-marked those with the
+  new query, marking what the search never matched, and a query set before `loading` read "3
+  matches for" the new query for a moment in the live region; from idle, or after an empty answer,
+  it read "No matches for" a query never searched for. The marks, the count's "N matches for
+  “…”", and "No matches for “…”" now take the query as it is when `items` is set, in the same
+  update or before it, and with no query answered the line prompts; a query set alone re-marks
+  nothing and leaves the line as it was in every state, so the live region reads no change.
+  "Searching for “…”" still names the query as it is. A consumer that sets the query and the
+  matches together, an empty answer included, as before, sees no change, and needs no new
+  property.
 - `sl-event-log`'s `LogEvent.time` is optional, string, Date, or null, as CloudEvents makes `time`
   optional; it was required, so a consumer typing a stream's events had to invent one. An event
   without a time shows its type alone on its line, its source, subject, and id under it where a

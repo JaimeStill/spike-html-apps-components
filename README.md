@@ -151,9 +151,9 @@ foundation's `page.css`:
 - `./search-results.js`: `sl-search-results`, a search's matches under a status line, each a
   native button of its document's name, the field it matched in, and its snippet, marked
   case-insensitively as text for the query the matches were set with; its count names that query
-  too, and says how many of a paged search's `total` it shows, while any are shown; it dispatches
-  `open` with a match's id, and has loading and error states. It exports its match type and binds
-  no key.
+  too, and says how many of a paged search's `total` it shows, while any are shown, and with none,
+  "No matches" names the query the empty matches were set with; it dispatches `open` with a
+  match's id, and has loading and error states. It exports its match type and binds no key.
 - `./document-list.js`: `sl-document-list`, a page of documents composed of the components above,
   an `sl-entry` per document inside one `sl-pagination`, whose properties it takes under the same
   names and hands through; it frames the selected document's entry, hands a document's

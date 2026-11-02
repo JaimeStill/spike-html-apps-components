@@ -340,7 +340,7 @@ describe("search results", { timeout: 60_000 }, () => {
     ]);
   });
 
-  test("a query set alone leaves the count naming the query its matches answer, the live region unchanged", async () => {
+  test("a query set alone leaves the line naming the query its matches answer, the live region unchanged", async () => {
     await mount({ query: "report", items: matches });
     // Every change to the status line's nodes from here on, which a polite live region reads.
     const changes = (fields: Record<string, unknown>): Promise<number> =>
@@ -371,13 +371,20 @@ describe("search results", { timeout: 60_000 }, () => {
     // Loading, the line says what it searches for now.
     assert.notEqual(await changes({ state: "loading" }), 0);
     assert.equal((await shown())[0], "Searching for “weekly”…");
-    // A paged count names it too, and no matches name the query as it is.
+    // A paged count names it too, and no matches name the query whose empty answer they are.
     await mount({ query: "report", items: matches, total: 140 });
     assert.equal(await changes({ query: "weekly" }), 0);
     assert.equal((await shown())[0], "3 of 140 matches for “report”");
     await mount({ query: "report", items: [] });
-    await changes({ query: "weekly" });
-    assert.equal((await shown())[0], "No matches for “weekly”");
+    assert.equal(await changes({ query: "weekly" }), 0);
+    assert.deepEqual(await shown(), ["No matches for “report”"]);
+    // The new query's empty answer, once it arrives, names it.
+    assert.notEqual(await changes({ items: [] }), 0);
+    assert.deepEqual(await shown(), ["No matches for “weekly”"]);
+    // From idle, a query set alone leaves the prompt: no search has answered.
+    await mount({ query: "", items: [] });
+    assert.equal(await changes({ query: "weekly" }), 0);
+    assert.deepEqual(await shown(), ["Search document names and content."]);
   });
 
   test("a name match whose snippet is not the name's shows its snippet too", async () => {

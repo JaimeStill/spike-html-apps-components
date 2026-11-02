@@ -125,8 +125,9 @@ function count(shown: number, total: number): string {
 
 /**
  * Shows a search's matches under its status line. The status line says where the search stands:
- * a prompt before any query, searching, the count of matches for the query, no matches for it, or
- * that the search failed, with `message` saying why. Each match is a button, as wide as the
+ * a prompt before any query is answered, searching, the count of matches for the query they
+ * answer, no matches for the query an empty answer was for, or that the search failed, with
+ * `message` saying why. Each match is a button, as wide as the
  * results: its document's name, with the field it matched in at the line's end, and under them the
  * snippet around the match; a match in the name whose snippet only repeats the name shows the
  * name alone. The query's occurrences in the name and the snippet are marked, case-insensitively.
@@ -139,16 +140,20 @@ function count(shown: number, total: number): string {
  * While loading, matches already given stay listed, marked busy, so the list doesn't empty and
  * refill as a query is typed; an error shows none.
  *
- * The marks, and the count's query, are those of the query the shown matches answer, which is not
- * always `query`: a consumer searching anew sets the new query, then `loading`, in one update or in
- * two, the status line saying what it searches for, while the last query's matches stay listed
- * until the new ones arrive. Those keep the marks of the query they were set with, since the new
- * query's would mark what the search never matched, and their count names that query, not the new
- * one, which they don't answer. So both take `query` as it is when `items` is set, in the same
- * update or before it; a `query` set alone re-marks nothing and leaves a count's line as it was,
- * so the live region reads no change. Searching and no matches name `query` as it is. A consumer
- * sets the query, the state, and the matches as it learns them, as before, and needs no second
- * query property; one that filters the matches shown by a new query sets them again with it.
+ * The marks and the ready line's query, a count's or no matches', are those of the query the
+ * shown items answer, which is not always `query`: a consumer searching anew sets the new query,
+ * then `loading`, in one update or in two, the status line saying what it searches for, while the
+ * last query's matches stay listed until the new ones arrive. Those keep the marks of the query
+ * they were set with, since the new query's would mark what the search never matched, and their
+ * count names that query, not the new one, which they don't answer; an empty answer's "No matches"
+ * names the query it answered, not one never searched for. So the marks and the line take `query`
+ * as it is when `items` is set, in the same update or before it, and with no query answered the
+ * line prompts. A `query` set alone, from idle, after an empty answer, or with matches shown,
+ * re-marks nothing and leaves the line as it was, so the live region reads no change in any
+ * state. Searching names `query` as it is, since it says what is searched for now. A consumer sets
+ * the query, the state, and the matches as it learns them, as before, an empty answer included,
+ * and needs no second query property; one that filters the matches shown by a new query sets them
+ * again with it.
  */
 export class SearchResults extends LitElement {
   static styles = [reset, elements, styles];
@@ -161,8 +166,8 @@ export class SearchResults extends LitElement {
     message: { type: String },
   } satisfies PropertyDeclarations;
 
-  /** The query searched for: the status line's words, and the marks and count of the matches set
-   * with it. */
+  /** The query searched for: the searching line's words, and the marks and the line's query of
+   * the matches set with it. */
   declare query: string;
   /** The matches to list, in the order given. Named items, since an element's `matches` is the
    * DOM's selector test. */
@@ -184,8 +189,8 @@ export class SearchResults extends LitElement {
     this.message = "";
   }
 
-  /** The query the shown matches answer, `query` as it was when they were set: their marks' and
-   * their count's. */
+  /** The query the shown matches answer, `query` as it was when they were set: their marks', their
+   * count's, and, when there are none, no matches'; empty, none answered, the line prompts. */
   #answered = "";
 
   protected override willUpdate(changed: PropertyValues<this>) {
@@ -197,8 +202,9 @@ export class SearchResults extends LitElement {
   }
 
   // The status line's content, by the state, the query, the query the matches answer, and the
-  // matches. Searching and no matches name the query; a count names the query its matches answer,
-  // so a query set alone, before loading, leaves the line, the one live region, unchanged.
+  // matches. Searching names the query; a count, and no matches, name the query the shown items
+  // answer, and with none answered the line prompts, so a query set alone, before loading, leaves
+  // the line, the one live region, unchanged in every state.
   #status(query: string, answered: string, matches: readonly SearchMatch[]) {
     const quote = (text: string) => `“${text}”`;
     switch (this.state) {
@@ -215,8 +221,8 @@ export class SearchResults extends LitElement {
       return html`<span class="label">${count(matches.length, total)}${answers}</span>`;
     }
     // No matches shown, the total counts nothing: "0 of 5 matches" would count what isn't shown.
-    return query
-      ? html`<span class="label">No matches for ${quote(query)}</span>`
+    return answered
+      ? html`<span class="label">No matches for ${quote(answered)}</span>`
       : html`<span class="label prompt">Search document names and content.</span>`;
   }
 
