@@ -134,6 +134,11 @@ function atEnd(frame: HTMLElement, height = frame.scrollHeight): boolean {
   return height - frame.clientHeight - frame.scrollTop <= 2 / zoom;
 }
 
+/** Scrolls a frame to its end, instantly: the follow's one scroll. */
+function end(frame: HTMLElement) {
+  frame.scrollTop = frame.scrollHeight;
+}
+
 /**
  * Shows a conversation's items in order: a user's text as plain text, the assistant's as rendered
  * Markdown, and a refusal as a labelled refusal. A message still in progress reads as streaming,
@@ -162,15 +167,6 @@ function atEnd(frame: HTMLElement, height = frame.scrollHeight): boolean {
  * The thread follows only in its own frame: unconstrained, it is as tall as its content and its
  * consumer's scroll moves it, which the thread never scrolls, so a consumer that wants it followed
  * holds it to a height.
- *
- * Growth with no update is seen by a ResizeObserver on the frame's content, the list or the empty
- * note, rather than by the details' toggle event: it sees every cause of growth, an image's load
- * as well as a disclosure, and the details toggle natively, unwatched. Its callback runs after
- * layout, when the growth is already in the frame's scroll height, so the reader's place is
- * measured against the scroll height the content had when last seen, by the last update or the
- * last callback. A scroll listener keeping whether the reader was at the end would be wrong: the
- * frame's scroll event can be dispatched after the content grows and before the callback runs,
- * and read the grown height.
  */
 export class ChatThread extends LitElement {
   static styles = [reset, elements, styles];
@@ -196,13 +192,18 @@ export class ChatThread extends LitElement {
   /** The frame's content the observer watches: the list, or the empty note before any item. */
   #content: Element | null = null;
 
-  // The content grown or shrunk: its end kept in view while the reader was at the end it had. A
-  // reader at the end of content that shrank is at its new end already, the browser's clamp. The
-  // scroll leaves the content's size alone, so it never loops the observer.
+  // The content grown or shrunk with no update: its end kept in view while the reader was at the
+  // end it had. A ResizeObserver rather than the details' toggle event sees every cause, an
+  // image's load as well as a disclosure, and leaves the details toggling natively. Its callback
+  // runs after layout, the growth already in the scroll height, so the reader's place is measured
+  // against the height last seen; a scroll listener keeping the place instead could read the grown
+  // height, its event dispatched between the growth and the callback. A reader at the end of
+  // content that shrank is at its new end already, the browser's clamp. The scroll leaves the
+  // content's size alone, so it never loops the observer.
   #resized = new ResizeObserver(() => {
     const frame = this.renderRoot.querySelector<HTMLElement>(".frame");
     if (!frame) return;
-    if (atEnd(frame, this.#height)) this.#end();
+    if (atEnd(frame, this.#height)) end(frame);
     this.#height = frame.scrollHeight;
   });
 
@@ -220,12 +221,6 @@ export class ChatThread extends LitElement {
   override disconnectedCallback() {
     super.disconnectedCallback();
     this.#resized.disconnect();
-  }
-
-  // The frame scrolled to its end, instantly: the follow's one scroll.
-  #end() {
-    const frame = this.renderRoot.querySelector<HTMLElement>(".frame");
-    if (frame) frame.scrollTop = frame.scrollHeight;
   }
 
   protected override willUpdate(changed: PropertyValues<this>) {
@@ -246,12 +241,11 @@ export class ChatThread extends LitElement {
   }
 
   protected override updated() {
-    if (this.#follow) {
-      this.#follow = false;
-      this.#end();
-    }
+    const follow = this.#follow;
+    this.#follow = false;
     const frame = this.renderRoot.querySelector<HTMLElement>(".frame");
     if (!frame) return;
+    if (follow) end(frame);
     // The content as this update left it, followed or not; and observed anew when the list
     // replaced the empty note, or the note the list.
     this.#height = frame.scrollHeight;
