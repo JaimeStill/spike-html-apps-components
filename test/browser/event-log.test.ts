@@ -262,33 +262,55 @@ describe("event log", { timeout: 60_000 }, () => {
     assert.equal(heads[0].head, heads[2].head);
   });
 
-  test("each event's source, subject, and id sit each on its own line, at a wide and a narrow width", async () => {
+  test("each event's source, subject, and id sit each on its own line, spaced by the width's step, at a wide and a narrow width", async () => {
     // At 40rem the three pairs would fit one line, and at 20rem they would not: at both, each
     // pair's box starts at or below the bottom of the one before, so no two share a line, in the
-    // order source, subject, id.
+    // order source, subject, id. Between two pairs is the step the width gives them: at 40rem,
+    // where each pair is one line, the smaller step, as between lines within one item; at 20rem,
+    // where each label sits over its value, the larger, keeping each pair grouped. Each step is
+    // the token's px, resolved by a probe inside the metadata, so the test follows the tokens.
     await mount([stage(0)]);
-    for (const width of ["40rem", "20rem"]) {
-      const boxes: { label: string; top: number; bottom: number }[] =
+    for (const [width, token] of [
+      ["40rem", "--space-3xs"],
+      ["20rem", "--space-2xs"],
+    ]) {
+      const {
+        boxes,
+        step,
+      }: { boxes: { label: string; top: number; bottom: number }[]; step: number } =
         await page.evaluate(`(async () => {
         const log = document.querySelector("sl-event-log");
         log.style.inlineSize = ${JSON.stringify(width)};
         await log.updateComplete;
-        return [...log.shadowRoot.querySelectorAll(".meta > .pair")].map((pair) => {
+        const meta = log.shadowRoot.querySelector(".meta");
+        const boxes = [...meta.querySelectorAll(":scope > .pair")].map((pair) => {
           const { top, bottom } = pair.getBoundingClientRect();
           return { label: pair.querySelector("dt").textContent, top, bottom };
         });
+        const probe = meta.appendChild(document.createElement("span"));
+        probe.style.inlineSize = "var(${token})";
+        probe.style.display = "block";
+        const step = parseFloat(getComputedStyle(probe).inlineSize);
+        probe.remove();
+        return { boxes, step };
       })()`);
       assert.deepEqual(
         boxes.map(({ label }) => label),
         ["source", "subject", "id"],
         `${width}: the pairs`,
       );
+      assert.ok(step > 0, `${width}: ${token} resolves to ${step}px`);
       for (const [index, { label, top }] of boxes.entries()) {
         if (index === 0) continue;
         const above = boxes[index - 1];
         assert.ok(
           top >= above.bottom - 0.5,
           `${width}: ${label} at ${top} shares a line with ${above.label}, its bottom at ${above.bottom}`,
+        );
+        const gap = top - above.bottom;
+        assert.ok(
+          Math.abs(gap - step) < 0.5,
+          `${width}: ${gap}px between ${above.label} and ${label}, not ${token}'s ${step}px`,
         );
       }
     }

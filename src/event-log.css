@@ -89,7 +89,6 @@
 .meta {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-2xs);
   container-type: inline-size;
   font-size: var(--text-xs);
   color: var(--fg-2);
@@ -100,11 +99,22 @@
   align-items: baseline;
   gap: 0 var(--space-3xs);
 }
+/* The step between pairs. Where each pair is one line, it is the smaller step, as between the lines
+   within one item, the event's own lines among them. It is each pair's margin after the first, not
+   the metadata's gap, because the metadata is the container the query below reads, and a container
+   query styles only what is inside its container. */
+.pair + .pair {
+  margin-block-start: var(--space-3xs);
+}
 /* The metadata as its own container queries it: narrower than a pair of a UUID and its label, each
-   pair's label sits over its value. */
+   pair's label sits over its value. Each pair is then two lines, and the larger step between pairs
+   keeps each label grouped with its own value rather than with the next pair's. */
 @container (inline-size < 30rem) {
   .pair {
     flex-direction: column;
+  }
+  .pair + .pair {
+    margin-block-start: var(--space-2xs);
   }
 }
 .meta dt {
