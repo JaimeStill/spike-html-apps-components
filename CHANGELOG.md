@@ -10,13 +10,14 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 
 - `sl-chat-thread` follows its newest item, as `sl-event-log` does. Held to a height by its
   consumer, its frame scrolls to its end on each update, an item added or a streaming reply's text
-  grown, while the reader is at its end, within a pixel: a reader who scrolled up keeps their place
-  as the reply streams on, and one who scrolls back to the end is followed again. Unlike the log,
-  its first items open at the end, since a conversation reads from its newest, and a user's
-  message added at the end, the one the reader just sent, brings the frame to its end wherever the
-  reader was. The scroll is instant under any motion preference. It exposes no property: the
-  reader's scroll is the state. Unheld, the thread is as tall as its content and scrolls no
-  container of its consumer's, so a consumer that wants it followed holds it to a height.
+  grown, while the reader is at its end, within the browser's rounding: a reader who scrolled up
+  keeps their place as the reply streams on, and one who scrolls back to the end is followed
+  again. Unlike the log, its first items open at the end, since a conversation reads from its
+  newest, and a user's message added, the one the reader just sent, alone or with the reply's
+  first text, brings the frame to its end wherever the reader was. The scroll is instant under any
+  motion preference. It exposes no property: the reader's scroll is the state. Unheld, the thread
+  is as tall as its content and scrolls no container of its consumer's, so a consumer that wants
+  it followed holds it to a height.
 
 ### Fixed
 
@@ -25,6 +26,9 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
   there, where it took no key and some browsers drop focus to the body. When the button turns
   disabled while it holds focus, focus now moves to the field, where the reader writes next. With
   a draft in the field, send is enabled and keeps focus, as before.
+- `sl-event-log` no longer stops following by itself under a CSS zoom. It took its frame for
+  scrolled up when its end was more than a pixel off, which a zoom such as 0.9 or 1.1 leaves by
+  rounding alone; the end now allows two pixels, and two device pixels under a zoom below 1.
 
 ## [0.8.0] - 2026-11-01
 

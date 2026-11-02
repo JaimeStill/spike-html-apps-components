@@ -122,6 +122,18 @@ const STATUS_LABELS: Partial<Record<ItemStatus, string>> = {
 };
 
 /**
+ * Whether a frame is scrolled to its end, as far as the browser can tell. Its integer heights and
+ * its scroll position, snapped to the device pixel, leave up to two pixels between, and more
+ * under a CSS zoom below 1, where a device pixel is more than a CSS one; within one CSS pixel, the
+ * follow would stop by itself at a zoom of 0.9 or 1.1. A browser without `currentCSSZoom` is taken
+ * as unzoomed.
+ */
+function atEnd(frame: HTMLElement): boolean {
+  const zoom = Math.min((frame.currentCSSZoom as number | undefined) ?? 1, 1);
+  return frame.scrollHeight - frame.clientHeight - frame.scrollTop <= 2 / zoom;
+}
+
+/**
  * Shows a conversation's items in order: a user's text as plain text, the assistant's as rendered
  * Markdown, and a refusal as a labelled refusal. A message still in progress reads as streaming,
  * and as its text grows it re-renders in place, the items above it untouched; an incomplete or a
@@ -136,14 +148,14 @@ const STATUS_LABELS: Partial<Record<ItemStatus, string>> = {
  *
  * When its consumer constrains its block size, the frame scrolls, and it follows the newest item,
  * as the event log does: an update, an item added or a streaming reply's text grown, scrolls the
- * frame to its end while the reader is at its end, within a pixel, so a reader who scrolled up
- * keeps their place as the reply streams on, and one who scrolls back to the end is followed
- * again. A conversation reads from its newest item, so the first items shown open at the end, and
- * a user's message added to the end, the one the reader just sent, brings the frame to its end
- * wherever the reader was. The scroll is instant, never smooth, under any motion preference. The
- * thread follows only in its own frame: unconstrained, it is as tall as its content and its
- * consumer's scroll moves it, which the thread never scrolls, so a consumer that wants it followed
- * holds it to a height.
+ * frame to its end while the reader is at its end, within a pixel or two, so a reader who scrolled
+ * up keeps their place as the reply streams on, and one who scrolls back to the end is followed
+ * again. A conversation reads from its newest item, so the first items shown open at the end, and a
+ * user's message added to the end, the one the reader just sent, alone or with the reply's first
+ * text, brings the frame to its end wherever the reader was. The scroll is instant, never smooth,
+ * under any motion preference. The thread follows only in its own frame: unconstrained, it is as
+ * tall as its content and its consumer's scroll moves it, which the thread never scrolls, so a
+ * consumer that wants it followed holds it to a height.
  */
 export class ChatThread extends LitElement {
   static styles = [reset, elements, styles];
@@ -159,7 +171,7 @@ export class ChatThread extends LitElement {
   declare verbose: boolean;
 
   /** Whether the update in flight follows the newest item: the frame was at its end, or showed
-   * no items yet, or the update adds a user's message at the end. */
+   * no items yet, or the update adds a user's message. */
   #follow = false;
 
   constructor() {
@@ -169,22 +181,20 @@ export class ChatThread extends LitElement {
   }
 
   protected override willUpdate(changed: PropertyValues<this>) {
-    // The frame as the last update left it, before this one grows it: at its end, within a pixel,
-    // when it doesn't scroll at all too. No frame yet is the first render.
+    // The frame as the last update left it, before this one grows it: at its end, within the
+    // browser's rounding, when it doesn't scroll at all too. No frame yet is the first render.
     const frame = this.renderRoot.querySelector<HTMLElement>(".frame");
     const before = changed.has("items")
       ? ((changed.get("items") as readonly ThreadItem[] | undefined) ?? [])
       : (this.items ?? []);
-    const items = this.items ?? [];
-    const newest = items.at(-1);
-    const sent =
-      items.length > before.length && newest?.type === "message" && newest.role === "user";
+    // A user's message among the items added, the newest or the one before the reply's first
+    // text, when the consumer adds both at once.
+    const sent = (this.items ?? [])
+      .slice(before.length)
+      .some((item) => item?.type === "message" && item.role === "user");
     this.#follow =
       (changed.has("items") || changed.has("verbose")) &&
-      (frame === null ||
-        before.length === 0 ||
-        sent ||
-        frame.scrollHeight - frame.clientHeight - frame.scrollTop <= 1);
+      (frame === null || before.length === 0 || sent || atEnd(frame));
   }
 
   protected override updated() {

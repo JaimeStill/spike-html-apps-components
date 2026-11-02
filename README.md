@@ -125,7 +125,8 @@ foundation's `page.css`:
   that are valid JSON formatted from their own tokens by `./json.js`. A thread its consumer holds
   to a height scrolls inside, opening at its end and following the newest item only from its end
   or on a user's message; unheld, it is as tall as its content and follows nothing, so a consumer
-  that wants it followed holds it. It exports its item types and sends no event. It imports `./markdown.js`, so its page maps marked too.
+  that wants it followed holds it. It exports its item types and sends no event. It imports
+  `./markdown.js`, so its page maps marked too.
 - `./composer.js`: `sl-composer`, a multi-line text field that grows to eight lines, and its
   send control, which a stop control replaces while `busy`; it dispatches `send` with the text,
   then clears the field, and `stop`. Its `send()` does what activating send does, so an app that
