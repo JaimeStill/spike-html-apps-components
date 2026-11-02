@@ -104,12 +104,10 @@ export class Composer extends LitElement {
     // The button turned disabled while it held focus: stop, activated with the field empty, became
     // send once the app cleared busy, or the app emptied the field. A disabled control keeps focus
     // and takes no keys, so the reader would lose their place; focus moves to the field, where they
-    // write next. While the composer is disabled the field is too, and focus is left where it is.
+    // write next. While the composer is disabled the field is too, takes no focus, and focus is
+    // left where it is.
     const button = this.renderRoot.querySelector("button");
-    const field = this.#field;
-    if (button?.disabled && this.shadowRoot?.activeElement === button && field && !field.disabled) {
-      field.focus();
-    }
+    if (button?.disabled && this.shadowRoot?.activeElement === button) this.#field?.focus();
   }
 
   render() {

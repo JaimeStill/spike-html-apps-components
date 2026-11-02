@@ -2,10 +2,11 @@
 // field's text, bubbling and composed, and clearing the field; send() doing what activating send
 // does, under the same rules; empty and whitespace-only text unsendable; busy putting stop in
 // send's place, in the same footprint, typing still allowed; stop activated by the keyboard moving
-// focus to the field when send would be disabled under it, and keeping it on an enabled send;
-// disabled blocking typing, sending, and stopping; Enter, Shift+Enter, and Escape doing only what a
-// native textarea does; the field growing with its text to eight lines, then scrolling; value and
-// the attributes in step with the field; and no event but send and stop.
+// focus to the field when send would be disabled under it, and keeping it on an enabled send, the
+// app emptying the field doing the same, and focus outside the composer left there; disabled
+// blocking typing, sending, and stopping; Enter, Shift+Enter, and Escape doing only what a native
+// textarea does; the field growing with its text to eight lines, then scrolling; value and the
+// attributes in step with the field; and no event but send and stop.
 
 import assert from "node:assert/strict";
 import { after, before, beforeEach, describe, test } from "node:test";
@@ -308,6 +309,33 @@ describe("composer", { timeout: 60_000 }, () => {
       [after.action, after.actionDisabled, after.focused, after.value],
       ["send", false, "button", "next question"],
     );
+  });
+
+  test("the app emptying the field under a focused send moves focus to the field", async () => {
+    await mount({ value: "a draft" });
+    const focused: string | null = await page.evaluate(`(async () => {
+      const composer = document.querySelector("sl-composer");
+      composer.shadowRoot.querySelector(".action").focus();
+      composer.value = "";
+      await composer.updateComplete;
+      return composer.shadowRoot.activeElement?.localName ?? null;
+    })()`);
+    assert.equal(focused, "textarea");
+  });
+
+  test("the button turning disabled while focus is outside the composer leaves focus there", async () => {
+    await mount({ value: "a draft" });
+    const focused: string | null = await page.evaluate(`(async () => {
+      const outside = document.querySelector("main").appendChild(document.createElement("button"));
+      outside.focus();
+      const composer = document.querySelector("sl-composer");
+      composer.value = "";
+      await composer.updateComplete;
+      const active = document.activeElement?.localName ?? null;
+      outside.remove();
+      return active;
+    })()`);
+    assert.equal(focused, "button");
   });
 
   test("while busy the field takes typing, and nothing is sent", async () => {
