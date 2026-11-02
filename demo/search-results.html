@@ -5,9 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>search results specimen</title>
     <!-- The search results' specimen page, from dist/: idle, before any query; loading, a first
-         search's and a new query's with the last matches kept; no matches for a query; several
-         matches, in names and in content, as the emulator's search sends them; an error with its
-         message; a long name and a long snippet, wrapping, ellipses kept; and markup, a pattern's
+         search's and a new query's with the last matches kept, marked by the last query; no
+         matches for a query; several matches, in names and in content, as the emulator's search
+         sends them, and a paged search's first page of a total; an error with its message; a
+         long name and a long snippet, wrapping, ellipses kept; and markup, a pattern's
          specials, and other cases of letters in a query and its snippets, marked as text. Every
          state is labelled, then shown again in a section 20rem wide; the fit section holds two
          short matches in three parents that size the results to their content, an inline-block, a
@@ -100,6 +101,13 @@
       ];
 
       const results = (fields) => () => make("sl-search-results", fields);
+      // Results of the fields, then, once they render, the next fields set, as a consumer searching
+      // anew sets the new query and loading before its matches arrive.
+      const answered = (fields, next) => () => {
+        const element = results(fields)();
+        element.updateComplete.then(() => Object.assign(element, next));
+        return element;
+      };
       specimens(
         [
           { label: "Idle: no query yet", build: results({}) },
@@ -108,8 +116,8 @@
             build: results({ query: "report", state: "loading" }),
           },
           {
-            label: "Loading: a new query, the last query's matches kept",
-            build: results({ query: "reports", state: "loading", items: matches }),
+            label: "Loading: a new query, the last query's matches kept, marked by the query they answer",
+            build: answered({ query: "report", items: matches }, { query: "weekly", state: "loading" }),
           },
           { label: "No matches for a query", build: results({ query: "zebra" }) },
           {
@@ -117,6 +125,10 @@
             build: results({ query: "report", items: matches }),
           },
           { label: "One match", build: results({ query: "report", items: matches.slice(0, 1) }) },
+          {
+            label: "A paged search's first page: its matches of the total",
+            build: results({ query: "report", items: matches, total: 140 }),
+          },
           {
             label: "Error, with its message",
             build: results({

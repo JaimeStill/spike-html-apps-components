@@ -290,6 +290,80 @@ describe("chat thread", { timeout: 60_000 }, () => {
     assert.equal(answered.pre, '{\n  "temperature": 14\n}');
   });
 
+  test("a call's name and id longer than a narrow thread's line wrap inside its frame, whole where they fit", async () => {
+    // A call_id as the pipeline's model writes one, and a long function name.
+    const id = "call_01a19c590db77cc28219329571ef2e06";
+    const name = "lookup_document_metadata_and_extracted_chunks";
+    const items = [
+      { ...call, name, call_id: id },
+      { ...output, call_id: id },
+    ];
+    // At the width given: whether the frame scrolls sideways, and each name and id's text, whether
+    // its box ends inside its item and the frame's content box, and the lines it takes.
+    const measure = (
+      width: string,
+    ): Promise<{ scrolls: boolean; parts: [string, boolean, number][] }> =>
+      page.evaluate(`(async () => {
+        const thread = Object.assign(document.createElement("sl-chat-thread"), {
+          verbose: true,
+          items: ${JSON.stringify(items)},
+        });
+        thread.style.inlineSize = "${width}";
+        document.querySelector("main").replaceChildren(thread);
+        await thread.updateComplete;
+        const frame = thread.shadowRoot.querySelector(".frame");
+        const edge = frame.getBoundingClientRect().left + frame.clientLeft + frame.clientWidth;
+        return {
+          scrolls: frame.scrollWidth > frame.clientWidth,
+          parts: [...thread.shadowRoot.querySelectorAll(".name, .id")].map((part) => {
+            const item = part.closest("li").getBoundingClientRect();
+            const box = part.getBoundingClientRect();
+            const range = document.createRange();
+            range.selectNodeContents(part);
+            const lines = new Set(
+              [...range.getClientRects()].filter((rect) => rect.width > 0).map((rect) => Math.round(rect.top)),
+            ).size;
+            return [part.textContent, box.right <= item.right + 0.5 && box.right <= edge + 0.5, lines];
+          }),
+        };
+      })()`);
+    const narrow = await measure("14rem");
+    assert.equal(narrow.scrolls, false);
+    assert.deepEqual(
+      narrow.parts.map(([text, inside]) => [text, inside]),
+      [
+        [name, true],
+        [id, true],
+        [name, true],
+        [id, true],
+      ],
+    );
+    assert.ok(
+      narrow.parts.every(([, , lines]) => lines > 1),
+      JSON.stringify(narrow.parts),
+    );
+    // Wrapped, each line's name still reads the name and the id whole, a word apart.
+    const { nodes }: { nodes: AXNode[] } = await page.cdp("Accessibility.getFullAXTree", {});
+    assert.deepEqual(
+      nodes
+        .filter((node) => !node.ignored && node.role?.value === "DisclosureTriangle")
+        .map((node) => node.name?.value ?? ""),
+      [`Function call ${name} ${id}`, `Function output ${name} ${id}`],
+    );
+    // Wide, each keeps whole, on one line.
+    const wide = await measure("60rem");
+    assert.equal(wide.scrolls, false);
+    assert.deepEqual(
+      wide.parts.map(([, inside, lines]) => [inside, lines]),
+      [
+        [true, 1],
+        [true, 1],
+        [true, 1],
+        [true, 1],
+      ],
+    );
+  });
+
   test("a reasoning item's summary is on its line, after the kind, and its content alone inside", async () => {
     const view = await shown({
       verbose: true,

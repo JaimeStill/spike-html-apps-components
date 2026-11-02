@@ -123,6 +123,16 @@ summary,
   display: inline-block;
   white-space: nowrap;
 }
+/* A function's name and a call's id are unbroken tokens, a call_ id of 37 characters as a rule:
+   each moves to the next line whole, as inline code in a reply does, and breaks anywhere only when
+   it is longer than the line itself, so a narrow thread shows it whole inside its frame rather than
+   cut at the frame's edge. */
+.name,
+.id {
+  max-inline-size: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
 .id {
   color: var(--fg-3);
 }

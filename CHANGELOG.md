@@ -6,6 +6,44 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-11-02
+
+### Added
+
+- `sl-search-results` takes a `total`, a number, how many match in all, for a paged search that
+  shows its first page. Set and greater than the matches given, the status line counts them of it,
+  "96 of 140 matches for “notes”", where it counted the page alone, "96 matches", as if the page
+  were every match. Unset, or no more than the matches given, the count is theirs, as before; a
+  total that isn't a number is none. It counts in the ready state only, as the count did, and only
+  while matches are shown: with none, the line reads "No matches for “notes”" as without a total,
+  never "0 of 140 matches".
+
+### Fixed
+
+- `sl-chat-thread`'s function call shows its whole call id at any width. A call_id is one unbroken
+  token, `call_01a19c590db77cc28219329571ef2e06` as a model writes one, and its line kept it whole,
+  so a narrow thread, 375px wide, ran it past the frame's edge, cut off. A call's or an output's
+  function name and call id now move to the next line whole, as inline code in a reply does, and
+  break anywhere only when longer than the line, inside the frame; where they fit, the line is as
+  before.
+- `sl-search-results` marks the matches it shows, and names in its status line, the query they
+  answer. One `query` drove the status line and the marks, so a consumer searching anew, setting
+  the new query and `loading` while the last query's matches stay listed, re-marked those with the
+  new query, marking what the search never matched, and a query set before `loading` read "3
+  matches for" the new query for a moment in the live region; from idle, or after an empty answer,
+  it read "No matches for" a query never searched for. The marks, the count's "N matches for
+  “…”", and "No matches for “…”" now take the query as it is when `items` is set, in the same
+  update or before it, and with no query answered the line prompts; a query set alone re-marks
+  nothing and leaves the line as it was in every state, so the live region reads no change.
+  "Searching for “…”" still names the query as it is. A consumer that sets the query and the
+  matches together, an empty answer included, as before, sees no change, and needs no new
+  property.
+- `sl-event-log`'s `LogEvent.time` is optional, string, Date, or null, as CloudEvents makes `time`
+  optional; it was required, so a consumer typing a stream's events had to invent one. An event
+  without a time shows its type alone on its line, its source, subject, and id under it where a
+  timed event's are, no time text and no room held for one, as one whose time doesn't parse
+  already did.
+
 ## [0.9.1] - 2026-11-02
 
 ### Fixed
@@ -498,7 +536,8 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 - The release by tag: `v<version>`, whose tree is the pack, with the tarball on its GitHub
   release.
 
-[Unreleased]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.9.1...HEAD
+[Unreleased]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.9.1...v0.10.0
 [0.9.1]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.7.0...v0.8.0

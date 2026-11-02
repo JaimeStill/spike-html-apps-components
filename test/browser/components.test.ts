@@ -1459,11 +1459,19 @@ describe("components", { timeout: 60_000 }, () => {
     // but the long content's and the two a reply streams into, which the page holds to 16rem, and
     // they do. At 20rem the states keep within the column, every part of each thread inside its
     // box across, and each id, function name, kind, role, status, and inline code span in a reply
-    // on one line.
+    // on one line, but a function name or a call id longer than its line, which wraps inside it,
+    // filling it.
     const measure = `() => {
       const list = document.querySelector(".narrow .states");
       const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
       const lines = ${LINES};
+      // Whether a name or an id fills its line's width: its box as wide as its parent's content.
+      const fills = (part) => {
+        const parent = part.parentElement;
+        const style = getComputedStyle(parent);
+        const inner = parent.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+        return part.getBoundingClientRect().width >= inner - 0.5;
+      };
       const shown = (${THREADS})("main").map((thread) => {
         const root = thread.shadowRoot;
         const box = thread.getBoundingClientRect();
@@ -1483,6 +1491,9 @@ describe("components", { timeout: 60_000 }, () => {
             })
             .map((part) => part.localName + "." + part.className),
           broken: [...root.querySelectorAll(".id, .name, .kind, .role, .status, .markdown code:not(pre code)")]
+            .filter((part) => lines(part) > 1 && !(part.matches(".id, .name") && fills(part)))
+            .map((part) => part.textContent),
+          wrapped: [...root.querySelectorAll(".id, .name")]
             .filter((part) => lines(part) > 1)
             .map((part) => part.textContent),
           scrolls: frame.scrollHeight > frame.clientHeight,
@@ -1499,14 +1510,23 @@ describe("components", { timeout: 60_000 }, () => {
         height: number;
         outside: string[];
         broken: string[];
+        wrapped: string[];
         scrolls: boolean;
       }>
     >("chat-thread", measure)) {
       assert.ok(overflow <= 0, `${profile}: the states overflow the column by ${overflow}`);
       assert.equal(
         shown.length,
-        60,
-        `${profile}: 28 states twice, the three fits, and the focus state`,
+        62,
+        `${profile}: 29 states twice, the three fits, and the focus state`,
+      );
+      // The long call's name and id, as its output's, wrap at 20rem only, the name at least.
+      const wrapped = (narrow: boolean) =>
+        shown.filter((thread) => thread.narrow === narrow).flatMap((thread) => thread.wrapped);
+      assert.deepEqual(wrapped(false), [], `${profile}: wrapped at full width`);
+      assert.ok(
+        wrapped(true).includes("lookup_document_metadata_and_extracted_chunks"),
+        `${profile}: the long call's name wraps at 20rem`,
       );
       assert.equal(
         shown.filter(({ held }) => held).length,
@@ -1959,8 +1979,8 @@ describe("components", { timeout: 60_000 }, () => {
       assert.ok(overflow <= 0, `${profile}: the states overflow the column by ${overflow}`);
       assert.equal(
         shown.length,
-        14,
-        `${profile}: five states twice, the three fits, and the focus state`,
+        16,
+        `${profile}: six states twice, the three fits, and the focus state`,
       );
       assert.equal(
         shown.filter(({ held }) => held).length,
@@ -2178,8 +2198,8 @@ describe("components", { timeout: 60_000 }, () => {
       assert.ok(overflow <= 0, `${profile}: the states overflow the column by ${overflow}`);
       assert.equal(
         shown.length,
-        24,
-        `${profile}: ten states twice, the three fits, and the focus state`,
+        26,
+        `${profile}: eleven states twice, the three fits, and the focus state`,
       );
       for (const [index, { narrow, fit, status, outside, broken, beside }] of shown.entries()) {
         const where = `${profile}, results ${index}${narrow ? " at 20rem" : ""}`;
