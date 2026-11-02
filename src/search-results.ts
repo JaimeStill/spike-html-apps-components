@@ -124,16 +124,15 @@ function count(shown: number, total: number): string {
 }
 
 /**
- * Shows a search's matches under its status line. The status line says where the search stands:
- * a prompt before any query is answered, searching, the count of matches for the query they
- * answer, no matches for the query an empty answer was for, or that the search failed, with
- * `message` saying why. Each match is a button, as wide as the
- * results: its document's name, with the field it matched in at the line's end, and under them the
- * snippet around the match; a match in the name whose snippet only repeats the name shows the
- * name alone. The query's occurrences in the name and the snippet are marked, case-insensitively.
- * Activating a match sends `open` with its id. A paged search sets `total`, how many match in all,
- * and the count says how many of them are shown; with no matches shown, the total counts nothing,
- * and the line says there are none, as without it.
+ * Shows a search's matches under its status line. The status line says where the search stands: a
+ * prompt before any query is answered, searching, the count of matches for the query they answer,
+ * no matches for the query an empty answer was for, or that the search failed, with `message`
+ * saying why. Each match is a button, as wide as the results: its document's name, with the field
+ * it matched in at the line's end, and under them the snippet around the match; a match in the name
+ * whose snippet only repeats the name shows the name alone. The query's occurrences in the name and
+ * the snippet are marked, case-insensitively. Activating a match sends `open` with its id. A paged
+ * search sets `total`, how many match in all, and the count says how many of them are shown; with
+ * no matches shown, the total counts nothing, and the line says there are none, as without it.
  *
  * The status line is the results' one live region, polite, and stays in place across every
  * state, so each change of its text is read: a count once the matches arrive, a failure's reason.
