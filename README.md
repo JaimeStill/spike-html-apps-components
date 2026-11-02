@@ -145,10 +145,9 @@ foundation's `page.css`:
   focusable, and sends no event.
 - `./event-log.js`: `sl-event-log`, events as a log in the order given, each its type, its time by
   the foundation's `formatDateTime` when it has one, its source, subject, and id, each labelled on
-  a line of its own, and its data
-  pretty-printed in a native details, collapsed; events appended leave those shown in place, and a
-  constrained log scrolls inside, following the newest only from its end. It exports its event
-  type, a CloudEvents subset, and sends no event.
+  a line of its own, and its data pretty-printed in a native details, collapsed; events appended
+  leave those shown in place, and a constrained log scrolls inside, following the newest only from
+  its end. It exports its event type, a CloudEvents subset, and sends no event.
 - `./search-results.js`: `sl-search-results`, a search's matches under a status line, each a
   native button of its document's name, the field it matched in, and its snippet, marked
   case-insensitively as text for the query the matches were set with; its count names that query

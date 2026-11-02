@@ -287,10 +287,6 @@ describe("event log", { timeout: 60_000 }, () => {
         if (index === 0) continue;
         const above = boxes[index - 1];
         assert.ok(
-          top > above.top,
-          `${width}: ${label} at ${top}, not below ${above.label} at ${above.top}`,
-        );
-        assert.ok(
           top >= above.bottom - 0.5,
           `${width}: ${label} at ${top} shares a line with ${above.label}, its bottom at ${above.bottom}`,
         );
