@@ -146,13 +146,14 @@ foundation's `page.css`:
 - `./event-log.js`: `sl-event-log`, events as a log in the order given, each its type, its time by
   the foundation's `formatDateTime` when it has one, its source, subject, and id, and its data
   pretty-printed in a native details, collapsed; events appended leave those shown in place, and a
-  constrained log scrolls inside, following the newest only from its end. It exports its event type, a CloudEvents
-  subset, and sends no event.
+  constrained log scrolls inside, following the newest only from its end. It exports its event
+  type, a CloudEvents subset, and sends no event.
 - `./search-results.js`: `sl-search-results`, a search's matches under a status line, each a
   native button of its document's name, the field it matched in, and its snippet, marked
-  case-insensitively as text for the query the matches were set with; its count says how many of a
-  paged search's `total` it shows; it dispatches `open` with a match's id, and has loading and
-  error states. It exports its match type and binds no key.
+  case-insensitively as text for the query the matches were set with; its count names that query
+  too, and says how many of a paged search's `total` it shows, while any are shown; it dispatches
+  `open` with a match's id, and has loading and error states. It exports its match type and binds
+  no key.
 - `./document-list.js`: `sl-document-list`, a page of documents composed of the components above,
   an `sl-entry` per document inside one `sl-pagination`, whose properties it takes under the same
   names and hands through; it frames the selected document's entry, hands a document's

@@ -14,7 +14,9 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
   shows its first page. Set and greater than the matches given, the status line counts them of it,
   "96 of 140 matches for “notes”", where it counted the page alone, "96 matches", as if the page
   were every match. Unset, or no more than the matches given, the count is theirs, as before; a
-  total that isn't a number is none. It counts in the ready state only, as the count did.
+  total that isn't a number is none. It counts in the ready state only, as the count did, and only
+  while matches are shown: with none, the line reads "No matches for “notes”" as without a total,
+  never "0 of 140 matches".
 
 ### Fixed
 
@@ -24,13 +26,15 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
   function name and call id now move to the next line whole, as inline code in a reply does, and
   break anywhere only when longer than the line, inside the frame; where they fit, the line is as
   before.
-- `sl-search-results` marks the matches it shows for the query they answer. One `query` drove the
-  status line and the marks, so a consumer searching anew, setting the new query and `loading`
-  while the last query's matches stay listed, re-marked those with the new query, marking what the
-  search never matched. The marks now take the query as it is when `items` is set, in the same
-  update or before it; a query set alone re-marks nothing, while the status line still says what
-  is searched for. A consumer that sets the query and the matches together, as before, sees no
-  change, and needs no new property.
+- `sl-search-results` marks the matches it shows, and counts them, for the query they answer. One
+  `query` drove the status line and the marks, so a consumer searching anew, setting the new query
+  and `loading` while the last query's matches stay listed, re-marked those with the new query,
+  marking what the search never matched, and a query set before `loading` read "3 matches for" the
+  new query for a moment in the live region. The marks and the count's "N matches for “…”" now
+  take the query as it is when `items` is set, in the same update or before it; a query set alone
+  re-marks nothing and leaves the count's line as it was, so the live region reads no change.
+  "Searching for “…”" and "No matches for “…”" still name the query as it is. A consumer that sets
+  the query and the matches together, as before, sees no change, and needs no new property.
 - `sl-event-log`'s `LogEvent.time` is optional, string, Date, or null, as CloudEvents makes `time`
   optional; it was required, so a consumer typing a stream's events had to invent one. An event
   without a time shows its type alone on its line, its source, subject, and id under it where a
