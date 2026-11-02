@@ -6,6 +6,20 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-11-02
+
+### Fixed
+
+- `sl-chat-thread`, held to a height, follows its last item when it grows with no update of its
+  own: a details the reader opens in it, a reasoning or a function call's, or an image that loads.
+  While the reader is at the frame's end, its end stays in view, instantly under any motion
+  preference, as following new items does; it stopped at its old place, the expanded content cut
+  off below. Only the last item's growth follows: a details opened in an item above it opens in
+  place, the summary clicked where it was, and leaves the reader short of the end. A reader who
+  scrolled up keeps their place, a thread reattached scrolls nothing on its own, and unheld
+  nothing changes. The details still toggle natively: a ResizeObserver over the frame's content
+  sees the growth.
+
 ## [0.9.0] - 2026-11-02
 
 ### Added
@@ -484,7 +498,8 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 - The release by tag: `v<version>`, whose tree is the pack, with the tarball on its GitHub
   release.
 
-[Unreleased]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.9.1...HEAD
+[0.9.1]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.6.1...v0.7.0
