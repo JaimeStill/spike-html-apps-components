@@ -6,6 +6,47 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-02
+
+### Added
+
+- `sl-chat-thread` follows its newest item, as `sl-event-log` does. Held to a height by its
+  consumer, its frame scrolls to its end on each update, an item added or a streaming reply's text
+  grown, while the reader is at its end, within the browser's rounding: a reader who scrolled up
+  keeps their place as the reply streams on, and one who scrolls back to the end is followed
+  again. Unlike the log, its first items open at the end, since a conversation reads from its
+  newest, and a user's message added, the one the reader just sent, alone or with the reply's
+  first text, brings the frame to its end wherever the reader was. The scroll is instant under any
+  motion preference. It exposes no property: the reader's scroll is the state. Unheld, the thread
+  is as tall as its content and scrolls no container of its consumer's, so a consumer that wants
+  it followed holds it to a height.
+
+### Changed
+
+- `sl-chat-thread`'s reasoning item, with `verbose`, carries its summary on its line: "Reasoning",
+  its status when it has one, then the summary text, set off by a middle dot that the
+  accessibility tree skips, in the line's color at its regular weight, wrapping as prose. Expanded,
+  its details holds the reasoning content alone, where it showed the summary and the content as
+  two unlabelled paragraphs. A summary part with no text yet, as one just begun streaming, is no
+  summary, and the line reads "Reasoning" alone until its text arrives. A reasoning item with a
+  summary and no content is a line alone, a paragraph in the summary's type and place, not a
+  details that opens on nothing; one with neither still says "No reasoning text.".
+
+### Fixed
+
+- `sl-chat-thread`'s verbose lines are named in the accessibility tree a word apart. Chromium
+  dropped the spaces Lit renders between a summary's parts, naming a call's line
+  "Function callget_weathercall_1"; each part is now an inline block, whose edge keeps the space,
+  so the line is named "Function call get_weather call_1".
+- `sl-composer` no longer leaves focus on a disabled control. Stop activated with the field empty,
+  by the keyboard or a pointer, became a disabled send once the app cleared `busy`, and kept focus
+  there, where it took no key and some browsers drop focus to the body. When the button turns
+  disabled while it holds focus, focus now moves to the field, where the reader writes next. With
+  a draft in the field, send is enabled and keeps focus, as before.
+- `sl-event-log` no longer stops following by itself under a CSS zoom. It took its frame for
+  scrolled up when its end was more than a pixel off, which a zoom such as 0.9 or 1.1 leaves by
+  rounding alone; the end now allows two pixels, and two device pixels under a zoom below 1.
+
 ## [0.8.0] - 2026-11-01
 
 ### Added
@@ -443,7 +484,8 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 - The release by tag: `v<version>`, whose tree is the pack, with the tarball on its GitHub
   release.
 
-[Unreleased]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.6.1...v0.7.0
 [0.6.1]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.6.0...v0.6.1

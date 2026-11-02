@@ -63,6 +63,16 @@ function pretty(data: unknown): string {
 }
 
 /**
+ * Whether a frame is scrolled to its end, as far as the browser can tell, as chat-thread.ts's: its
+ * integer heights and its scroll position, snapped to the device pixel, leave up to two pixels
+ * between, and more under a CSS zoom below 1, where a device pixel is more than a CSS one.
+ */
+function atEnd(frame: HTMLElement): boolean {
+  const zoom = Math.min((frame.currentCSSZoom as number | undefined) ?? 1, 1);
+  return frame.scrollHeight - frame.clientHeight - frame.scrollTop <= 2 / zoom;
+}
+
+/**
  * Shows events as a log, in the order given, oldest first: each its type and its time, formatted
  * by the foundation's formatDateTime, absolute and to the second; under them its source, subject,
  * and id, each labelled, a subject or an id longer than its line cut with an ellipsis, its whole
@@ -98,15 +108,11 @@ export class EventLog extends LitElement {
   }
 
   protected override willUpdate(changed: PropertyValues<this>) {
-    // The frame as the last update left it, before this one appends: at its end, within a pixel,
-    // when it doesn't scroll at all too.
+    // The frame as the last update left it, before this one appends: at its end, within the
+    // browser's rounding, when it doesn't scroll at all too.
     const frame = this.renderRoot.querySelector<HTMLElement>(".frame");
     const shown = (changed.get("events") as readonly LogEvent[] | undefined)?.length ?? 0;
-    this.#follow =
-      changed.has("events") &&
-      shown > 0 &&
-      frame !== null &&
-      frame.scrollHeight - frame.clientHeight - frame.scrollTop <= 1;
+    this.#follow = changed.has("events") && shown > 0 && frame !== null && atEnd(frame);
   }
 
   protected override updated() {

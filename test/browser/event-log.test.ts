@@ -2,8 +2,8 @@
 // log of additions; each event's type, time, formatted by the foundation in the page's locale and
 // time zone, and its source, subject, and id, labelled; its data pretty-printed in a details,
 // collapsed, or a note when it has none; the events in the order given; events appended leaving
-// those shown in their own nodes and places, an opened details open; the frame following the
-// newest only from its end; the details opened by the keyboard; and no event sent.
+// those shown in their own nodes and places, an opened details open; the frame following the newest
+// only from its end, under a page zoom too; the details opened by the keyboard; and no event sent.
 
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
@@ -328,6 +328,38 @@ describe("event log", { timeout: 60_000 }, () => {
     assert.equal(scrolled.followed.top, scrolled.followed.end, "at its end, it follows");
     assert.equal(scrolled.kept.top, 0, "scrolled up, it keeps its place");
     assert.ok(scrolled.kept.end > scrolled.followed.end, "the fifth event added to its scroll");
+  });
+
+  test("held under a page zoom, the frame goes on following, its end a fraction of a pixel off", async () => {
+    // A CSS zoom leaves the frame's end short of its scroll by its rounding, past a pixel at 0.9
+    // and 1.1, which a pixel's threshold took for the reader scrolling up.
+    const lost: string[] = await page.evaluate(`(async () => {
+      const lost = [];
+      const event = (index) => ({ ...${JSON.stringify(stage(0))}, id: "${run}." + index });
+      for (const [zoom, height] of [["0.9", "157.3px"], ["1.1", "9.77rem"], ["1.33", "10rem"], ["0.67", "9.77rem"]]) {
+        const main = document.querySelector("main");
+        main.style.zoom = zoom;
+        const log = document.createElement("sl-event-log");
+        log.style.blockSize = height;
+        main.replaceChildren(log);
+        log.events = [event(0), event(1), event(2)];
+        await log.updateComplete;
+        const frame = log.shadowRoot.querySelector(".frame");
+        frame.scrollTop = frame.scrollHeight;
+        for (let count = 4; count < 24; count++) {
+          log.events = Array.from({ length: count }, (_, index) => event(index));
+          await log.updateComplete;
+          const short = frame.scrollHeight - frame.clientHeight - frame.scrollTop;
+          if (short > 8) {
+            lost.push(zoom + " " + height + ": " + short.toFixed(1) + "px short at " + count + " events");
+            break;
+          }
+        }
+        main.style.zoom = "";
+      }
+      return lost;
+    })()`);
+    assert.deepEqual(lost, []);
   });
 
   test("the keyboard reaches each event's data toggle by Tab, and Enter and Space open and close it", async () => {

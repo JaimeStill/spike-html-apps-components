@@ -4,7 +4,14 @@
 // their outputs, by the spec's JSON field names, so a response's output or a conversation's
 // history fits as it is.
 
-import { html, LitElement, nothing, type PropertyDeclarations, type TemplateResult } from "lit";
+import {
+  html,
+  LitElement,
+  nothing,
+  type PropertyDeclarations,
+  type PropertyValues,
+  type TemplateResult,
+} from "lit";
 import { repeat } from "lit/directives/repeat.js";
 
 import elements from "@jaimestill/spike-html-apps-foundation/baseline/elements.css" with { type: "css" };
@@ -115,17 +122,42 @@ const STATUS_LABELS: Partial<Record<ItemStatus, string>> = {
 };
 
 /**
+ * Whether a frame is scrolled to its end, as far as the browser can tell. Its integer heights and
+ * its scroll position, snapped to the device pixel, leave up to two pixels between, and more
+ * under a CSS zoom below 1, where a device pixel is more than a CSS one; within one CSS pixel, the
+ * follow would stop by itself at a zoom of 0.9 or 1.1. A browser without `currentCSSZoom` is taken
+ * as unzoomed.
+ */
+function atEnd(frame: HTMLElement): boolean {
+  const zoom = Math.min((frame.currentCSSZoom as number | undefined) ?? 1, 1);
+  return frame.scrollHeight - frame.clientHeight - frame.scrollTop <= 2 / zoom;
+}
+
+/**
  * Shows a conversation's items in order: a user's text as plain text, the assistant's as rendered
  * Markdown, and a refusal as a labelled refusal. A message still in progress reads as streaming,
  * and as its text grows it re-renders in place, the items above it untouched; an incomplete or a
  * failed message is labelled so. With `verbose` set, reasoning, function calls, and their outputs
- * show too, each collapsed in a native details; otherwise they are hidden. Item and part types the
+ * show too, each collapsed in a native details; otherwise they are hidden. A reasoning item's line
+ * carries its summary after its kind and status, and its details holds its content alone; with a
+ * summary and no content, the line stands alone, with nothing to expand. Item and part types the
  * thread doesn't know are skipped. Display-only: it sends no event and binds no key.
  *
  * The items are an ordered list of articles, not a log: order is the thread's meaning, and a list
  * tells assistive technology how many items there are and where each sits. A log's live region
  * would announce every word of a streaming reply; a consumer that wants an announcement adds a
  * status of its own.
+ *
+ * When its consumer constrains its block size, the frame scrolls, and it follows the newest item,
+ * as the event log does: an update, an item added or a streaming reply's text grown, scrolls the
+ * frame to its end while the reader is at its end, within a pixel or two, so a reader who scrolled
+ * up keeps their place as the reply streams on, and one who scrolls back to the end is followed
+ * again. A conversation reads from its newest item, so the first items shown open at the end, and a
+ * user's message added to the end, the one the reader just sent, alone or with the reply's first
+ * text, brings the frame to its end wherever the reader was. The scroll is instant, never smooth,
+ * under any motion preference. The thread follows only in its own frame: unconstrained, it is as
+ * tall as its content and its consumer's scroll moves it, which the thread never scrolls, so a
+ * consumer that wants it followed holds it to a height.
  */
 export class ChatThread extends LitElement {
   static styles = [reset, elements, styles];
@@ -140,10 +172,38 @@ export class ChatThread extends LitElement {
   /** Whether reasoning, function calls, and their outputs show; reflected to `verbose`. */
   declare verbose: boolean;
 
+  /** Whether the update in flight follows the newest item: the frame was at its end, or showed
+   * no items yet, or the update adds a user's message. */
+  #follow = false;
+
   constructor() {
     super();
     this.items = [];
     this.verbose = false;
+  }
+
+  protected override willUpdate(changed: PropertyValues<this>) {
+    // The frame as the last update left it, before this one grows it: at its end, within the
+    // browser's rounding, when it doesn't scroll at all too. No frame yet is the first render.
+    const frame = this.renderRoot.querySelector<HTMLElement>(".frame");
+    const before = changed.has("items")
+      ? ((changed.get("items") as readonly ThreadItem[] | undefined) ?? [])
+      : (this.items ?? []);
+    // A user's message among the items added, the newest or the one before the reply's first
+    // text, when the consumer adds both at once.
+    const sent = (this.items ?? [])
+      .slice(before.length)
+      .some((item) => item?.type === "message" && item.role === "user");
+    this.#follow =
+      (changed.has("items") || changed.has("verbose")) &&
+      (frame === null || before.length === 0 || sent || atEnd(frame));
+  }
+
+  protected override updated() {
+    if (!this.#follow) return;
+    this.#follow = false;
+    const frame = this.renderRoot.querySelector<HTMLElement>(".frame");
+    if (frame) frame.scrollTop = frame.scrollHeight;
   }
 
   // An item's status, labelled, when it has one worth saying: streaming carries its indicator.
@@ -178,30 +238,63 @@ export class ChatThread extends LitElement {
     </article>`;
   }
 
-  // A verbose item: its kind, what names it, and its status, in the summary of a details collapsed
-  // by default. The summary keeps its native marker, so its parts are inline, a space apart, and
-  // a narrow thread wraps the line between them, each whole.
-  #details(item: ThreadItem, kind: string, names: TemplateResult[], body: unknown) {
+  // A verbose item's line: its kind, what names it, and its status, then what describes it, in
+  // the label's type. The parts are inline, a space apart, so a narrow thread wraps the line
+  // between them, each whole but the description, which wraps as prose.
+  #line(item: ThreadItem, kind: string, names: TemplateResult[], described: TemplateResult[]) {
     const status = this.#status(item.status);
     const parts = [html`<span class="kind">${kind}</span>`, ...names];
     if (status !== nothing) parts.push(status);
+    parts.push(...described);
+    return parts.map((part, index) => (index ? html` ${part}` : part));
+  }
+
+  // A verbose item: its line in the summary of a details collapsed by default, which keeps its
+  // native marker.
+  #details(
+    item: ThreadItem,
+    kind: string,
+    names: TemplateResult[],
+    body: unknown,
+    described: TemplateResult[] = [],
+  ) {
     return html`<details class="verbose ${item.type}">
-      <summary>${parts.map((part, index) => (index ? html` ${part}` : part))}</summary>
+      <summary>${this.#line(item, kind, names, described)}</summary>
       <div class="content">${body}</div>
     </details>`;
   }
 
+  // A reasoning item: its summary on the line, after a separator the accessibility tree skips,
+  // and its content inside, the summary not again. Its summary parts join into one sentence run;
+  // a part with no text yet, as one just begun streaming, is no summary. With content but no
+  // summary, the line reads Reasoning alone; with neither, the details says there is no text. With
+  // a summary and no content, nothing would expand, so the line stands alone, a paragraph in the
+  // summary's type and place: no disclosure that opens on nothing. Its gutter, hidden from the
+  // accessibility tree, holds the room of the summaries' marker, so its kind lines up with theirs;
+  // no whitespace before the kind, which would widen it.
   #reasoning(item: ReasoningItem) {
-    const text = (parts: readonly ReasoningTextPart[] | undefined, type: string) =>
-      (parts ?? [])
-        .filter((part) => part?.type === type)
-        .map((part) => html`<p class="text ${type}">${part.text}</p>`);
-    const shown = [...text(item.summary, "summary_text"), ...text(item.content, "reasoning_text")];
+    const parts = (parts: readonly ReasoningTextPart[] | undefined, type: string) =>
+      (parts ?? []).filter((part) => part?.type === type);
+    const summary = parts(item.summary, "summary_text")
+      .map((part) => part.text ?? "")
+      .join(" ")
+      .trim();
+    const content = parts(item.content, "reasoning_text");
+    const thought = content.some((part) => part.text?.trim());
+    const described = summary ? [html`<span class="summary-text">${summary}</span>`] : [];
+    if (summary && !thought) {
+      const gutter = html`<span class="gutter" aria-hidden="true"></span>`;
+      const line = this.#line(item, "Reasoning", [], described);
+      return html`<p class="verbose reasoning line">${gutter}${line}</p>`;
+    }
     return this.#details(
       item,
       "Reasoning",
       [],
-      shown.length ? shown : html`<p class="empty">No reasoning text.</p>`,
+      thought
+        ? content.map((part) => html`<p class="text reasoning_text">${part.text}</p>`)
+        : html`<p class="empty">No reasoning text.</p>`,
+      described,
     );
   }
 

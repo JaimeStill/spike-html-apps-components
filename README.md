@@ -16,9 +16,9 @@ the one copy serves both, so a restyle of the foundation's sheets by package nam
 components' shadow roots too. Install both by their tags:
 
 ```
-npm install --allow-git=root github:JaimeStill/spike-html-apps-components#v0.8.0 github:JaimeStill/spike-html-apps-foundation#v0.3.0
-pnpm add github:JaimeStill/spike-html-apps-components#v0.8.0 github:JaimeStill/spike-html-apps-foundation#v0.3.0
-bun add github:JaimeStill/spike-html-apps-components#v0.8.0 github:JaimeStill/spike-html-apps-foundation#v0.3.0
+npm install --allow-git=root github:JaimeStill/spike-html-apps-components#v0.9.0 github:JaimeStill/spike-html-apps-foundation#v0.3.0
+pnpm add github:JaimeStill/spike-html-apps-components#v0.9.0 github:JaimeStill/spike-html-apps-foundation#v0.3.0
+bun add github:JaimeStill/spike-html-apps-components#v0.9.0 github:JaimeStill/spike-html-apps-foundation#v0.3.0
 ```
 
 Or by their release tarballs:
@@ -121,9 +121,13 @@ foundation's `page.css`:
 - `./chat-thread.js`: `sl-chat-thread`, a conversation's items in order, a structural subset of
   Open Responses: a user's text as plain text, the assistant's as rendered Markdown, a refusal
   labelled, and a streaming reply re-rendered in place; with `verbose`, reasoning, function calls,
-  and their outputs too, each collapsed in a native details, a call's arguments and its output
-  that are valid JSON formatted from their own tokens by `./json.js`. It exports its item types
-  and sends no event. It imports `./markdown.js`, so its page maps marked too.
+  and their outputs too, each collapsed in a native details, a reasoning item's summary on its
+  line and its content inside, and a call's arguments and its output that are valid JSON
+  formatted from their own tokens by `./json.js`. A thread its consumer holds
+  to a height scrolls inside, opening at its end and following the newest item only from its end
+  or on a user's message; unheld, it is as tall as its content and follows nothing, so a consumer
+  that wants it followed holds it. It exports its item types and sends no event. It imports
+  `./markdown.js`, so its page maps marked too.
 - `./composer.js`: `sl-composer`, a multi-line text field that grows to eight lines, and its
   send control, which a stop control replaces while `busy`; it dispatches `send` with the text,
   then clears the field, and `stop`. Its `send()` does what activating send does, so an app that

@@ -1456,9 +1456,10 @@ describe("components", { timeout: 60_000 }, () => {
 
   test("the chat thread's specimen renders every state, at full size or held, within 20rem, its ids whole, in every profile", async () => {
     // Every thread shows its frame. The thread is as tall as its content, so no frame scrolls down
-    // but the long content's, which the page holds to 16rem, and it does. At 20rem the states keep
-    // within the column, every part of each thread inside its box across, and each id, function
-    // name, kind, role, status, and inline code span in a reply on one line.
+    // but the long content's and the two a reply streams into, which the page holds to 16rem, and
+    // they do. At 20rem the states keep within the column, every part of each thread inside its
+    // box across, and each id, function name, kind, role, status, and inline code span in a reply
+    // on one line.
     const measure = `() => {
       const list = document.querySelector(".narrow .states");
       const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
@@ -1504,13 +1505,13 @@ describe("components", { timeout: 60_000 }, () => {
       assert.ok(overflow <= 0, `${profile}: the states overflow the column by ${overflow}`);
       assert.equal(
         shown.length,
-        46,
-        `${profile}: 21 states twice, the three fits, and the focus state`,
+        60,
+        `${profile}: 28 states twice, the three fits, and the focus state`,
       );
       assert.equal(
         shown.filter(({ held }) => held).length,
-        5,
-        `${profile}: the long content twice in the states, twice at 20rem, and once focused`,
+        9,
+        `${profile}: the long content and the two streamed, twice each in the states and at 20rem, and the long content once focused`,
       );
       for (const [
         index,

@@ -2,8 +2,8 @@
  * The chat thread's layout in a shadow root: chat-thread.ts adopts this sheet into its root after
  * the foundation's reset and elements sheets (baseline/reset.css and elements.css), which give the
  * rendered Markdown, the pre, and the native details and summary their look. It holds the
- * thread's one frame, the list's layout, each message's alignment and label, a refusal's mark,
- * and the streaming indicator. It reads only the foundation's baseline tokens, which a shadow root
+ * thread's one frame, the list's layout, each message's alignment and label, a verbose item's
+ * line, a refusal's mark, and the streaming indicator. It reads only the foundation's baseline tokens, which a shadow root
  * takes by inheritance from the page's entry. Unlayered, it sits above the adopted layers in the
  * root.
  *
@@ -11,7 +11,9 @@
  * content. A consumer that constrains its block size, by a block-size or max-block-size on the
  * host or a sized flex or grid parent, holds it there: the frame shrinks to it and the list
  * scrolls inside, the browser's own scrollbar showing, and the list's padding shows past its last
- * item at the scroll's end.
+ * item at the scroll's end. Only that frame follows the newest item, from chat-thread.ts, so a
+ * consumer holds the thread to a height to have it followed. The frame sets no scroll-behavior:
+ * following is instant.
  *
  * The frame is a grid of one column, minmax(0, 1fr), around the list: under a min-content
  * constraint the track is zero, and under a max-content one it is the list's widest line, so in
@@ -80,19 +82,45 @@
   justify-content: flex-end;
 }
 /* A verbose item's summary: its kind, names, and status inline after the native marker, in the
-   label's type. */
-summary {
+   label's type. A reasoning item's line without content to expand is a paragraph in the same type
+   and place. Its gutter is an inline list item whose disclosure marker is the summaries' own,
+   undrawn, so it takes exactly their marker's room and the kind lines up with theirs; the gutter
+   is hidden from the accessibility tree, so no marker is read for a disclosure that isn't one. */
+summary,
+.line {
+  font-family: var(--font-ui);
   font-size: var(--text-s);
   color: var(--fg-2);
+}
+.gutter {
+  display: inline list-item;
+  list-style: disclosure-closed inside;
+}
+.gutter::marker {
+  color: transparent;
+}
+/* A reasoning item's summary text, after the status: prose, in the label's color at its regular
+   weight, wrapping between words, and anywhere in a word longer than the line, rather than
+   widen the thread; the separator before it is the marker's quieter color. */
+.summary-text {
+  overflow-wrap: anywhere;
+}
+.summary-text::before {
+  content: "·\a0" / "";
+  color: var(--fg-3);
 }
 .role,
 .kind {
   font-weight: 600;
 }
+/* A line's parts keep whole, each an inline block: the accessible name Chromium computes for a
+   summary drops the spaces between inline parts that Lit renders around its markers, but keeps a
+   space at an inline block's edge, so the name reads the parts a word apart, as the line does. */
 .kind,
 .name,
 .id,
 .status {
+  display: inline-block;
   white-space: nowrap;
 }
 .id {

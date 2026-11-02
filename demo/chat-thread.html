@@ -7,9 +7,16 @@
     <!-- The chat thread's specimen page, from dist/: an empty thread, a user and assistant
          exchange, a reply streaming inside an open code fence and another inside a half-built
          list, a refusal, an incomplete reply, a failed one, reasoning and tool calls, an unknown
-         item among known ones, and long content, each with verbose off, then on. The thread is as
-         tall as its content, so each shows at full size but the long content, which the page
-         holds to 16rem by demo.css's held class, so it scrolls.
+         item among known ones, and long content, each with verbose off, then on; the reasoning
+         and tool calls opened, and a reasoning item's states with verbose on, its summary on its
+         line: streaming before its summary arrives and after, with no summary, with a summary and
+         no content, and failed; then a reply streamed into a held thread, word by word, the frame
+         following its end, and the same with the reader scrolled up part way, the frame keeping
+         their place. The thread is as tall as
+         its content, so each shows at full size but the long content and the two streamed, which
+         the page holds to 16rem by demo.css's held class, so they scroll; a held thread opens at
+         its end. The stream runs once the page's fonts load, each word an update awaited in turn,
+         so a capture shows where it ends; the browser tier tests the following itself.
          Every state is labelled, then shown again in a section 20rem wide; the fit section holds
          a short exchange in three parents that size it to its content, an inline-block, a
          content-sized flex item, and a grid's auto track; and the focus section holds one
@@ -116,7 +123,7 @@
           type: "reasoning",
           id: "rs_01J9X4R7Q8",
           status: "completed",
-          summary: [{ type: "summary_text", text: "The user wants the current weather; call get_weather for Paris." }],
+          summary: [{ type: "summary_text", text: "Looked up the weather for Paris with a tool, then answered in Markdown." }],
           content: [{ type: "reasoning_text", text: "Paris is a city name. The tool takes a city and a unit.\nCelsius suits a French city." }],
         },
         {
@@ -176,25 +183,76 @@
         ["Failed: the reply failed part way", failed],
         ["Reasoning and tool calls", tools],
         ["An unknown item and an unknown part among known ones, skipped", unknown],
-        ["Long content: held to 16rem by the page, scrolling inside the thread", long, "held"],
+        ["Long content: held to 16rem by the page, scrolling inside the thread, opened at its end", long, "held"],
       ].flatMap(([label, items, className = ""]) =>
         [false, true].map((verbose) => ({
           label: `${label}; verbose ${verbose ? "on" : "off"}`,
           build: thread({ items, verbose, className }),
         })),
       );
-      // The verbose items again, each details opened once the thread renders, so the capture shows
-      // what each holds.
-      states.splice(states.findIndex(({ label }) => label.startsWith("Reasoning")) + 2, 0, {
-        label: "Reasoning and tool calls, each opened; verbose on",
-        build: () => {
-          const element = thread({ items: tools, verbose: true })();
-          element.updateComplete.then(() => {
-            for (const details of element.shadowRoot.querySelectorAll("details")) details.open = true;
-          });
-          return element;
-        },
-      });
+      // A reply streamed into a held thread after the long content and a new question, word by
+      // word, each word an update awaited in turn, once the fonts load so the lines are final.
+      // With up set, the reader scrolls up part way after the first few words, as one rereading
+      // the last answer does, and the frame keeps their place as the reply streams on below.
+      const reply = [
+        "Both stages completed for `run-01J9X4R7Q2M8ZK3T5V6W`. Stage 1 classified the document",
+        "and wrote its outputs; stage 2 summarized them into **summary.md**, 1.5 kB, and",
+        "**stages.csv**, 48 kB. Nothing failed, and the run's page lists every artifact it wrote.",
+      ].join(" ").split(" ");
+      const streamed = (up) => () => {
+        const element = thread({ items: [...long, user("And the run as a whole?")], className: "held" })();
+        element.updateComplete.then(async () => {
+          await document.fonts.ready;
+          const frame = element.shadowRoot.querySelector(".frame");
+          for (let count = 1; count <= reply.length; count++) {
+            if (up && count === 6) frame.scrollTop -= 160;
+            const text = reply.slice(0, count).join(" ");
+            element.items = [...long, user("And the run as a whole?"), assistant("msg_streamed", text, "in_progress")];
+            await element.updateComplete;
+          }
+        });
+        return element;
+      };
+      states.push(
+        { label: "A reply streaming into a held thread: the frame follows its end", build: streamed(false) },
+        { label: "A reply streaming, the reader scrolled up: the frame keeps their place", build: streamed(true) },
+      );
+      // A thread of the fields, each details opened once it renders, so the capture shows what
+      // each holds.
+      const opened = (fields) => () => {
+        const element = thread(fields)();
+        element.updateComplete.then(() => {
+          for (const details of element.shadowRoot.querySelectorAll("details")) details.open = true;
+        });
+        return element;
+      };
+      // A reasoning item's states, verbose on, each beside the call it leads to, so its line reads
+      // against the call's: streaming before its summary arrives and after, with no summary, with
+      // a summary and no content, and failed.
+      const [, thought, called] = tools;
+      const streaming = {
+        ...thought,
+        status: "in_progress",
+        summary: [],
+        content: [{ type: "reasoning_text", text: "Paris is a city name. The tool takes a city" }],
+      };
+      const reasoningStates = [
+        ["Reasoning streaming, its summary not yet arrived, opened", [streaming], opened],
+        [
+          "Reasoning streaming, its summary arrived, opened",
+          [{ ...streaming, summary: thought.summary, content: thought.content }],
+          opened,
+        ],
+        ["Reasoning with no summary, opened", [{ ...thought, summary: [] }, called], opened],
+        ["Reasoning with a summary and no content: a line alone, nothing to expand", [{ ...thought, content: [] }, called], thread],
+        ["Reasoning that failed, its summary on the line", [{ ...thought, status: "failed" }, called], thread],
+      ].map(([label, items, build]) => ({ label: `${label}; verbose on`, build: build({ items, verbose: true }) }));
+      states.splice(
+        states.findIndex(({ label }) => label.startsWith("Reasoning")) + 2,
+        0,
+        { label: "Reasoning and tool calls, each opened; verbose on", build: opened({ items: tools, verbose: true }) },
+        ...reasoningStates,
+      );
       specimens(states, {
         label: "Focused by Tab: the scrolling frame",
         build: thread({ items: long, className: "held" }),

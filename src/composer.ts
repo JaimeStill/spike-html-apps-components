@@ -35,6 +35,10 @@ export type StopDetail = Record<string, never>;
  * draft or sets one; it sends no event as the text changes. The field is named by `label`, in a
  * label kept for assistive technology and visually hidden, since a composer's place in a chat
  * shows what it is for.
+ *
+ * Focus never rests on a disabled control: when the button turns disabled while it holds focus,
+ * as stop activated with the field empty becomes send once the app clears busy, focus moves to the
+ * field, where the reader writes next.
  */
 export class Composer extends LitElement {
   static styles = [reset, elements, styles];
@@ -94,6 +98,16 @@ export class Composer extends LitElement {
 
   #stop(): void {
     if (this.busy && !this.disabled) emit<StopDetail>(this, "stop", {});
+  }
+
+  protected override updated() {
+    // The button turned disabled while it held focus: stop, activated with the field empty, became
+    // send once the app cleared busy, or the app emptied the field. A disabled control keeps focus
+    // and takes no keys, so the reader would lose their place; focus moves to the field, where they
+    // write next. While the composer is disabled the field is too, takes no focus, and focus is
+    // left where it is.
+    const button = this.renderRoot.querySelector("button");
+    if (button?.disabled && this.shadowRoot?.activeElement === button) this.#field?.focus();
   }
 
   render() {

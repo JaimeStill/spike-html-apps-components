@@ -1,10 +1,12 @@
 // The composer from this repository's dist/, on test/fixtures/components.html: send sending the
 // field's text, bubbling and composed, and clearing the field; send() doing what activating send
 // does, under the same rules; empty and whitespace-only text unsendable; busy putting stop in
-// send's place, in the same footprint, typing still allowed; disabled blocking typing, sending,
-// and stopping; Enter, Shift+Enter, and Escape doing only what a native textarea does; the field
-// growing with its text to eight lines, then scrolling; value and the attributes in step with the
-// field; and no event but send and stop.
+// send's place, in the same footprint, typing still allowed; stop activated by the keyboard moving
+// focus to the field when send would be disabled under it, and keeping it on an enabled send, the
+// app emptying the field doing the same, and focus outside the composer left there; disabled
+// blocking typing, sending, and stopping; Enter, Shift+Enter, and Escape doing only what a native
+// textarea does; the field growing with its text to eight lines, then scrolling; value and the
+// attributes in step with the field; and no event but send and stop.
 
 import assert from "node:assert/strict";
 import { after, before, beforeEach, describe, test } from "node:test";
@@ -257,6 +259,83 @@ describe("composer", { timeout: 60_000 }, () => {
     const after = await clickAction();
     assert.deepEqual(after.heard, [{ type: "stop", detail: {}, bubbles: true, composed: true }]);
     assert.deepEqual([after.value, after.field], ["next question", "next question"]);
+  });
+
+  test("stop activated by the keyboard with the field empty moves focus to the field, never leaving it on a disabled send", async () => {
+    // The app clears busy on stop, as a consumer does once the reply ends. The button turns to
+    // send, disabled for the empty field: focus left on it would sit on a disabled control.
+    await page.evaluate(`(() => {
+      const composer = document.querySelector("sl-composer");
+      composer.busy = true;
+      composer.addEventListener("stop", () => (composer.busy = false), { once: true });
+    })()`);
+    await focusField();
+    await press("Tab", { keyCode: 9 });
+    const before = await read();
+    assert.deepEqual([before.action, before.focused], ["stop", "button"], "Tab reaches stop");
+    await press(" ", { code: "Space", keyCode: 32, text: " " });
+    const after = await read();
+    const focus: { active: string | null; disabled: boolean } = await page.evaluate(`(() => {
+      const inner = document.querySelector("sl-composer").shadowRoot.activeElement;
+      return { active: document.activeElement?.localName ?? null, disabled: inner?.disabled ?? false };
+    })()`);
+    assert.deepEqual(
+      after.heard.map(({ type }) => type),
+      ["stop"],
+    );
+    assert.deepEqual(
+      [after.action, after.actionDisabled, after.busy, after.focused],
+      ["send", true, false, "textarea"],
+    );
+    assert.deepEqual(focus, { active: "sl-composer", disabled: false });
+  });
+
+  test("stop activated by the keyboard with a draft in the field leaves focus on the button, an enabled send", async () => {
+    await page.evaluate(`(() => {
+      const composer = document.querySelector("sl-composer");
+      composer.busy = true;
+      composer.value = "next question";
+      composer.addEventListener("stop", () => (composer.busy = false), { once: true });
+    })()`);
+    await focusField();
+    await press("Tab", { keyCode: 9 });
+    await press("Enter", { keyCode: 13, text: "\r" });
+    const after = await read();
+    assert.deepEqual(
+      after.heard.map(({ type }) => type),
+      ["stop"],
+    );
+    assert.deepEqual(
+      [after.action, after.actionDisabled, after.focused, after.value],
+      ["send", false, "button", "next question"],
+    );
+  });
+
+  test("the app emptying the field under a focused send moves focus to the field", async () => {
+    await mount({ value: "a draft" });
+    const focused: string | null = await page.evaluate(`(async () => {
+      const composer = document.querySelector("sl-composer");
+      composer.shadowRoot.querySelector(".action").focus();
+      composer.value = "";
+      await composer.updateComplete;
+      return composer.shadowRoot.activeElement?.localName ?? null;
+    })()`);
+    assert.equal(focused, "textarea");
+  });
+
+  test("the button turning disabled while focus is outside the composer leaves focus there", async () => {
+    await mount({ value: "a draft" });
+    const focused: string | null = await page.evaluate(`(async () => {
+      const outside = document.querySelector("main").appendChild(document.createElement("button"));
+      outside.focus();
+      const composer = document.querySelector("sl-composer");
+      composer.value = "";
+      await composer.updateComplete;
+      const active = document.activeElement?.localName ?? null;
+      outside.remove();
+      return active;
+    })()`);
+    assert.equal(focused, "button");
   });
 
   test("while busy the field takes typing, and nothing is sent", async () => {
