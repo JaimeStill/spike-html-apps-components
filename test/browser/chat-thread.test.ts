@@ -10,7 +10,7 @@
 // message, alone or with the reply's first text, the reader scrolling by the wheel, under a page
 // zoom too, and scrolling instantly; a details opened at a held frame's end followed, under reduced
 // motion too, and a reader scrolled up keeping their place; a thread not held scrolling no
-// container of its consumer's; and no event sent.
+// container of its consumer's, as items are added or a details opens; and no event sent.
 
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
@@ -827,7 +827,13 @@ describe("chat thread", { timeout: 60_000 }, () => {
   };
 
   test("held at its end, a details opened in the last item keeps the frame's end in view", async () => {
+    // Read two frames after the click, a smooth scroll would be short of the end: motion allowed
+    // proves the follow instant too.
+    await page.cdp("Emulation.setEmulatedMedia", {
+      features: [{ name: "prefers-reduced-motion", value: "no-preference" }],
+    });
     const { before, after } = await opened();
+    await page.cdp("Emulation.setEmulatedMedia", { features: [] });
     assert.equal(before.top, before.end, "at its end before the click");
     assert.ok(after.end > before.end, `the details grew the scroll: ${JSON.stringify(after)}`);
     assert.equal(after.top, after.end, "and the frame followed it to its end");
@@ -852,25 +858,33 @@ describe("chat thread", { timeout: 60_000 }, () => {
   });
 
   test("not held, the thread is as tall as its content and scrolls no container it doesn't own", async () => {
-    const scrolled: { frame: Where; pane: Where } = await page.evaluate(`(async () => {
+    const scrolled: { frame: Where; pane: Where }[] = await page.evaluate(`(async () => {
       const pane = document.createElement("div");
       pane.style.cssText = "block-size: 10rem; overflow: auto";
       const thread = pane.appendChild(document.createElement("sl-chat-thread"));
       document.querySelector("main").replaceChildren(pane);
       thread.items = ${JSON.stringify(turns(4))};
       await thread.updateComplete;
-      thread.items = ${JSON.stringify(turns(6))};
+      thread.verbose = true;
+      thread.items = ${JSON.stringify([...turns(6), call])};
       await thread.updateComplete;
       const frame = thread.shadowRoot.querySelector(".frame");
       const where = (element) => ({
         top: Math.round(element.scrollTop),
         end: Math.round(element.scrollHeight - element.clientHeight),
       });
-      return { frame: where(frame), pane: where(pane) };
+      const updated = { frame: where(frame), pane: where(pane) };
+      // A details opened at its end grows it with no update.
+      [...frame.querySelectorAll("summary")].at(-1).click();
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      return [updated, { frame: where(frame), pane: where(pane) }];
     })()`);
-    assert.deepEqual(scrolled.frame, { top: 0, end: 0 }, "its frame doesn't scroll");
-    assert.ok(scrolled.pane.end > 0, `the pane scrolls: ${JSON.stringify(scrolled.pane)}`);
-    assert.equal(scrolled.pane.top, 0, "the pane keeps its place: its consumer scrolls it");
+    for (const [index, { frame, pane }] of scrolled.entries()) {
+      assert.deepEqual(frame, { top: 0, end: 0 }, `step ${index}: its frame doesn't scroll`);
+      assert.ok(pane.end > 0, `step ${index}: the pane scrolls: ${JSON.stringify(pane)}`);
+      assert.equal(pane.top, 0, `step ${index}: the pane keeps its place: its consumer scrolls it`);
+    }
+    assert.ok(scrolled[1].pane.end > scrolled[0].pane.end, "the details grew the pane's scroll");
   });
 
   test("the thread sends no event as its items and verbose change", async () => {
