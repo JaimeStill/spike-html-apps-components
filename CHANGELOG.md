@@ -6,6 +6,16 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-11-02
+
+### Fixed
+
+- `sl-pagination`'s page number shows whole. Its field was 4ch wide in all, the elements sheet's
+  padding and border inside the 4ch, so at the regular spacing less than two digits fit and page
+  13 read "1:", in mono and in sans. The field is now as wide as three digits inside its padding
+  and border, at every spacing and type, and keeps that one width from page 1 to page 999, so it
+  doesn't jump as the page changes; past page 999 it grows with the page rather than clip it.
+
 ## [0.10.0] - 2026-11-02
 
 ### Added
@@ -536,7 +546,8 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 - The release by tag: `v<version>`, whose tree is the pack, with the tarball on its GitHub
   release.
 
-[Unreleased]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.10.0...HEAD
+[Unreleased]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.10.1...HEAD
+[0.10.1]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.10.0...v0.10.1
 [0.10.0]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.9.1...v0.10.0
 [0.9.1]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.8.0...v0.9.0
