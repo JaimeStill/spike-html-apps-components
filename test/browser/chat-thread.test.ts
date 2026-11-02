@@ -830,12 +830,16 @@ describe("chat thread", { timeout: 60_000 }, () => {
       const frame = window.held;
       const summary = [...frame.querySelectorAll("summary")].find(
         (summary) => summary.querySelector(".id")?.textContent === "call_1");
-      const where = () => ({
-        top: Math.round(frame.scrollTop),
-        end: Math.round(frame.scrollHeight - frame.clientHeight),
-        summary: Math.round(summary.getBoundingClientRect().top),
-        shown: summary.getBoundingClientRect().bottom <= frame.getBoundingClientRect().bottom,
-      });
+      const where = () => {
+        const shown = summary.getBoundingClientRect();
+        const held = frame.getBoundingClientRect();
+        return {
+          top: Math.round(frame.scrollTop),
+          end: Math.round(frame.scrollHeight - frame.clientHeight),
+          summary: Math.round(shown.top),
+          shown: shown.top >= held.top && shown.bottom <= held.bottom,
+        };
+      };
       const before = where();
       summary.click();
       requestAnimationFrame(() => requestAnimationFrame(() => resolve({ before, after: where() })));
