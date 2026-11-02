@@ -2,7 +2,9 @@
 // part type as it renders, user text plain and assistant text as Markdown, raw HTML as text; a
 // refusal labelled; each status labelled; unknown item and part types skipped; verbose hiding and
 // showing reasoning, function calls, and their outputs, collapsed, valid JSON formatted from its
-// own tokens and invalid JSON as it is; a streaming message re-rendered in place, the items above
+// own tokens and invalid JSON as it is; a reasoning item's summary on its line and its content
+// inside, as it streams, without a summary, and without content, a line alone, and the line's
+// accessible name; a streaming message re-rendered in place, the items above
 // it the same nodes; the verbose attribute reflected; a held frame opening at its end and following
 // the newest item, as items are added and a streaming reply grows, only from its end or on a user's
 // message, alone or with the reply's first text, the reader scrolling by the wheel, under a page
@@ -29,11 +31,21 @@ interface Item {
   busy: string | null;
   names: string[];
   open: boolean | null;
+  line: string | null;
+  gist: string | null;
+  separator: string | null;
   plain: string[];
   markdown: string | null;
   refusal: string | null;
   pre: string | null;
   empty: string | null;
+}
+
+/** A node of the page's accessibility tree, as Accessibility.getFullAXTree gives it. */
+interface AXNode {
+  ignored: boolean;
+  role?: { value: string };
+  name?: { value: string };
 }
 
 /** A frame's scroll position: its scrollTop and the most it scrolls, rounded. */
@@ -85,6 +97,11 @@ describe("chat thread", { timeout: 60_000 }, () => {
               busy: li.querySelector("article")?.getAttribute("aria-busy") ?? null,
               names: [...li.querySelectorAll(".name, .id")].map((el) => el.textContent),
               open: details ? details.open : null,
+              line: text(li, "summary, .line"),
+              gist: text(li, ".summary-text"),
+              separator: li.querySelector(".summary-text")
+                ? getComputedStyle(li.querySelector(".summary-text"), "::before").content
+                : null,
               plain: [...li.querySelectorAll(".content > .text, .content > p.text")].map(
                 (el) => el.textContent),
               markdown: li.querySelector(".markdown")?.innerHTML.replace(/<!--[^>]*-->/g, "") ?? null,
@@ -255,12 +272,137 @@ describe("chat thread", { timeout: 60_000 }, () => {
       ],
     );
     const [, thinking, called, answered] = view.items;
-    assert.deepEqual(thinking.plain, ["Look up the weather.", "Paris is a city.\nCall the tool."]);
+    assert.deepEqual(thinking.plain, ["Paris is a city.\nCall the tool."]);
     assert.deepEqual(called.names, ["get_weather", "call_1"]);
     assert.equal(called.pre, '{\n  "city": "Paris"\n}');
     // The output names the function it answers, by its call_id.
     assert.deepEqual(answered.names, ["get_weather", "call_1"]);
     assert.equal(answered.pre, '{\n  "temperature": 14\n}');
+  });
+
+  test("a reasoning item's summary is on its line, after the kind, and its content alone inside", async () => {
+    const view = await shown({
+      verbose: true,
+      items: [
+        {
+          ...reasoning,
+          summary: [
+            { type: "summary_text", text: "Look up the weather." },
+            { type: "summary_text", text: "Then answer." },
+          ],
+        },
+      ],
+    });
+    const [thinking] = view.items;
+    assert.equal(thinking.element, "details");
+    assert.equal(thinking.open, false);
+    assert.equal(thinking.line, "Reasoning Look up the weather. Then answer.");
+    assert.equal(thinking.gist, "Look up the weather. Then answer.");
+    // A middle dot and a space set the summary off from the kind, shown but not read.
+    assert.equal(thinking.separator, '"·\u00a0" / ""');
+    assert.deepEqual(thinking.plain, ["Paris is a city.\nCall the tool."]);
+  });
+
+  test("a streaming reasoning item reads Reasoning alone until its summary arrives, its status on the line throughout", async () => {
+    const streaming = {
+      ...reasoning,
+      status: "in_progress",
+      summary: [],
+      content: [{ type: "reasoning_text", text: "Paris is" }],
+    };
+    const begun = await shown({ verbose: true, items: [streaming] });
+    assert.deepEqual(
+      begun.items.map(({ element, line, status, gist, plain }) => [
+        element,
+        line,
+        status,
+        gist,
+        plain,
+      ]),
+      [["details", "Reasoning Streaming", "Streaming", null, ["Paris is"]]],
+    );
+    // A summary part just added, its text still empty, is no summary yet.
+    const added = await shown({
+      verbose: true,
+      items: [{ ...streaming, summary: [{ type: "summary_text", text: "" }] }],
+    });
+    assert.equal(added.items[0].line, "Reasoning Streaming");
+    assert.equal(added.items[0].gist, null);
+    const summarized = await shown({
+      verbose: true,
+      items: [{ ...streaming, summary: [{ type: "summary_text", text: "Look up" }] }],
+    });
+    assert.equal(summarized.items[0].line, "Reasoning Streaming Look up");
+    assert.deepEqual(summarized.items[0].plain, ["Paris is"]);
+    for (const [status, label] of [
+      ["incomplete", "Incomplete"],
+      ["failed", "Failed"],
+    ]) {
+      const ended = await shown({ verbose: true, items: [{ ...reasoning, status }] });
+      assert.equal(ended.items[0].line, `Reasoning ${label} Look up the weather.`);
+    }
+  });
+
+  test("a reasoning item with no summary reads Reasoning alone, its content inside", async () => {
+    for (const summary of [undefined, [], [{ type: "summary_text", text: " " }]]) {
+      const view = await shown({ verbose: true, items: [{ ...reasoning, summary }] });
+      const [thinking] = view.items;
+      assert.equal(thinking.element, "details");
+      assert.equal(thinking.line, "Reasoning");
+      assert.equal(thinking.gist, null);
+      assert.deepEqual(thinking.plain, ["Paris is a city.\nCall the tool."]);
+    }
+  });
+
+  test("a reasoning item with a summary and no content is a line alone, with nothing to expand", async () => {
+    for (const content of [undefined, [], [{ type: "reasoning_text", text: "" }]]) {
+      const view = await shown({ verbose: true, items: [{ ...reasoning, content }] });
+      const [thinking] = view.items;
+      assert.equal(thinking.element, "p");
+      assert.equal(thinking.open, null);
+      assert.equal(thinking.line, "Reasoning Look up the weather.");
+      assert.deepEqual(thinking.plain, []);
+      assert.equal(thinking.empty, null);
+    }
+    const streaming = await shown({
+      verbose: true,
+      items: [{ ...reasoning, status: "in_progress", content: [] }],
+    });
+    assert.equal(streaming.items[0].line, "Reasoning Streaming Look up the weather.");
+    // Beside a details, its kind lines up with the summary's, after the marker's room, and the
+    // accessibility tree holds no marker for it: the paragraph reads its text alone.
+    await shown({ verbose: true, items: [{ ...reasoning, content: [] }, reasoning] });
+    const lefts: number[] = await page.evaluate(`[
+      ...document.querySelector("sl-chat-thread").shadowRoot.querySelectorAll(".kind"),
+    ].map((kind) => kind.getBoundingClientRect().left)`);
+    assert.equal(lefts[0], lefts[1]);
+    const { nodes }: { nodes: AXNode[] } = await page.cdp("Accessibility.getFullAXTree", {});
+    const roles = nodes.filter((node) => !node.ignored).map((node) => node.role?.value);
+    assert.equal(roles.filter((role) => role === "ListMarker").length, 0);
+  });
+
+  test("a reasoning item's line is named, in the accessibility tree, for its kind and its summary", async () => {
+    await shown({
+      verbose: true,
+      items: [
+        reasoning,
+        { ...reasoning, id: "rs_2", summary: [] },
+        call,
+        { ...reasoning, id: "rs_3", status: "failed" },
+      ],
+    });
+    const { nodes }: { nodes: AXNode[] } = await page.cdp("Accessibility.getFullAXTree", {});
+    const names = nodes
+      .filter((node) => !node.ignored && node.role?.value === "DisclosureTriangle")
+      .map((node) => node.name?.value ?? "");
+    // The separator is generated with no alternative text, so the name reads the kind, the
+    // status, and the summary, a word apart, as a call's reads its kind, name, and call_id.
+    assert.deepEqual(names, [
+      "Reasoning Look up the weather.",
+      "Reasoning",
+      "Function call get_weather call_1",
+      "Reasoning Failed Look up the weather.",
+    ]);
   });
 
   test("a call's arguments and its output show their own keys, order, numbers, and duplicates as written", async () => {

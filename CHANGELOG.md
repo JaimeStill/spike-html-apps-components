@@ -21,8 +21,23 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
   is as tall as its content and scrolls no container of its consumer's, so a consumer that wants
   it followed holds it to a height.
 
+### Changed
+
+- `sl-chat-thread`'s reasoning item, with `verbose`, carries its summary on its line: "Reasoning",
+  its status when it has one, then the summary text, set off by a middle dot that the
+  accessibility tree skips, in the line's color at its regular weight, wrapping as prose. Expanded,
+  its details holds the reasoning content alone, where it showed the summary and the content as
+  two unlabelled paragraphs. A summary part with no text yet, as one just begun streaming, is no
+  summary, and the line reads "Reasoning" alone until its text arrives. A reasoning item with a
+  summary and no content is a line alone, a paragraph in the summary's type and place, not a
+  details that opens on nothing; one with neither still says "No reasoning text.".
+
 ### Fixed
 
+- `sl-chat-thread`'s verbose lines are named in the accessibility tree a word apart. Chromium
+  dropped the spaces Lit renders between a summary's parts, naming a call's line
+  "Function callget_weathercall_1"; each part is now an inline block, whose edge keeps the space,
+  so the line is named "Function call get_weather call_1".
 - `sl-composer` no longer leaves focus on a disabled control. Stop activated with the field empty,
   by the keyboard or a pointer, became a disabled send once the app cleared `busy`, and kept focus
   there, where it took no key and some browsers drop focus to the body. When the button turns

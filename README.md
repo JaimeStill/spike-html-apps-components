@@ -121,8 +121,9 @@ foundation's `page.css`:
 - `./chat-thread.js`: `sl-chat-thread`, a conversation's items in order, a structural subset of
   Open Responses: a user's text as plain text, the assistant's as rendered Markdown, a refusal
   labelled, and a streaming reply re-rendered in place; with `verbose`, reasoning, function calls,
-  and their outputs too, each collapsed in a native details, a call's arguments and its output
-  that are valid JSON formatted from their own tokens by `./json.js`. A thread its consumer holds
+  and their outputs too, each collapsed in a native details, a reasoning item's summary on its
+  line and its content inside, and a call's arguments and its output that are valid JSON
+  formatted from their own tokens by `./json.js`. A thread its consumer holds
   to a height scrolls inside, opening at its end and following the newest item only from its end
   or on a user's message; unheld, it is as tall as its content and follows nothing, so a consumer
   that wants it followed holds it. It exports its item types and sends no event. It imports
