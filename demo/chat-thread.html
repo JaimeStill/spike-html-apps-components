@@ -10,7 +10,8 @@
          item among known ones, and long content, each with verbose off, then on; the reasoning
          and tool calls opened, and a reasoning item's states with verbose on, its summary on its
          line: streaming before its summary arrives and after, with no summary, with a summary and
-         no content, and failed; then a reply streamed into a held thread, word by word, the frame
+         no content, and failed, and a call whose name and id are longer than a narrow line, opened;
+         then a reply streamed into a held thread, word by word, the frame
          following its end, and the same with the reader scrolled up part way, the frame keeping
          their place. The thread is as tall as
          its content, so each shows at full size but the long content and the two streamed, which
@@ -228,7 +229,8 @@
       };
       // A reasoning item's states, verbose on, each beside the call it leads to, so its line reads
       // against the call's: streaming before its summary arrives and after, with no summary, with
-      // a summary and no content, and failed.
+      // a summary and no content, and failed; and after them a call and its output whose name and
+      // id, a call_id as a model writes one, are longer than a narrow line.
       const [, thought, called] = tools;
       const streaming = {
         ...thought,
@@ -246,6 +248,21 @@
         ["Reasoning with no summary, opened", [{ ...thought, summary: [] }, called], opened],
         ["Reasoning with a summary and no content: a line alone, nothing to expand", [{ ...thought, content: [] }, called], thread],
         ["Reasoning that failed, its summary on the line", [{ ...thought, status: "failed" }, called], thread],
+        [
+          "A call whose name and id are longer than a narrow line, wrapping inside the frame, opened",
+          [
+            {
+              ...called,
+              call_id: "call_01a19c590db77cc28219329571ef2e06",
+              name: "lookup_document_metadata_and_extracted_chunks",
+            },
+            {
+              ...tools[3],
+              call_id: "call_01a19c590db77cc28219329571ef2e06",
+            },
+          ],
+          opened,
+        ],
       ].map(([label, items, build]) => ({ label: `${label}; verbose on`, build: build({ items, verbose: true }) }));
       states.splice(
         states.findIndex(({ label }) => label.startsWith("Reasoning")) + 2,

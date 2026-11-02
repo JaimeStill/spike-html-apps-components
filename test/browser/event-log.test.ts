@@ -221,6 +221,46 @@ describe("event log", { timeout: 60_000 }, () => {
     );
   });
 
+  test("an event without a time shows its type, source, subject, and id, its head the type alone", async () => {
+    // CloudEvents makes time optional: absent, as a stream without one sends it, or null.
+    const untimed = { ...stage(0), time: undefined };
+    await mount([untimed, { ...stage(1), time: null }, stage(2)]);
+    const { events } = await read();
+    assert.deepEqual(
+      events.map(({ type, time, datetime, meta }) => [type, time, datetime, meta]),
+      [0, 1, 2].map((index) => [
+        "emulator.run.stage",
+        index === 2 ? "Oct 29, 2026, 3:42:02 PM" : null,
+        index === 2 ? "2026-10-29T15:42:02.000Z" : null,
+        [
+          ["source", "/emulator/lab-a"],
+          ["subject", run],
+          ["id", `${run}.${index + 1}`],
+        ],
+      ]),
+    );
+    // The head holds the type alone, as tall as its line, so the metadata sits where it does
+    // under a timed event's head: no text and no room for a time.
+    const heads: { text: string; children: number; head: number; type: number }[] =
+      await page.evaluate(`[
+        ...document.querySelector("sl-event-log").shadowRoot.querySelectorAll(".head"),
+      ].map((head) => ({
+        text: head.textContent.replace(/\\s+/g, " ").trim(),
+        children: head.children.length,
+        head: head.getBoundingClientRect().height,
+        type: head.querySelector(".type").getBoundingClientRect().height,
+      }))`);
+    assert.deepEqual(
+      heads.slice(0, 2).map(({ text, children }) => [text, children]),
+      [
+        ["emulator.run.stage", 1],
+        ["emulator.run.stage", 1],
+      ],
+    );
+    assert.equal(heads[0].head, heads[0].type);
+    assert.equal(heads[0].head, heads[2].head);
+  });
+
   test("events of one id from two sources are two events, each keeping its own node", async () => {
     // Keyed by id alone, the two would be one key: reordered, each row would update in place, and
     // the details opened on lab-b's row would stay on the second row, now lab-a's.

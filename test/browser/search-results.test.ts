@@ -235,6 +235,105 @@ describe("search results", { timeout: 60_000 }, () => {
     assert.deepEqual((await read()).status, ["status", "1 match for “report”"]);
   });
 
+  test("a total above the matches given says how many of it are shown; unset or no more, the count is theirs", async () => {
+    const statuses: string[] = [];
+    // Each case's fields and total; the total is set in the page, since JSON writes NaN as null.
+    for (const [fields, total] of [
+      [{ query: "report", items: matches }, "140"],
+      [{ query: "", items: matches }, "140"],
+      [{ query: "report", items: matches.slice(0, 1) }, "2"],
+      [{ query: "report", items: [] }, "5"],
+      [{ query: "report", items: matches }, "3"],
+      [{ query: "report", items: matches }, "1"],
+      [{ query: "report", items: matches }, "undefined"],
+      [{ query: "report", items: matches }, "NaN"],
+      [{ query: "report", items: [] }, "undefined"],
+    ] as const) {
+      await mount(fields);
+      await page.evaluate(`(async () => {
+        const results = document.querySelector("sl-search-results");
+        results.total = ${total};
+        await results.updateComplete;
+      })()`);
+      statuses.push((await read()).status[1]);
+    }
+    assert.deepEqual(statuses, [
+      "3 of 140 matches for “report”",
+      "3 of 140 matches",
+      "1 of 2 matches for “report”",
+      "0 of 5 matches for “report”",
+      "3 matches for “report”",
+      "3 matches for “report”",
+      "3 matches for “report”",
+      "3 matches for “report”",
+      "No matches for “report”",
+    ]);
+    // By its attribute too, while loading and in an error the total says nothing.
+    const attributed: string[] = await page.evaluate(`(async () => {
+      const results = document.querySelector("sl-search-results");
+      results.items = ${JSON.stringify(matches)};
+      const seen = [];
+      for (const [name, value] of [["total", "140"], ["state", "loading"], ["state", "error"], ["state", "ready"]]) {
+        results.setAttribute(name, value);
+        await results.updateComplete;
+        seen.push(results.shadowRoot.querySelector(".status").textContent.replace(/\\s+/g, " ").trim());
+      }
+      return seen;
+    })()`);
+    assert.deepEqual(attributed, [
+      "3 of 140 matches for “report”",
+      "Searching for “report”…",
+      "Couldn't search.",
+      "3 of 140 matches for “report”",
+    ]);
+  });
+
+  test("while loading a new query, the matches shown keep the marks of the query they answer", async () => {
+    await mount({ query: "report", items: matches });
+    // The consumer searches anew: the query and loading first, the new matches once they arrive.
+    const step = (fields: Record<string, unknown>) =>
+      page.evaluate(`(async () => {
+        const results = document.querySelector("sl-search-results");
+        Object.assign(results, ${JSON.stringify(fields)});
+        await results.updateComplete;
+      })()`);
+    const marks = async () => {
+      const { status, matches: shown } = await read();
+      return [status[1], ...shown.map(({ name, snippet }) => `${name} | ${snippet}`)];
+    };
+    // The query in one update and loading in the next, as the pipeline's search view sets them,
+    // or both in one.
+    await step({ query: "weekly" });
+    assert.equal((await marks())[3], "notes.md | …+a weekly [REPORT], not a monthly [report].");
+    await step({ state: "loading" });
+    assert.deepEqual(await marks(), [
+      "Searching for “weekly”…",
+      "quarterly-[report].md | …+revenue rose. This [report] covers the regions+…",
+      "[Report] template.docx | null",
+      "notes.md | …+a weekly [REPORT], not a monthly [report].",
+    ]);
+    // Loading set first and the query after, the same.
+    await step({ query: "monthly" });
+    assert.equal((await marks())[3], "notes.md | …+a weekly [REPORT], not a monthly [report].");
+    // The new matches arrive, marked by the query they answer.
+    await step({ items: matches.slice(2), state: "ready" });
+    assert.deepEqual(await marks(), [
+      "1 match for “monthly”",
+      "notes.md | …+a weekly REPORT, not a [monthly] report.",
+    ]);
+    // Matches set while still loading, as a search streaming them would, take the query too.
+    await step({ query: "weekly", state: "loading", items: matches.slice(2) });
+    assert.equal((await marks())[1], "notes.md | …+a [weekly] REPORT, not a monthly report.");
+    // A query set alone re-marks nothing in any state; set with the matches again, it marks them.
+    await step({ query: "report", state: "ready" });
+    assert.deepEqual(await marks(), [
+      "1 match for “report”",
+      "notes.md | …+a [weekly] REPORT, not a monthly report.",
+    ]);
+    await step({ query: "report", items: matches.slice(2) });
+    assert.equal((await marks())[1], "notes.md | …+a weekly [REPORT], not a monthly [report].");
+  });
+
   test("a name match whose snippet is not the name's shows its snippet too", async () => {
     await mount({
       query: "plan",

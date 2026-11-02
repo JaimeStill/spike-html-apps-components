@@ -19,15 +19,15 @@ export const tagName = "sl-event-log";
 /**
  * An event as the log shows it, a subset of CloudEvents 1.0 by its attribute names: its id,
  * unique within its source; its type; its source; the subject it is about, when it names one;
- * when it happened, an RFC 3339 string, as an event's JSON carries it, or a Date; and its data, a
- * JSON value, absent when it carries none.
+ * when it happened, an RFC 3339 string, as an event's JSON carries it, or a Date, absent when the
+ * event says not, as CloudEvents allows; and its data, a JSON value, absent when it carries none.
  */
 export interface LogEvent {
   id: string;
   type: string;
   source: string;
   subject?: string | null;
-  time: string | Date;
+  time?: string | Date | null;
   data?: unknown;
 }
 
@@ -35,7 +35,7 @@ export interface LogEvent {
  * since a run's events arrive seconds apart. */
 const timeFormat: Intl.DateTimeFormatOptions = { dateStyle: "medium", timeStyle: "medium" };
 
-/** The event's time as a Date, or null when it doesn't parse. */
+/** The event's time as a Date, or null when it has none or it doesn't parse. */
 function occurred(event: LogEvent): Date | null {
   if (event.time === undefined || event.time === null) return null;
   const date = new Date(event.time);
@@ -74,7 +74,8 @@ function atEnd(frame: HTMLElement): boolean {
 
 /**
  * Shows events as a log, in the order given, oldest first: each its type and its time, formatted
- * by the foundation's formatDateTime, absolute and to the second; under them its source, subject,
+ * by the foundation's formatDateTime, absolute and to the second, or its type alone when it has no
+ * time or one that doesn't parse, the line holding no room for one; under them its source, subject,
  * and id, each labelled, a subject or an id longer than its line cut with an ellipsis, its whole
  * text kept and shown in its title; and its data pretty-printed in a native details, collapsed
  * until opened. An event without data says so in the details' place. Each event is keyed by its
