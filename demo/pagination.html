@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>pagination specimen</title>
     <!-- The pagination's specimen page, from dist/, on documents.js's fixture: the first, a
-         middle, and the last page of nine entries by three, cursor mode, disabled, and no total.
+         middle, and the last page of nine entries by three, a two- and a three-digit page of 300
+         by three, cursor mode, disabled, and no total.
          Every state is labelled, then shown again in a section 20rem wide, and the focus section
          holds one instance the screenshot script reaches with Tab presses. The page links the
          installed foundation's full entry, page-full.css, and imports register-full.js, so a
@@ -50,6 +51,8 @@
           { label: "The first page: 1 of 3", build: pagination({ page: 1, more: true }) },
           { label: "A middle page: 2 of 3", build: pagination({ page: 2, more: true }) },
           { label: "The last page: 3 of 3", build: pagination({ page: 3 }) },
+          { label: "A two-digit page: 13 of 100", build: pagination({ page: 13, total: 300, more: true }) },
+          { label: "A three-digit page: 100 of 100", build: pagination({ page: 100, total: 300 }) },
           {
             label: "Cursor mode: page and total null, more true",
             build: pagination({ page: null, total: null, more: true }, continued.items),

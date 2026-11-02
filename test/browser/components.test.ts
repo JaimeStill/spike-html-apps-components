@@ -922,6 +922,47 @@ describe("components", { timeout: 60_000 }, () => {
     }
   });
 
+  test("the page number's field fits a two- and a three-digit page inside its padding, at one width for every page, in mono and sans, regular and compact", async () => {
+    // Every pagination on the page, pages 13 and 100 of 100 among them, in each section. The
+    // value's width, measured in the field's own font, fits the field's content box, its client
+    // width less its inline padding, and the field scrolls none of it; and every field, its page
+    // one, two, or three digits or none, is one width, so the field never jumps as the page changes.
+    const over = ["mono", "sans"].flatMap((type) =>
+      ["regular", "compact"].flatMap((space) => schemes.map((scheme) => ({ type, space, scheme }))),
+    );
+    const measure = `() => {
+      const context = document.createElement("canvas").getContext("2d");
+      return { shown: [...document.querySelectorAll("sl-pagination")].map((pagination) => {
+        const input = pagination.shadowRoot.querySelector(".page-input");
+        const style = getComputedStyle(input);
+        context.font = style.font;
+        return {
+          value: input.value,
+          width: input.getBoundingClientRect().width,
+          text: context.measureText(input.value).width,
+          content: input.clientWidth - parseFloat(style.paddingInlineStart) - parseFloat(style.paddingInlineEnd),
+          scrolled: input.scrollWidth - input.clientWidth,
+        };
+      }) };
+    }`;
+    for (const { profile, shown } of await measureSpecimen<{
+      shown: { value: string; width: number; text: number; content: number; scrolled: number }[];
+    }>("pagination", measure, over)) {
+      const values = new Set(shown.map(({ value }) => value));
+      assert.ok(values.has("13") && values.has("100"), `${profile}: pages 13 and 100 shown`);
+      const widths = shown.map(({ width }) => width);
+      assert.ok(
+        Math.max(...widths) - Math.min(...widths) <= 0.5,
+        `${profile}: the fields ${widths.join(", ")} wide`,
+      );
+      for (const { value, text, content, scrolled } of shown) {
+        const where = `${profile}, page "${value}"`;
+        assert.ok(text <= content, `${where}: the value ${text} wide, the content box ${content}`);
+        assert.ok(scrolled <= 0, `${where}: the field scrolls its value by ${scrolled}`);
+      }
+    }
+  });
+
   test("at 20rem, every state keeps within the column, a long name wrapping inside its entry, in every profile", async () => {
     // A component wider than the column widens its frame, the grid's item, past the list, so the
     // list's scroll width shows it; a name too long for its entry spills past the entry's button.

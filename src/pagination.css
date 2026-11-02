@@ -43,8 +43,16 @@
   color: var(--fg-2);
   white-space: nowrap;
 }
+/* The page number's field is as wide as its value, field-sizing's content size, and never
+   narrower than three digits: its content box, so the elements sheet's padding and border add to
+   the 3ch rather than come out of it, at every spacing. Up to page 999 the field keeps one width
+   as the page changes; past it the field grows with the page rather than clip it. field-sizing is
+   Baseline newly available, as the composer's field notes; without it the field keeps the
+   browser's own width for a number input, wider, never clipped. */
 .page-input {
-  inline-size: 4ch;
+  box-sizing: content-box;
+  min-inline-size: 3ch;
+  field-sizing: content;
   text-align: center;
   appearance: textfield;
 
