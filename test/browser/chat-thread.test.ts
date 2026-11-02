@@ -342,6 +342,14 @@ describe("chat thread", { timeout: 60_000 }, () => {
       narrow.parts.every(([, , lines]) => lines > 1),
       JSON.stringify(narrow.parts),
     );
+    // Wrapped, each line's name still reads the name and the id whole, a word apart.
+    const { nodes }: { nodes: AXNode[] } = await page.cdp("Accessibility.getFullAXTree", {});
+    assert.deepEqual(
+      nodes
+        .filter((node) => !node.ignored && node.role?.value === "DisclosureTriangle")
+        .map((node) => node.name?.value ?? ""),
+      [`Function call ${name} ${id}`, `Function output ${name} ${id}`],
+    );
     // Wide, each keeps whole, on one line.
     const wide = await measure("60rem");
     assert.equal(wide.scrolls, false);
