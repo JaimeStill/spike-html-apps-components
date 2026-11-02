@@ -1,9 +1,10 @@
 // The event log from this repository's dist/, on test/fixtures/components.html: its frame a polite
 // log of additions; each event's type, time, formatted by the foundation in the page's locale and
-// time zone, and its source, subject, and id, labelled; its data pretty-printed in a details,
-// collapsed, or a note when it has none; the events in the order given; events appended leaving
-// those shown in their own nodes and places, an opened details open; the frame following the newest
-// only from its end, under a page zoom too; the details opened by the keyboard; and no event sent.
+// time zone, and its source, subject, and id, labelled, each on its own line; its data
+// pretty-printed in a details, collapsed, or a note when it has none; the events in the order
+// given; events appended leaving those shown in their own nodes and places, an opened details open;
+// the frame following the newest only from its end, under a page zoom too; the details opened by
+// the keyboard; and no event sent.
 
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
@@ -259,6 +260,42 @@ describe("event log", { timeout: 60_000 }, () => {
     );
     assert.equal(heads[0].head, heads[0].type);
     assert.equal(heads[0].head, heads[2].head);
+  });
+
+  test("each event's source, subject, and id sit each on its own line, at a wide and a narrow width", async () => {
+    // At 40rem the three pairs would fit one line, and at 20rem they would not: at both, each
+    // pair's box starts at or below the bottom of the one before, so no two share a line, in the
+    // order source, subject, id.
+    await mount([stage(0)]);
+    for (const width of ["40rem", "20rem"]) {
+      const boxes: { label: string; top: number; bottom: number }[] =
+        await page.evaluate(`(async () => {
+        const log = document.querySelector("sl-event-log");
+        log.style.inlineSize = ${JSON.stringify(width)};
+        await log.updateComplete;
+        return [...log.shadowRoot.querySelectorAll(".meta > .pair")].map((pair) => {
+          const { top, bottom } = pair.getBoundingClientRect();
+          return { label: pair.querySelector("dt").textContent, top, bottom };
+        });
+      })()`);
+      assert.deepEqual(
+        boxes.map(({ label }) => label),
+        ["source", "subject", "id"],
+        `${width}: the pairs`,
+      );
+      for (const [index, { label, top }] of boxes.entries()) {
+        if (index === 0) continue;
+        const above = boxes[index - 1];
+        assert.ok(
+          top > above.top,
+          `${width}: ${label} at ${top}, not below ${above.label} at ${above.top}`,
+        );
+        assert.ok(
+          top >= above.bottom - 0.5,
+          `${width}: ${label} at ${top} shares a line with ${above.label}, its bottom at ${above.bottom}`,
+        );
+      }
+    }
   });
 
   test("events of one id from two sources are two events, each keeping its own node", async () => {
