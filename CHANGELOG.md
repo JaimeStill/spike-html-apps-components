@@ -10,12 +10,15 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 
 ### Fixed
 
-- `sl-chat-thread`, held to a height, follows content at its end that grows with no update of its
-  own: a details the reader opens in the last item, a reasoning or a function call's, or an image
-  that loads. While the reader is at the frame's end, its end stays in view, instantly under any
-  motion preference, as following new items does; it stopped at its old place, the expanded
-  content cut off below. A reader who scrolled up keeps their place, and unheld nothing changes.
-  The details still toggle natively: a ResizeObserver over the frame's content sees the growth.
+- `sl-chat-thread`, held to a height, follows its last item when it grows with no update of its
+  own: a details the reader opens in it, a reasoning or a function call's, or an image that loads.
+  While the reader is at the frame's end, its end stays in view, instantly under any motion
+  preference, as following new items does; it stopped at its old place, the expanded content cut
+  off below. Only the last item's growth follows: a details opened in an item above it opens in
+  place, the summary clicked where it was, and leaves the reader short of the end. A reader who
+  scrolled up keeps their place, a thread reattached scrolls nothing on its own, and unheld
+  nothing changes. The details still toggle natively: a ResizeObserver over the frame's content
+  sees the growth.
 
 ## [0.9.0] - 2026-11-02
 
