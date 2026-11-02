@@ -245,7 +245,7 @@ describe("search results", { timeout: 60_000 }, () => {
       [{ query: "report", items: [] }, "5"],
       [{ query: "report", items: matches }, "3"],
       [{ query: "report", items: matches }, "1"],
-      [{ query: "report", items: matches }, "undefined"],
+      [{ query: "report", items: matches }, "null"],
       [{ query: "report", items: matches }, "NaN"],
       [{ query: "report", items: [] }, "undefined"],
     ] as const) {

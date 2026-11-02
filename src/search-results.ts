@@ -164,8 +164,8 @@ export class SearchResults extends LitElement {
    * DOM's selector test. */
   declare items: readonly SearchMatch[];
   /** How many match in all, when the search found more than `items` holds, as a paged search's
-   * first page; unset, or no more than the matches given, the count is theirs. */
-  declare total: number | undefined;
+   * first page; null, or no more than the matches given, the count is theirs. */
+  declare total: number | null;
   /** Loading, error, or ready; reflected to the `state` attribute. */
   declare state: SearchState;
   /** Why the search failed, shown in the error state. */
@@ -175,6 +175,7 @@ export class SearchResults extends LitElement {
     super();
     this.query = "";
     this.items = [];
+    this.total = null;
     this.state = "ready";
     this.message = "";
   }
@@ -200,8 +201,8 @@ export class SearchResults extends LitElement {
         return html`<strong class="label">Couldn't search.</strong>
           ${this.message ? html`<span class="detail">${this.message}</span>` : nothing}`;
     }
-    // A total that isn't a number, as an attribute that doesn't parse, is none.
-    const total = typeof this.total === "number" && this.total > matches.length ? this.total : 0;
+    // A null total is none, as is NaN, an attribute that doesn't parse, which no count exceeds.
+    const total = this.total !== null && this.total > matches.length ? this.total : 0;
     if (matches.length || total) {
       return html`<span class="label">${count(matches.length, total)}${query ? ` for ${quoted}` : ""}</span>`;
     }
