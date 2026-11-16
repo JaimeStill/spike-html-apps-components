@@ -71,11 +71,11 @@ h2 {
   margin: 0;
   font-size: var(--text-l);
 }
-/* The drawer's heading takes focus as the dialog opens, by its tabindex="-1" and autofocus, so
-   the dialog's start, not its Close button, holds focus. It is no control and Tab never reaches it,
-   so it draws no focus outline, not even the elements sheet's :focus-visible one. The docked
-   aside's heading takes no focus. */
-dialog h2:focus {
+/* A heading with tabindex="-1" takes focus only from script or autofocus, never from Tab: it is
+   no control, so it draws no focus outline, not even the elements sheet's :focus-visible one. The
+   drawer's heading is one, so focus lands at the dialog's start as it opens, not on its Close
+   button; the docked aside's heading has no tabindex and takes no focus. */
+h2[tabindex="-1"]:focus {
   outline: none;
 }
 /* The body scrolls in its padding box and clips there. A control that focus scrolls into view

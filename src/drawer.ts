@@ -41,9 +41,9 @@ export type CloseDetail = Record<string, never>;
  * focus outline and is out of the Tab order, so Tab from it reaches the Close button. The header
  * stays in view while the children scroll below it. The Close button, Escape, `close()`,
  * `toggle()`, or `open` set false closes it, and the dialog returns focus to the element that held
- * it when it opened. Under reduced motion it opens and closes at once. `open` in the markup, or set before the element is
- * connected, opens the drawer as the page loads below `dock`, sending `open`, and is undone
- * while docked, sending nothing.
+ * it when it opened. Under reduced motion it opens and closes at once. `open` in the markup, or
+ * set before the element is connected, opens the drawer as the page loads below `dock`, sending
+ * `open`, and is undone while docked, sending nothing.
  *
  * `open` and `close` go out each time the modal drawer opens or closes, however it was asked,
  * never on a switch between the modes. A switch, as the viewport crosses `dock`, closes an open
