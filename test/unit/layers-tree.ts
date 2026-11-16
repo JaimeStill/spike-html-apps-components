@@ -70,8 +70,7 @@ const installed = `../node_modules/${foundation}`;
 export const violations = {
   // A package the manifest doesn't declare, by name: the table allows lit and the foundation
   // alone. lit-html, which lit depends on, is installed beside it; the SDK, the sibling layer, is
-  // another layer's, and the app sits above every layer; a devDependency ships nothing; and the
-  // package's own name resolves to its build, not its src/.
+  // another layer's, and the app sits above every layer; and a devDependency ships nothing.
   ...by([table, extraneous], {
     "src/sdk.ts": `import { Client } from "${sdk}/client.js";`,
     ...forms("src/forms/sdk", `${sdk}/client.js`),
@@ -79,8 +78,11 @@ export const violations = {
     ...forms("src/forms/lit-html", "lit-html/directives/repeat.js"),
     "src/app.ts": `import { define } from "${app}/main.js";`,
     ...forms("src/forms/typescript", "typescript"),
-    ...forms("src/forms/self-name", `${components}/status-badge.js`),
   }),
+  // The package's own name, which resolves to its build, not its src/: the table alone catches it,
+  // since no-extraneous-dependencies (from eslint-plugin-import-x 4.18.0) passes a self-import in a
+  // package whose manifest has an exports field, as Node resolves one.
+  ...by([table], forms("src/forms/self-name", `${components}/status-badge.js`)),
   // A declared package by a relative path into node_modules/: the foundation's installed files,
   // its build and its sheets, and lit's.
   ...by([table, relativePackages], {
