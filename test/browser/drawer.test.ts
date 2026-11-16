@@ -7,7 +7,9 @@
 // scrolling body, docked or not, its whole focus outline drawn at either edge; below it, closed by
 // default, and opened modally by show(), toggle(), or open, open in its markup or set before it is
 // connected included, which is undone while docked, a dialog named by its visible heading and
-// covering the viewport edge to edge, its header in view while its content scrolls, the page behind inert and focus inside, closed by its Close button, Escape, close(),
+// covering the viewport edge to edge, its header in view while its content scrolls, the page
+// behind inert and focus on its heading, however it opened, not its Close button, the heading
+// drawing no outline and Tab from it reaching Close, closed by its Close button, Escape, close(),
 // toggle(), or open, focus returned to the opener; the Close button's text replaced through its
 // slot; open and close sent once each, bubbling and composed, never on a mode switch or on removal,
 // which closes it, a drawer put back closed and opening modally again; a switch in either
@@ -586,7 +588,7 @@ describe("drawer", { timeout: 60_000 }, () => {
       labelledby: "title",
       label: null,
     });
-    assert.equal(shown.focused, "drawer button", "focus moves to the dialog's first control");
+    assert.equal(shown.focused, "drawer h2", "focus moves to the dialog's heading");
     assert.equal(await pageLive(), false, "the page behind takes no focus");
     assert.deepEqual(shown.heard, [{ type: "open", detail: {}, bubbles: true, composed: true }]);
     // Tab stays among the drawer's controls, or leaves for the browser's own, never the page's.
@@ -599,6 +601,54 @@ describe("drawer", { timeout: 60_000 }, () => {
       );
     }
   });
+
+  // However it opens, the dialog's heading takes focus, by its tabindex="-1" and autofocus, not
+  // its first control, the Close button: autofocus on the dialog itself does nothing in Chromium
+  // 155 and 157. The heading is no control, so it draws no focus outline and Tab never reaches it
+  // again; the first Tab reaches Close, and Escape returns focus to the opener, focused first.
+  for (const [how, open] of [
+    ["show()", "document.querySelector('sl-drawer').show()"],
+    ["toggle()", "document.querySelector('sl-drawer').toggle()"],
+    ["open set true", "document.querySelector('sl-drawer').open = true"],
+    ["the opener's click", null],
+  ] as const) {
+    test(`opened by ${how}, its heading takes focus, not Close, with no outline; Tab reaches Close, Escape returns focus to the opener`, async () => {
+      await mount(NARROW);
+      if (open === null) {
+        await clickAt(await center("#opener"));
+      } else {
+        await page.evaluate(`document.querySelector("#opener").focus()`);
+        await page.evaluate(open);
+      }
+      await until(page, `document.querySelector("sl-drawer").open`);
+      await slid();
+      const heading: { focused: string | null; heading: boolean; close: boolean; outline: string } =
+        await page.evaluate(`(async () => {
+          const drawer = document.querySelector("sl-drawer");
+          await drawer.updateComplete;
+          const root = drawer.shadowRoot;
+          const h2 = root.querySelector("dialog h2");
+          return {
+            focused: (await window.read()).focused,
+            heading: root.activeElement === h2,
+            close: root.activeElement === root.querySelector("header button"),
+            outline: getComputedStyle(h2).outlineStyle,
+          };
+        })()`);
+      assert.deepEqual(heading, {
+        focused: "drawer h2",
+        heading: true,
+        close: false,
+        outline: "none",
+      });
+      await press("Tab", 9);
+      assert.equal((await read()).focused, "drawer button", "Tab from the heading reaches Close");
+      await press("Escape", 27);
+      await closedHeard(1);
+      const shown = await read();
+      assert.deepEqual([shown.open, shown.dialogOpen, shown.focused], [false, false, "opener"]);
+    });
+  }
 
   for (const [width, height] of [
     [480, 800],
@@ -760,12 +810,12 @@ describe("drawer", { timeout: 60_000 }, () => {
     assert.deepEqual([shown.modal, shown.sent], [true, ["open"]]);
   });
 
-  test("open in its markup below dock opens it modally as the page loads, focus on its Close button; open goes out once", async () => {
+  test("open in its markup below dock opens it modally as the page loads, focus on its heading; open goes out once", async () => {
     await mount(NARROW, {}, "", HEIGHT, { attributes: "open" });
     const shown = await read();
     assert.deepEqual(
       [shown.mode, shown.modal, shown.open, shown.attribute, shown.focused, shown.sent],
-      ["drawer", true, true, true, "drawer button", ["open"]],
+      ["drawer", true, true, true, "drawer h2", ["open"]],
     );
     assert.deepEqual(shown.heard, [{ type: "open", detail: {}, bubbles: true, composed: true }]);
   });
@@ -790,7 +840,7 @@ describe("drawer", { timeout: 60_000 }, () => {
         [shown.mode, shown.modal, shown.open, shown.attribute, shown.sent],
         [mode, modal, modal, modal, sent],
       );
-      if (modal) assert.equal(shown.focused, "drawer button");
+      if (modal) assert.equal(shown.focused, "drawer h2");
     });
   }
 
@@ -894,7 +944,7 @@ describe("drawer", { timeout: 60_000 }, () => {
     // It opens again from the same content.
     await call("show");
     shown = await read();
-    assert.deepEqual([shown.modal, shown.focused], [true, "drawer button"]);
+    assert.deepEqual([shown.modal, shown.focused], [true, "drawer h2"]);
     // And back in the dialog's header, beside its Close button, the one heading still.
     await slid();
     assert.deepEqual(await exposed("heading"), ["Documents"], "a drawer again, one heading");

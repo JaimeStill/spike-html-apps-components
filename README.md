@@ -171,8 +171,10 @@ foundation's `page.css`:
   too, covering the viewport and sliding in from the inline-start edge; docked, `open` in the
   markup is reverted to false. Its header holds `label` as an `h2` that names the dialog, staying
   in view while the content scrolls, and a Close button named "Close" and the label, its text
-  replaceable through the `close` slot for a translation. The Close button, Escape, `close()`, or
-  `toggle()` closes it, and focus returns to what opened it. It dispatches `open` and `close` as
+  replaceable through the `close` slot for a translation. As it opens, focus lands on its heading,
+  `tabindex="-1"` and `autofocus`, not on the Close button; the heading shows no focus outline and
+  is out of the Tab order, so Tab from it reaches the Close button. The Close button, Escape,
+  `close()`, or `toggle()` closes it, and focus returns to what opened it. It dispatches `open` and `close` as
   the modal drawer opens and closes, never as the viewport crosses `dock`, which swaps only the
   wrapper, so the slotted content is never moved, disconnected, or re-created: an open drawer
   docks, and docked content becomes a closed drawer. It slides only when the reader allows motion.

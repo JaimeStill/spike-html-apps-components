@@ -33,13 +33,15 @@ export type CloseDetail = Record<string, never>;
  * is held shorter than they are; the children need no heading of their own.
  * Below `dock` the drawer is closed until `show()`, `toggle()`, or `open` opens it, a
  * native dialog shown by `showModal()`: it covers the viewport edge to edge, sliding in from the
- * inline-start edge, the right in a right-to-left context, the page behind it inert, and focus
- * moves inside it. Its header holds `label` as a visible `h2` that names the dialog, and a Close
- * button whose accessible name adds the label, "Close Documents"; the button's visible text is
- * the `close` slot's, "Close" by default, for a translation. The header stays in view while the
- * children scroll below it. The Close button, Escape, `close()`, `toggle()`, or `open` set false
- * closes it, and the dialog returns focus to the element that held it when it opened. Under
- * reduced motion it opens and closes at once. `open` in the markup, or set before the element is
+ * inline-start edge, the right in a right-to-left context, and the page behind it inert. Its
+ * header holds `label` as a visible `h2` that names the dialog, and a Close button whose accessible
+ * name adds the label, "Close Documents"; the button's visible text is the `close` slot's, "Close"
+ * by default, for a translation. As the dialog opens, focus moves to its heading, by the heading's
+ * `tabindex="-1"` and `autofocus`, not to the Close button; the heading, no control, shows no
+ * focus outline and is out of the Tab order, so Tab from it reaches the Close button. The header
+ * stays in view while the children scroll below it. The Close button, Escape, `close()`,
+ * `toggle()`, or `open` set false closes it, and the dialog returns focus to the element that held
+ * it when it opened. Under reduced motion it opens and closes at once. `open` in the markup, or set before the element is
  * connected, opens the drawer as the page loads below `dock`, sending `open`, and is undone
  * while docked, sending nothing.
  *
@@ -205,10 +207,13 @@ export class Drawer extends LitElement {
       </aside>`;
     }
     // The label is in the Close button's name, visually hidden, so a translated text in the close
-    // slot still names what the button closes.
+    // slot still names what the button closes. The heading takes focus as the dialog opens, by its
+    // tabindex="-1" and autofocus, rather than the first control, the Close button: autofocus on
+    // the dialog itself does nothing in Chromium 155 and 157. Out of the Tab order, it is never
+    // reached again, and the first Tab from it reaches the Close button.
     return html`<dialog aria-labelledby="title" @close=${this.#closed}>
       <header>
-        <h2 id="title">${this.label}</h2>
+        <h2 id="title" tabindex="-1" autofocus>${this.label}</h2>
         <button type="button" @click=${this.close}>
           <slot name="close">Close</slot><span class="hidden"> ${this.label}</span>
         </button>

@@ -1,12 +1,12 @@
 /*
  * The drawer's layout in a shadow root: drawer.ts adopts this sheet into its root after the
  * foundation's reset and elements sheets (baseline/reset.css and elements.css), which give the
- * native dialog its surface, the Close button and the heading their looks and focus ring, and the
- * ::backdrop its scrim, which the drawer covers whole. It holds the docked aside's frame and the
- * drawer's: the full viewport, the header both share, the scrolling body, and the slide. It reads
- * only the foundation's baseline tokens, which a shadow root takes by inheritance from the page's
- * entry; its one fixed length is the slide's timing. Unlayered, it sits above the adopted layers in
- * the root.
+ * native dialog its surface, the Close button and the heading their looks, the Close button its
+ * focus ring, and the ::backdrop its scrim, which the drawer covers whole. It holds the docked
+ * aside's frame and the drawer's: the full viewport, the header both share, the scrolling body, and
+ * the slide. It reads only the foundation's baseline tokens, which a shadow root takes by
+ * inheritance from the page's entry; its one fixed length is the slide's timing. Unlayered, it sits
+ * above the adopted layers in the root.
  *
  * Both wrappers are a column of the header over the body: the header, the label's heading and, as
  * a drawer, the Close button, stays in place while the body below it scrolls. Docked, the aside is
@@ -70,6 +70,13 @@ header {
 h2 {
   margin: 0;
   font-size: var(--text-l);
+}
+/* The drawer's heading takes focus as the dialog opens, by its tabindex="-1" and autofocus, so
+   the dialog's start, not its Close button, holds focus. It is no control and Tab never reaches it,
+   so it draws no focus outline, not even the elements sheet's :focus-visible one. The docked
+   aside's heading takes no focus. */
+dialog h2:focus {
+  outline: none;
 }
 /* The body scrolls in its padding box and clips there. A control that focus scrolls into view
    stops at the scroll padding, the body's padding, rather than at the clip edge, so its focus
