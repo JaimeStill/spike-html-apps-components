@@ -6,6 +6,31 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 
 ## [Unreleased]
 
+## [0.10.3] - 2026-11-16
+
+### Fixed
+
+- `sl-drawer` below `dock` puts focus on its heading as it opens, not on its Close button. The
+  dialog, shown by `showModal()`, named no element to focus, so the browser focused its first
+  control, the Close button; an `autofocus` on the dialog itself does nothing in Chromium 155 and
+  157. The dialog's `h2` now carries `tabindex="-1"` and `autofocus`, so focus lands at the
+  dialog's start however it opens, by `show()`, `toggle()`, `open`, or an opener's click. The
+  heading is no control: it draws no focus outline and is out of the Tab order, so Tab from it
+  reaches the Close button. Focus still returns to the opener as the drawer closes, and the docked
+  aside's heading is unchanged.
+- The README's release-tarball install lines name this release's tarball and the foundation
+  v0.3.1's, not the components v0.3.0's and the foundation v0.2.0's, and its marked version is
+  18.2.0.
+
+### Changed
+
+- The toolchain and the dependencies are at their current pins: node 26.13.1, pnpm 12.21.0,
+  chrome-headless-shell 157.0.8103.78, eslint 10.15.0, eslint-plugin-boundaries 7.4.4,
+  eslint-plugin-import-x 4.18.1, typescript-eslint 8.72.2, globals 17.14.0, prettier 3.10.1, and
+  marked 18.2.0, a dependency. The foundation is tested at v0.3.1, whose baseline veils only a
+  modal dialog's backdrop; the peer range stays `^0.3.0`, which admits it, and the drawer's scrim,
+  a modal dialog's, is unchanged.
+
 ## [0.10.2] - 2026-11-02
 
 ### Changed
@@ -557,7 +582,8 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
 - The release by tag: `v<version>`, whose tree is the pack, with the tarball on its GitHub
   release.
 
-[Unreleased]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.10.2...HEAD
+[Unreleased]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.10.3...HEAD
+[0.10.3]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.10.2...v0.10.3
 [0.10.2]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.10.1...v0.10.2
 [0.10.1]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.10.0...v0.10.1
 [0.10.0]: https://github.com/JaimeStill/spike-html-apps-components/compare/v0.9.1...v0.10.0

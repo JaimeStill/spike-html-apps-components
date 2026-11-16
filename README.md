@@ -9,24 +9,24 @@ and is released by git tag.
 
 Each release is a tag, `v<version>`, whose tree is the package as `pnpm pack` builds it:
 `package.json`, this README, the LICENSE, and `dist/`; each GitHub release also carries the
-tarball. It depends on lit 3.3.3 and marked 18.1.2, and takes
+tarball. It depends on lit 3.3.3 and marked 18.2.0, and takes
 [the foundation](https://github.com/JaimeStill/spike-html-apps-foundation) as a peer at
 `^0.3.0`: a consumer declares the foundation beside the components, from any of its sources, and
 the one copy serves both, so a restyle of the foundation's sheets by package name reaches the
 components' shadow roots too. Install both by their tags:
 
 ```
-npm install --allow-git=root github:JaimeStill/spike-html-apps-components#v0.10.2 github:JaimeStill/spike-html-apps-foundation#v0.3.0
-pnpm add github:JaimeStill/spike-html-apps-components#v0.10.2 github:JaimeStill/spike-html-apps-foundation#v0.3.0
-bun add github:JaimeStill/spike-html-apps-components#v0.10.2 github:JaimeStill/spike-html-apps-foundation#v0.3.0
+npm install --allow-git=root github:JaimeStill/spike-html-apps-components#v0.10.3 github:JaimeStill/spike-html-apps-foundation#v0.3.1
+pnpm add github:JaimeStill/spike-html-apps-components#v0.10.3 github:JaimeStill/spike-html-apps-foundation#v0.3.1
+bun add github:JaimeStill/spike-html-apps-components#v0.10.3 github:JaimeStill/spike-html-apps-foundation#v0.3.1
 ```
 
 Or by their release tarballs:
 
 ```
-npm install --allow-remote=root https://github.com/JaimeStill/spike-html-apps-components/releases/download/v0.3.0/jaimestill-spike-html-apps-components-0.3.0.tgz https://github.com/JaimeStill/spike-html-apps-foundation/releases/download/v0.2.0/jaimestill-spike-html-apps-foundation-0.2.0.tgz
-pnpm add https://github.com/JaimeStill/spike-html-apps-components/releases/download/v0.3.0/jaimestill-spike-html-apps-components-0.3.0.tgz https://github.com/JaimeStill/spike-html-apps-foundation/releases/download/v0.2.0/jaimestill-spike-html-apps-foundation-0.2.0.tgz
-bun add https://github.com/JaimeStill/spike-html-apps-components/releases/download/v0.3.0/jaimestill-spike-html-apps-components-0.3.0.tgz https://github.com/JaimeStill/spike-html-apps-foundation/releases/download/v0.2.0/jaimestill-spike-html-apps-foundation-0.2.0.tgz
+npm install --allow-remote=root https://github.com/JaimeStill/spike-html-apps-components/releases/download/v0.10.3/jaimestill-spike-html-apps-components-0.10.3.tgz https://github.com/JaimeStill/spike-html-apps-foundation/releases/download/v0.3.1/jaimestill-spike-html-apps-foundation-0.3.1.tgz
+pnpm add https://github.com/JaimeStill/spike-html-apps-components/releases/download/v0.10.3/jaimestill-spike-html-apps-components-0.10.3.tgz https://github.com/JaimeStill/spike-html-apps-foundation/releases/download/v0.3.1/jaimestill-spike-html-apps-foundation-0.3.1.tgz
+bun add https://github.com/JaimeStill/spike-html-apps-components/releases/download/v0.10.3/jaimestill-spike-html-apps-components-0.10.3.tgz https://github.com/JaimeStill/spike-html-apps-foundation/releases/download/v0.3.1/jaimestill-spike-html-apps-foundation-0.3.1.tgz
 ```
 
 - npm 12 refuses a git dependency unless `--allow-git` allows it, and a remote tarball unless
@@ -171,11 +171,14 @@ foundation's `page.css`:
   too, covering the viewport and sliding in from the inline-start edge; docked, `open` in the
   markup is reverted to false. Its header holds `label` as an `h2` that names the dialog, staying
   in view while the content scrolls, and a Close button named "Close" and the label, its text
-  replaceable through the `close` slot for a translation. The Close button, Escape, `close()`, or
-  `toggle()` closes it, and focus returns to what opened it. It dispatches `open` and `close` as
-  the modal drawer opens and closes, never as the viewport crosses `dock`, which swaps only the
-  wrapper, so the slotted content is never moved, disconnected, or re-created: an open drawer
-  docks, and docked content becomes a closed drawer. It slides only when the reader allows motion.
+  replaceable through the `close` slot for a translation. As it opens, focus lands on its heading,
+  `tabindex="-1"` and `autofocus`, not on the Close button; the heading shows no focus outline and
+  is out of the Tab order, so Tab from it reaches the Close button. The Close button, Escape,
+  `close()`, or `toggle()` closes it, and focus returns to what opened it. It dispatches `open`
+  and `close` as the modal drawer opens and closes, never as the viewport crosses `dock`, which
+  swaps only the wrapper, so the slotted content is never moved, disconnected, or re-created: an
+  open drawer docks, and docked content becomes a closed drawer. It slides only when the reader
+  allows motion.
 - `./*.css`: each component's sheet, which its module imports itself.
 
 `demo/components.html` puts the status badge, the entry, and the pagination on one page, with its
