@@ -18,6 +18,9 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the packag
   heading is no control: it draws no focus outline and is out of the Tab order, so Tab from it
   reaches the Close button. Focus still returns to the opener as the drawer closes, and the docked
   aside's heading is unchanged.
+- The README's release-tarball install lines name this release's tarball and the foundation
+  v0.3.1's, not the components v0.3.0's and the foundation v0.2.0's, and its marked version is
+  18.2.0.
 
 ### Changed
 
